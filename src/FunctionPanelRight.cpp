@@ -2,6 +2,7 @@
 
 #include <windows.h>
 
+#include "GeometryObjects.h"
 #include "ETHuman3DApp.h"
 #include "pch.h"
 #include "FunctionPanelRight.h"
@@ -6259,9 +6260,21 @@ void FunctionPanelRight::ExecuteObjectAddRoutines()
 	// == 객체 polydata/actor 생성 ==
 	{
 		// Make object actor
-		if (m_ObjectType[m_Object_MakingIndex] == 0) theApp.ObjectGenerate_Box(m_Object_MakingIndex);
-		if (m_ObjectType[m_Object_MakingIndex] == 1) theApp.ObjectGenerate_Sphere(m_Object_MakingIndex);
-		if (m_ObjectType[m_Object_MakingIndex] == 2) theApp.ObjectGenerate_Cylinder(m_Object_MakingIndex);
+		// if (m_ObjectType[m_Object_MakingIndex] == 0) theApp.ObjectGenerate_Box(m_Object_MakingIndex);
+		// if (m_ObjectType[m_Object_MakingIndex] == 1) theApp.ObjectGenerate_Sphere(m_Object_MakingIndex);
+		// if (m_ObjectType[m_Object_MakingIndex] == 2) theApp.ObjectGenerate_Cylinder(m_Object_MakingIndex);
+		// 1. 현재 만들려는 객체의 ID와 타입(0:Box, 1:Sphere...)을 가져옵니다.
+		int id = m_Object_MakingIndex;
+		int type = m_ObjectType[id];
+
+		// 2. 공장(Factory)에 주문을 넣습니다. (알아서 Box, Sphere, Cylinder 중 맞는 걸 줍니다)
+		auto geometry = GeometryFactory::Create(type);
+
+		// 3. "만들어라(Generate)" 명령을 내립니다. (누구든 상관없이 알아서 동작합니다)
+		if (geometry) 
+		{
+			geometry->Generate(id);
+		}
 		theApp.m_pVTKWidget->GetSceneRenderer()->ResetCamera();                // 카메라 위치·방향 리셋
 		theApp.m_pVTKWidget->GetSceneRenderer()->ResetCameraClippingRange();   // near/far 클리핑면 자동 재계산
 		theApp.m_pVTKWidget->renderWindow()->Render();
@@ -6561,23 +6574,32 @@ void FunctionPanelRight::slot_ObjectSetting_MaterialEdit_ButtonClicked()
 // Main function - Info Status
 void FunctionPanelRight::slot_ObjectUpdate_ButtonClicked()
 {
-	if (m_Object_SequenceVector.size() == 0)
-	{
-		theApp.SetMessageBox("Object should be added first.");
-		return;
-	}
-	int id = m_Object_SelectedIndex;
+    if (m_Object_SequenceVector.size() == 0)
+    {
+        theApp.SetMessageBox("Object should be added first.");
+        return;
+    }
+    
+    // 1. 업데이트할 대상의 번호표(ID)를 가져옵니다.
+    int id = m_Object_SelectedIndex;
 
-	SaveObject_InfoData(id); // Info status 기반으로 Info data 업데이트
+    SaveObject_InfoData(id); // Info status 기반으로 Info data 업데이트
 
-	// Make actor using saved info data -> Object는 재생성 해야함
-	if (m_ObjectType[id] == 0) theApp.ObjectGenerate_Box(id);
-	if (m_ObjectType[id] == 1) theApp.ObjectGenerate_Sphere(id);
-	if (m_ObjectType[id] == 2) theApp.ObjectGenerate_Cylinder(id);
+    // [수정된 부분] Factory 패턴 적용 (if-else 제거)
+    // 2. 이 ID가 어떤 도형인지(Box? Sphere?) 타입을 확인합니다.
+    int type = m_ObjectType[id]; 
+    
+    // 3. 공장에 주문해서 알맞은 전문가(객체)를 데려옵니다.
+    auto geometry = GeometryFactory::Create(type);
+    
+    // 4. "다시 만들어(Generate)"라고 명령합니다.
+    if (geometry) {
+        geometry->Generate(id);
+    }
 
-	// actor 업데이트
-	theApp.UpdateObject_ActorHighlighted(id);
-	theApp.m_pVTKWidget->renderWindow()->Render();
+    // actor 업데이트 (하이라이트 등 후처리)
+    theApp.UpdateObject_ActorHighlighted(id);
+    theApp.m_pVTKWidget->renderWindow()->Render();
 }
 void FunctionPanelRight::slot_ObjectPanel_MaterialEdit_ButtonClicked()
 {
@@ -21402,14 +21424,26 @@ void FunctionPanelRight::LoadReconsturctionFile_previous(QString dir) // 무조�
 						UpdateObject_InfoStatus(m_Object_MakingIndex); // Panel 값 업데이트
 
 						// Make object actor
-						if (m_ObjectType[m_Object_MakingIndex] == 0) theApp.ObjectGenerate_Box(m_Object_MakingIndex);
-						if (m_ObjectType[m_Object_MakingIndex] == 1) theApp.ObjectGenerate_Sphere(m_Object_MakingIndex);
-						if (m_ObjectType[m_Object_MakingIndex] == 2) theApp.ObjectGenerate_Cylinder(m_Object_MakingIndex);
+						int id = m_Object_MakingIndex;
+						int type = m_ObjectType[id]; // 0:Box, 1:Sphere, 2:Cylinder
 
-						// Set global variables 	
-						m_Object_SequenceVector.push_back(m_Object_MakingIndex);
-						m_Object_SelectedIndex = m_Object_MakingIndex;
-						m_Object_MakingIndex++;				
+						// 1. UI 패널 모드 설정 (이 함수들은 아직 FunctionPanelRight에 있으므로 if문 유지)
+						if (type == 0) SetBoxObjectMode();
+						else if (type == 1) SetSphereObjectMode();
+						else if (type == 2) SetCylinderObjectMode();
+
+						UpdateObject_InfoStatus(id); // Panel 값 업데이트
+
+						// 2. [핵심] Factory를 통해 도형 생성 (theApp.ObjectGenerate_... 대체)
+						auto geometry = GeometryFactory::Create(type);
+						if (geometry) {
+							geometry->Generate(id);
+						}
+
+						// 3. 글로벌 변수 업데이트
+						m_Object_SequenceVector.push_back(id);
+						m_Object_SelectedIndex = id;
+						m_Object_MakingIndex++;	
 					}		
 					ifp >> dump; // "^"
 				}

@@ -462,15 +462,9 @@ public:
 	void    GenerateGlassesTetFile(int phantomIdx);
 	void    TranslateGlassesTetFile(int phantomIdx);
 	void	DosimeterGenerate(int no);	
-	void	ObjectGenerate_Box(int no);
-	void	ObjectGenerate_Sphere(int no);
-	vtkSmartPointer<vtkPolyData> CreateTubeMesh(double R_in, double R_out, double halfHeight, double startDeg, double deltaDeg, int resolution);
-	void	ObjectGenerate_Cylinder(int no);	
 	//void	ObjectGenerate_Group(int no);
-	void    AddAzimuthalAngularPoints(vtkSmartPointer<vtkPoints> points, double radius, double startAngle, double endAngle, double FixedAngle, int numPoints);
-	void    AddPartialCirclePoints(vtkSmartPointer<vtkPoints> points, double radius, double startAngle, double endAngle, int numPoints);	
+	// Geometry //
 	void	UpdateObject_ActorHighlighted(int objectIndex);	
-	void	UpdateObject_InfoStatus_InActorMouseControl(int objectIndex);
 	
 
 	BodySizeInfo  CalcBoydSizeScaleFactor(int phantomType, int phantomGender, int phantomAge, int phantomPosture, double phantomHeight, double phantomWeight);
@@ -513,8 +507,6 @@ public:
 
 	std::string SetComputerID();
 
-	void	test_obj();
-	void	test_poly();
 	bool	b_IsButtonDragging = false;
 
 	//Memory Usage
