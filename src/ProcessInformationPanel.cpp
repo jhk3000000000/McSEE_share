@@ -1,9 +1,10 @@
 ﻿#include "pch.h"
+#include "ETHuman3DApp.h"
 
 #include "ProcessInformationPanel.h"
 #include "FunctionPanelRight.h"
+#include "Manager_Calculation.h"
 
-#include "ETHuman3DApp.h"
 
 #include "Util.h"
 
@@ -263,7 +264,7 @@ void ProcessInformationPanel::slot_StopSave_ButtonClicked()
 {
 	if (QMessageBox::Yes == theApp.SetMessageBox_YesNo("The stop process is irreversible. Do you want to stop the simulation?"))
 	{
-		theApp.pRt->DoseCalculation_StopAndSave();
+		theApp.managerCalculation->DoseCalculation_StopAndSave();
 		StopSaveButton->setDisabled(true);
 	}
 }

@@ -57,7 +57,9 @@
 #include <vtkAreaPicker.h>  
 #include <vtkPolyDataConnectivityFilter.h>
 #include <vtkCubeSource.h>
-
+#include <vtkWedge.h>
+#include <vtkTriangle.h>
+#include <vtkTriangleFilter.h>
 // =========================================================
 // 1. [Public] 외부 호출 함수 구현
 // =========================================================
@@ -848,22 +850,6 @@ void PhantomObjects::UpdatePhantom_InfoStatus_InActorMouseControl(int phantomInd
 	theApp.pRt->PhantomRotX_QLineEdit->setText(StringRotX);
 	theApp.pRt->PhantomRotY_QLineEdit->setText(StringRotY);
 	theApp.pRt->PhantomRotZ_QLineEdit->setText(StringRotZ);
-}
-void PhantomObjects::UpdatePhantom_ActorHighlighted(int phantomIndex) // 현재 선택된 팬텀버튼에 해당하는 팬텀만 pickable 하도록
-{
-	for (auto itr_phanntom : theApp.pRt->m_Phantom_SequenceVector)
-	{
-		if (itr_phanntom == phantomIndex)
-		{
-			theApp.PhantomPanelActor[itr_phanntom]->GetProperty()->SetDiffuse(1.0);
-		}
-		else
-		{
-			theApp.PhantomPanelActor[itr_phanntom]->GetProperty()->SetDiffuse(0.6);
-		}
-	}
-	//theApp.m_pVTKWidget->renderWindow()->Render();
-	theApp.m_pVTKWidget->renderWindow()->Render();
 }
 
 ////////////////// Phantom Clothing ////////////////// 
@@ -1978,5 +1964,371 @@ void PhantomObjects::RefreshDosimeter3DShpere(double PickedPos[3], int no)
 }
 void PhantomObjects::RemoveDosimeter3DShpere() {
 	theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.m_3DHumanData.dosimeterActorSphereClicked);
+}
+
+////////////////// Skin Process //////////////////
+void PhantomObjects::SkinLayerGeneration() // called by (1) DataInitialization_Local
+{
+	// [Helper Lambda] vtkTetra 헤더 없이 수학적으로 사면체 부피 계산
+	// V = |(a-d) . ((b-d) x (c-d))| / 6
+	auto ComputeTetraVolume = [](double p0[3], double p1[3], double p2[3], double p3[3]) -> double {
+		double v1[3] = { p0[0] - p3[0], p0[1] - p3[1], p0[2] - p3[2] };
+		double v2[3] = { p1[0] - p3[0], p1[1] - p3[1], p1[2] - p3[2] };
+		double v3[3] = { p2[0] - p3[0], p2[1] - p3[1], p2[2] - p3[2] };
+		double cross[3];
+		vtkMath::Cross(v2, v3, cross);
+		return std::abs(vtkMath::Dot(v1, cross)) / 6.0;
+	};
+
+	for (auto itr_phantomIndex : theApp.pRt->m_Phantom_SequenceVector)
+	{
+		// 더미팬텀, 에어스피어팬텀이면 continue
+		if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][theApp.pRt->E_PHANTOMMAININFO_DUMMY] == theApp.pRt->E_PHANTOMDUMMY_YES ||
+			theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][theApp.pRt->E_PHANTOMMAININFO_CATEGORY] == theApp.pRt->E_PHANTOMCATEGORY_AIR) continue;
+
+		theApp.SkinPhantomActor[itr_phantomIndex] = vtkSmartPointer<vtkActor>::New();
+		theApp.SkinDoseVisualization_ScalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
+		theApp.SkinDoseVisualization_Label0percent = vtkSmartPointer<vtkTextActor>::New();
+		theApp.SkinDoseVisualization_Label20percent = vtkSmartPointer<vtkTextActor>::New();
+		theApp.SkinDoseVisualization_Label40percent = vtkSmartPointer<vtkTextActor>::New();
+		theApp.SkinDoseVisualization_Label60percent = vtkSmartPointer<vtkTextActor>::New();
+		theApp.SkinDoseVisualization_Label80percent = vtkSmartPointer<vtkTextActor>::New();
+		theApp.SkinDoseVisualization_Label100percent = vtkSmartPointer<vtkTextActor>::New();
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SkinPhantomActor[itr_phantomIndex]);
+
+		// Skin Density and skin depth(for HP)      
+		if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][1] == 0) // Gender: male
+		{
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 0) { theApp.SkinDenstiy[itr_phantomIndex] = 1.089; theApp.SkinAverageDepth[itr_phantomIndex] = 1600. / 10000.; } 
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 1) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 1250. / 10000.; } 
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 2) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 990. / 10000.; } 
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 3) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 850. / 10000.; } 
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 4) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 5) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
+		}
+		if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][1] == 1) // Gender: female
+		{
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 0) { theApp.SkinDenstiy[itr_phantomIndex] = 1.088; theApp.SkinAverageDepth[itr_phantomIndex] = 1300. / 10000.; } 
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 1) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 1200. / 10000.; } 
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 2) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 990. / 10000.; } 
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 3) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 850. / 10000.; } 
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 4) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
+			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 5) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
+		}
+
+		// -------------------------------------------------------
+		// 1. Load Original Polydata (Outer Skin Surface)
+		// -------------------------------------------------------
+		vtkSmartPointer<vtkPolyData> PhantomPolydataOriginal = vtkSmartPointer<vtkPolyData>::New();
+		QString strPath;
+		if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][2] == theApp.pRt->E_PHANTOMTYPE_IMPORTED)
+		{
+			std::vector<std::string> extract_organlist;
+			extract_organlist.push_back("12200_Skin_surface");
+			std::string outPath = ExtractPhantomOBJ(theApp.m_ImportedPhantomFilePath_NoExtention[itr_phantomIndex].toStdString(), theApp.PhantomFileTitle[itr_phantomIndex].toStdString(), extract_organlist);
+
+			// Polydata로 등록
+			vtkSmartPointer<vtkOBJReader> reader = vtkSmartPointer<vtkOBJReader>::New();
+			reader->SetFileName(Util::Wcs_to_mbs(QString::fromStdString(outPath).toStdWString()).c_str());
+			reader->Update();
+			PhantomPolydataOriginal->DeepCopy(reader->GetOutput());
+
+			// 삭제
+			QString qOutPath = QString::fromStdString(outPath);
+			if (QFile::exists(qOutPath)) {
+				QFile::remove(qOutPath);
+			}
+		}
+		else // 그 외 (MRCP, deformed)
+		{
+			vtkSmartPointer<vtkOBJReader> reader = vtkSmartPointer<vtkOBJReader>::New();
+			strPath = "./data/phantom/skinLayer/" + theApp.PhantomFileTitle[itr_phantomIndex] + "_outer.obj";
+			reader->SetFileName(Util::Wcs_to_mbs(strPath.toStdWString()).c_str());
+			reader->Update();
+			PhantomPolydataOriginal->DeepCopy(reader->GetOutput());
+		}
+
+		// -------------------------------------------------------
+		// 2. Load 50um and 100um Polydata for Volume Calculation & 3D Grid
+		// -------------------------------------------------------
+		vtkSmartPointer<vtkPolyData> PhantomPolydataOriginal_50um = vtkSmartPointer<vtkPolyData>::New();
+		vtkSmartPointer<vtkPolyData> PhantomPolydataOriginal_100um = vtkSmartPointer<vtkPolyData>::New();
+
+		{
+			// Load 50um
+			vtkSmartPointer<vtkOBJReader> reader50 = vtkSmartPointer<vtkOBJReader>::New();
+			QString strPath50 = "./data/phantom/skinLayer/" + theApp.PhantomFileTitle[itr_phantomIndex] + "_50um.obj";
+			reader50->SetFileName(Util::Wcs_to_mbs(strPath50.toStdWString()).c_str());
+			reader50->Update();
+			PhantomPolydataOriginal_50um->DeepCopy(reader50->GetOutput());
+
+			// Load 100um
+			vtkSmartPointer<vtkOBJReader> reader100 = vtkSmartPointer<vtkOBJReader>::New();
+			QString strPath100 = "./data/phantom/skinLayer/" + theApp.PhantomFileTitle[itr_phantomIndex] + "_100um.obj";
+			reader100->SetFileName(Util::Wcs_to_mbs(strPath100.toStdWString()).c_str());
+			reader100->Update();
+			PhantomPolydataOriginal_100um->DeepCopy(reader100->GetOutput());
+		}
+
+		// -------------------------------------------------------
+		// 3. Transformation Setup
+		// -------------------------------------------------------
+		vtkSmartPointer<vtkTransform> transform_p = vtkSmartPointer<vtkTransform>::New();
+		transform_p->PostMultiply(); 
+		transform_p->Translate(-theApp.PhantomOrigianlPolyDataCenter[itr_phantomIndex][0], -theApp.PhantomOrigianlPolyDataCenter[itr_phantomIndex][1], -theApp.PhantomOrigianlPolyDataCenter[itr_phantomIndex][2]);
+		
+		vtkSmartPointer<vtkTransform> transform = vtkSmartPointer<vtkTransform>::New();
+		transform->PostMultiply(); 
+		double xy_scale = 1;
+		double z_scale = 1;
+		if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][theApp.pRt->E_PHANTOMMAININFO_TYPE] == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED) 
+		{
+			xy_scale = theApp.PhantomPolyDataScaleFactor[itr_phantomIndex][0];
+			z_scale = theApp.PhantomPolyDataScaleFactor[itr_phantomIndex][1];
+		}
+
+		double PosX = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][6];
+		double PosY = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][7];
+		double PosZ = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][8];
+		double RotX = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][9];
+		double RotY = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][10];
+		double RotZ = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][11];
+		const double PI = 3.141592 / 180; 
+
+		Eigen::Matrix4f X, Y, Z, Scale;
+		double RadianX = RotX * PI;
+		double RadianY = RotY * PI;
+		double RadianZ = RotZ * PI;
+
+		X << 1, 0, 0, 0, 0, cos(RadianX), -sin(RadianX), 0, 0, sin(RadianX), cos(RadianX), 0, 0, 0, 0, 1;
+		Y << cos(RadianY), 0, sin(RadianY), 0, 0, 1, 0, 0, -sin(RadianY), 0, cos(RadianY), 0, 0, 0, 0, 1;
+		Z << cos(RadianZ), -sin(RadianZ), 0, 0, sin(RadianZ), cos(RadianZ), 0, 0, 0, 0, 1, 0, 0, 0, 0, 1;
+		Scale << xy_scale, 0, 0, 0, 0, xy_scale, 0, 0, 0, 0, z_scale, 0, 0, 0, 0, 1;
+
+		Eigen::Matrix4f Result = Z * X * Y * Scale; 
+
+		double elementsResult[16];
+		for (int i = 0; i < 4; i++) {
+			for (int j = 0; j < 4; j++) {
+				elementsResult[i * 4 + j] = Result(i, j);
+			}
+		}
+		transform->SetMatrix(elementsResult);
+		transform->Translate(PosX, PosY, PosZ);
+
+
+		// -------------------------------------------------------
+		// 4. Apply Transformation to All Layers
+		// -------------------------------------------------------
+		
+		// (1) Surface Layer
+		vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter_p = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+		transformFilter_p->SetInputData(PhantomPolydataOriginal);
+		transformFilter_p->SetTransform(transform_p);
+		transformFilter_p->Update();
+
+		vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+		transformFilter->SetInputData(transformFilter_p->GetOutput());
+		transformFilter->SetTransform(transform);
+		transformFilter->Update();
+		vtkSmartPointer<vtkPolyData> polySkin = transformFilter->GetOutput(); 
+		theApp.SkinLayer_PolyData[itr_phantomIndex] = polySkin;
+
+		// (2) 50um Layer
+		vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter_p_50 = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+		transformFilter_p_50->SetInputData(PhantomPolydataOriginal_50um);
+		transformFilter_p_50->SetTransform(transform_p);
+		transformFilter_p_50->Update();
+
+		vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter_50 = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+		transformFilter_50->SetInputData(transformFilter_p_50->GetOutput());
+		transformFilter_50->SetTransform(transform);
+		transformFilter_50->Update();
+		vtkSmartPointer<vtkPolyData> polySkin_50um = transformFilter_50->GetOutput(); 
+
+		// (3) 100um Layer
+		vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter_p_100 = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+		transformFilter_p_100->SetInputData(PhantomPolydataOriginal_100um);
+		transformFilter_p_100->SetTransform(transform_p);
+		transformFilter_p_100->Update();
+
+		vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter_100 = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+		transformFilter_100->SetInputData(transformFilter_p_100->GetOutput());
+		transformFilter_100->SetTransform(transform);
+		transformFilter_100->Update();
+		vtkSmartPointer<vtkPolyData> polySkin_100um = transformFilter_100->GetOutput(); 
+
+
+		// -------------------------------------------------------
+		// 5. Build Locators (2D & 3D) & Calculate Volume
+		// -------------------------------------------------------
+		
+		// [2D Locator]
+		theApp.SkinCellLocator[itr_phantomIndex] = vtkSmartPointer<vtkCellLocator>::New();
+		theApp.SkinCellLocator[itr_phantomIndex]->SetDataSet(theApp.SkinLayer_PolyData[itr_phantomIndex]);
+		theApp.SkinCellLocator[itr_phantomIndex]->CacheCellBoundsOn();
+		theApp.SkinCellLocator[itr_phantomIndex]->BuildLocator();
+
+		std::vector<std::array<double, 3>> centers;
+		std::vector<std::array<double, 3>> normals;
+
+		vtkCellArray* cells = theApp.SkinLayer_PolyData[itr_phantomIndex]->GetPolys(); // Surface
+		vtkPoints* points = theApp.SkinLayer_PolyData[itr_phantomIndex]->GetPoints();  // Surface
+
+		// Points for 50um and 100um
+		vtkPoints* points_50 = polySkin_50um->GetPoints();
+		vtkPoints* points_100 = polySkin_100um->GetPoints();
+
+		// 3D UnstructuredGrid 준비
+		vtkSmartPointer<vtkUnstructuredGrid> volumeGrid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+		vtkSmartPointer<vtkPoints> volumePoints = vtkSmartPointer<vtkPoints>::New();
+		
+		// Grid에 포인트 추가: 50um 점들 먼저, 그 뒤에 100um 점들
+		for (vtkIdType i = 0; i < points_50->GetNumberOfPoints(); ++i) {
+			volumePoints->InsertNextPoint(points_50->GetPoint(i));
+		}
+		for (vtkIdType i = 0; i < points_100->GetNumberOfPoints(); ++i) {
+			volumePoints->InsertNextPoint(points_100->GetPoint(i));
+		}
+		volumeGrid->SetPoints(volumePoints);
+		
+		// 100um 점들의 Index Offset (Wedge 생성 시 사용)
+		vtkIdType offset100 = points_50->GetNumberOfPoints();
+
+		cells->InitTraversal();
+		vtkIdType npts;
+		const vtkIdType* pts; 
+		
+		theApp.VertexToFacetMap[itr_phantomIndex].resize(points->GetNumberOfPoints());
+		int cellID = 0;
+		std::map<int, std::vector<int>> facet_vertexID_map;
+		
+		// [IMPORTANT] Index 8 is Volume
+		std::vector<std::array<double, 9>> results; 
+		while (cells->GetNextCell(npts, pts))
+		{
+			if (npts == 3) 
+			{
+				double p0[3], p1[3], p2[3];
+				double center[3], normal[3];
+
+				points->GetPoint(pts[0], p0);
+				points->GetPoint(pts[1], p1);
+				points->GetPoint(pts[2], p2);
+
+				for (vtkIdType i = 0; i < npts; ++i)
+				{
+					theApp.VertexToFacetMap[itr_phantomIndex][pts[i]].push_back(cellID);
+				}
+				facet_vertexID_map[cellID].push_back(pts[0]);
+				facet_vertexID_map[cellID].push_back(pts[1]);
+				facet_vertexID_map[cellID].push_back(pts[2]);
+
+				for (int i = 0; i < 3; ++i) center[i] = (p0[i] + p1[i] + p2[i]) / 3.0;
+				
+				double v0[3] = { p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2] };
+				double v1[3] = { p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2] };
+				vtkMath::Cross(v0, v1, normal);
+				vtkMath::Normalize(normal);
+
+				centers.push_back({ center[0], center[1], center[2] });
+				normals.push_back({ normal[0], normal[1], normal[2] });
+
+				vtkCell* cellA = theApp.SkinLayer_PolyData[itr_phantomIndex]->GetCell(cellID); 
+				double areaA = -1;
+				if (cellA->GetCellType() == VTK_TRIANGLE)
+				{
+					vtkTriangle* triangleA = dynamic_cast<vtkTriangle*>(cellA);
+					areaA = triangleA->ComputeArea(); // cm^2
+				}
+				else
+				{
+					theApp.SetMessageBox("Not triangular polygon skin");
+				}
+
+				if (areaA <= 0.05)
+				{
+					for (auto itr : facet_vertexID_map[cellID]) 
+					{
+						for (auto itr2 : theApp.VertexToFacetMap[itr_phantomIndex][itr]) 
+						{
+							theApp.TinyFacetAdjacentFacetMap[itr_phantomIndex][cellID].insert(itr2); 
+						}
+					}
+				}
+
+				// ---------------------------------------------------
+				// 3D Wedge Volume Calculation (50um ~ 100um)
+				// ---------------------------------------------------
+				double wedgeVolume = 0.0;
+
+				double p50_0[3], p50_1[3], p50_2[3];
+				points_50->GetPoint(pts[0], p50_0);
+				points_50->GetPoint(pts[1], p50_1);
+				points_50->GetPoint(pts[2], p50_2);
+
+				double p100_0[3], p100_1[3], p100_2[3];
+				points_100->GetPoint(pts[0], p100_0);
+				points_100->GetPoint(pts[1], p100_1);
+				points_100->GetPoint(pts[2], p100_2);
+
+				// Decompose Wedge into 3 Tetrahedrons
+				double vol1 = ComputeTetraVolume(p50_0, p50_1, p50_2, p100_0);
+				double vol2 = ComputeTetraVolume(p50_1, p50_2, p100_0, p100_1);
+				double vol3 = ComputeTetraVolume(p50_2, p100_0, p100_1, p100_2);
+
+				wedgeVolume = vol1 + vol2 + vol3; // cm^3
+
+				// ---------------------------------------------------
+				// Create Wedge Cell for 3D Grid
+				// ---------------------------------------------------
+				
+				vtkSmartPointer<vtkWedge> wedge = vtkSmartPointer<vtkWedge>::New();
+				// Wedge Point IDs: 0,1,2 (Bottom/50um), 3,4,5 (Top/100um)
+				// volumePoints 순서: [50um points ... ] [100um points ... ]
+				wedge->GetPointIds()->SetId(0, pts[0]);
+				wedge->GetPointIds()->SetId(1, pts[1]);
+				wedge->GetPointIds()->SetId(2, pts[2]);
+				wedge->GetPointIds()->SetId(3, pts[0] + offset100);
+				wedge->GetPointIds()->SetId(4, pts[1] + offset100);
+				wedge->GetPointIds()->SetId(5, pts[2] + offset100);
+				
+				volumeGrid->InsertNextCell(wedge->GetCellType(), wedge->GetPointIds());
+			
+				// Save result with Volume at index 8
+				results.push_back({ 
+					center[0], center[1], center[2], 
+					normal[0], normal[1], normal[2], 
+					theApp.SkinAverageDepth[itr_phantomIndex], 
+					areaA, 
+					wedgeVolume 
+				});
+
+				++cellID;
+			}
+		}
+		theApp.FacetInfo[itr_phantomIndex] = results;
+
+		// -------------------------------------------------------
+		// Build 3D Locator from UnstructuredGrid
+		// -------------------------------------------------------
+		theApp.m_SkinVolumeLocator[itr_phantomIndex] = vtkSmartPointer<vtkCellLocator>::New();
+		theApp.m_SkinVolumeLocator[itr_phantomIndex]->SetDataSet(volumeGrid);
+		theApp.m_SkinVolumeLocator[itr_phantomIndex]->BuildLocator();
+
+
+		for (auto itr : theApp.TinyFacetAdjacentFacetMap[itr_phantomIndex])
+		{
+			for (auto itr2 : theApp.TinyFacetAdjacentFacetMap[itr_phantomIndex][itr.first]) 
+			{
+				theApp.TinyFacetAdjacentFacetVolumeSum[itr_phantomIndex][itr.first] += (theApp.FacetInfo[itr_phantomIndex][itr2][7] * theApp.FacetInfo[itr_phantomIndex][itr2][6]);
+			}
+		}
+	}
+
+	// VisualizeVolumeRatio(0); 
+
+	theApp.m_pVTKWidget->renderWindow()->Render();
+
 }
 //////////////////////////////////////////////////////

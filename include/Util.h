@@ -2,6 +2,86 @@
 
 #include <QtWidgets>
 
+struct SkinDoseData {
+	qint32 phantomId;
+	double x;
+	double y;
+	double z;
+	double dE;
+};
+
+
+struct BodySizeInfo {
+	QString HtWtName;
+	QString HtWtName_dummy;
+
+	double xyScale =1;
+	double zScale =1;
+
+	double xyScale_dummy = 1;
+	double zScale_dummy = 1;
+
+};
+
+struct Point_SolidAngle {
+	double theta, phi, x, y, z;
+};
+
+class Vector3 {
+public:
+	double x;
+	double y;
+	double z;
+
+	// Constructor
+	Vector3(double x_, double y_, double z_) : x(x_), y(y_), z(z_) {}
+
+	// Copy constructor
+	Vector3(const Vector3& other) : x(other.x), y(other.y), z(other.z) {}
+
+	// Assignment operator
+	Vector3& operator=(const Vector3& other) {
+		x = other.x;
+		y = other.y;
+		z = other.z;
+		return *this;
+	}
+
+	// Dot product
+	double dot(const Vector3& other) const {
+		return x * other.x + y * other.y + z * other.z;
+	}
+
+	// Cross product
+	Vector3 cross(const Vector3& other) const {
+		return Vector3(y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x);
+	}
+
+	// Magnitude
+	double magnitude() const {
+		return sqrt(x * x + y * y + z * z);
+	}
+
+	// Normalize
+	Vector3 normalize() const {
+		double mag = magnitude();
+		if (mag == 0.0) {
+			return Vector3(0.0, 0.0, 0.0);
+		}
+		else {
+			return Vector3(x / mag, y / mag, z / mag);
+		}
+	}
+};
+
+
+namespace SkinDoseBinaryUtils
+{
+	void initializeBinaryFile(const QString& binaryFilePath);
+	bool appendFromTextFile(const QString& textFilePath, const QString& binaryFilePath);
+	std::pair<std::pair<qint64, double>, std::vector<SkinDoseData>> readAllData(const QString& binaryFilePath);
+}
+
 class Util
 {
 public:

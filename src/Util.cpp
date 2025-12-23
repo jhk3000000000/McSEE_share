@@ -325,3 +325,107 @@ vtkSmartPointer<vtkProperty> Util::GetProperty()
 
 	return property;
 }
+
+namespace SkinDoseBinaryUtils
+{
+	void initializeBinaryFile(const QString& binaryFilePath)
+	{
+		QFile file(binaryFilePath);
+		if (file.open(QIODevice::WriteOnly)) {
+			QDataStream out(&file);
+			out.setVersion(QDataStream::Qt_6_8);
+			// 초기 헤더 공간 (0, 0.0) 확보
+			out << static_cast<qint64>(0) << static_cast<double>(0.0);
+			file.close();
+		}
+		else {
+			qWarning() << "Failed to initialize binary file:" << binaryFilePath;
+		}
+	}
+
+	bool appendFromTextFile(const QString& textFilePath, const QString& binaryFilePath)
+	{
+		// 1. 입력 텍스트 파일 열기
+		QFile inputFile(textFilePath);
+		if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			qWarning() << "Cannot open source text file:" << textFilePath;
+			return false;
+		}
+		QTextStream in(&inputFile);
+
+		// 2. 텍스트 파일 헤더 파싱
+		QString headerLine = in.readLine();
+		//QStringList headerParts = headerLine.split(" ", Qt::SkipEmptyParts);
+		QStringList headerParts = headerLine.split(" ", Qt::SkipEmptyParts);
+		if (headerParts.size() < 2) {
+			qWarning() << "Invalid header format in" << textFilePath;
+			inputFile.close();
+			return false;
+		}
+		qint64 nps = headerParts[0].toLongLong();
+		double conversionFactor = headerParts[1].toDouble();
+
+		// 3. 바이너리 파일 열기 (읽고 쓰기 모두 가능한 모드)
+		QFile binaryFile(binaryFilePath);
+		if (!binaryFile.open(QIODevice::ReadWrite)) {
+			qWarning() << "Cannot open binary file for writing:" << binaryFilePath;
+			inputFile.close();
+			return false;
+		}
+		QDataStream stream(&binaryFile);
+		stream.setVersion(QDataStream::Qt_6_8);
+
+		// 4. 헤더 덮어쓰기
+		binaryFile.seek(0);
+		stream << nps << conversionFactor;
+
+		// 5. 데이터 추가하기
+		binaryFile.seek(binaryFile.size());
+
+		while (!in.atEnd()) {
+			QString line = in.readLine();
+			//QStringList parts = line.split(" ", Qt::SkipEmptyParts);
+			QStringList parts = line.split(" ", Qt::SkipEmptyParts);
+			if (parts.size() < 5) continue;
+
+			qint32 phantomId = parts[0].toInt();
+
+			stream << phantomId << parts[1].toDouble() << parts[2].toDouble() << parts[3].toDouble() << parts[4].toDouble();
+		}
+
+		inputFile.close();
+		binaryFile.close();
+		return true;
+	}
+
+	std::pair<std::pair<qint64, double>, std::vector<SkinDoseData>> readAllData(const QString& binaryFilePath)
+	{
+		std::vector<SkinDoseData> allData;
+		qint64 nps = 0;
+		double conversionFactor = 0.0;
+
+		QFile binaryFile(binaryFilePath);
+		if (!binaryFile.open(QIODevice::ReadOnly)) {
+			qWarning() << "Failed to open binary file for reading:" << binaryFilePath;
+			return { {nps, conversionFactor}, allData };
+		}
+
+		QDataStream stream(&binaryFile);
+		stream.setVersion(QDataStream::Qt_6_8);
+
+		if (!stream.atEnd()) {
+			stream >> nps >> conversionFactor;
+		}
+
+		while (!stream.atEnd()) {
+			SkinDoseData data;
+			stream >> data.phantomId >> data.x >> data.y >> data.z >> data.dE;
+			allData.push_back(data);
+		}
+
+		binaryFile.close();
+		qDebug() << "Read" << allData.size() << "records from binary file. NPS:" << nps;
+		return { {nps, conversionFactor}, allData };
+	}
+
+} // namespace SkinDoseBinaryUtils

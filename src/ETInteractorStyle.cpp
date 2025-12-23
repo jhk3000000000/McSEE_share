@@ -6,6 +6,9 @@
 #include "vtkTextActor.h"
 #include "vtkKdTree.h"
 
+#include "PhantomObjects.h"
+#include "SourceObjects.h"
+#include "Manager_Calculation.h"
 
 #include "Util.h"
 #include <array>
@@ -67,7 +70,7 @@ void ETInteractorStyle::OnLeftButtonDown()
 		m_pCellPicker->GetPickNormal(pickedpos_normal);
 
 		// 클릭 위치 임시 생성
-		theApp.Selecting3DShpere(pickedpos);
+		theApp.sourceObjects->Selecting3DShpere(pickedpos);
 
 		// 특정 패널에 값 전달 
 		if (theApp.st_Pick3D_sourceEP) // EP 3D pick 중일때
@@ -86,7 +89,7 @@ void ETInteractorStyle::OnLeftButtonDown()
 
 		if (theApp.st_Pick3D_sourceHP) // HP 3D pick 중일때
 		{
-			theApp.Selecting3DShpere_Delete(); // 생성한 임시 점 지우기
+			theApp.sourceObjects->Selecting3DShpere_Delete(); // 생성한 임시 점 지우기
 			vtkSmartPointer<vtkActor> PickedActor = m_pCellPicker->GetActor();
 			if (PickedActor) // 팬텀을 선택했을 때만
 			{
@@ -100,7 +103,7 @@ void ETInteractorStyle::OnLeftButtonDown()
 				theApp.pRt->PosY_SourceHP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[1], 6));
 				theApp.pRt->PosZ_SourceHP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[2], 6));
 				double coords[3] = { pickedpos[0] , pickedpos[1] , pickedpos[2] };
-				theApp.Selecting3DShpere(coords);
+				theApp.sourceObjects->Selecting3DShpere(coords);
 			}
 		}
 
@@ -167,7 +170,7 @@ void ETInteractorStyle::OnLeftButtonDown()
 		if (spPickedActor)
 		{
 			int SelectedDosimeterIdx = theApp.pRt->m_Dosimeter_Selected_Index;
-			theApp.RefreshDosimeter3DShpere(pickedpos, SelectedDosimeterIdx);			
+			theApp.phantomObjects->RefreshDosimeter3DShpere(pickedpos, SelectedDosimeterIdx);			
 			theApp.m_DosimeterInfo.Dosimeter_PointID = pickedID;
 			double PickedPoint[3];
 			vtkSmartPointer<vtkPoints> points = theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].polydata_base->GetPoints();

@@ -22,12 +22,18 @@
 #include <psapi.h>
 #include <QFile>
 
+
+#include "Util.h"
+
 #ifdef _WIN32	
 	#include <windows.h>
 #elif __linux__
 	#include <sys/sysinfo.h>
 #endif
 
+class PhantomObjects;
+class SourceObjects;
+class Manager_Calculation;
 
 class ETQVTKWidget;
 class FunctionPanelTop;
@@ -99,13 +105,6 @@ enum ePanelMode : int
 };
 
 // 개별 선량 데이터를 저장할 구조체
-struct SkinDoseData {
-	qint32 phantomId;
-	double x;
-	double y;
-	double z;
-	double dE;
-};
 
 struct s3DHumanData
 {
@@ -177,17 +176,7 @@ struct s3DHumanData
 			actor = nullptr;	
 	}
 };
-struct BodySizeInfo {
-	QString HtWtName;
-	QString HtWtName_dummy;
 
-	double xyScale =1;
-	double zScale =1;
-
-	double xyScale_dummy = 1;
-	double zScale_dummy = 1;
-
-};
 struct GlassesInfo {
 	int    Glasses1_ID;
 	int    Glasses2_ID;
@@ -196,9 +185,7 @@ struct DosimeterInfo {
 	int    Dosimeter_PointID;
 	double Dosimeter_point[3];
 };
-struct Point_SolidAngle {
-	double theta, phi, x, y, z;
-};
+
 
 class ETHuman3DApp : public QObject
 {
@@ -220,6 +207,10 @@ private:
     ETHuman3DApp(); 
     ~ETHuman3DApp();
 
+public:
+	PhantomObjects* phantomObjects = nullptr;
+	SourceObjects* sourceObjects = nullptr;
+	Manager_Calculation* managerCalculation = nullptr;
 public:
 	void SetMessageBox(QString text);
 	void SetMessageBox_RadionuclideWarning(QString text);
@@ -391,12 +382,12 @@ public:
 
 public:
 	void	RestartProgram();	
-	bool    LoadPSF_data(QString path);
-	void    PSF_MCNP_ssw_parse_file(const std::string& filename);
-	int		PSF_MCNP_ssw_loadrecord(std::ifstream& file, std::vector<char>& buf, uint32_t reclen, uint64_t& lbuf);	
-	bool	PSF_MCNP_ssw_readbytes(std::ifstream& file, char* buf, size_t bytes);
-	int32_t PSF_MCNP_conv_mcnp6_ssw2pdg(int32_t c);
-	std::string PSF_PHITS_replaceDwithE(std::string input);
+	// bool    LoadPSF_data(QString path);
+	// void    PSF_MCNP_ssw_parse_file(const std::string& filename);
+	// int		PSF_MCNP_ssw_loadrecord(std::ifstream& file, std::vector<char>& buf, uint32_t reclen, uint64_t& lbuf);	
+	// bool	PSF_MCNP_ssw_readbytes(std::ifstream& file, char* buf, size_t bytes);
+	// int32_t PSF_MCNP_conv_mcnp6_ssw2pdg(int32_t c);
+	// std::string PSF_PHITS_replaceDwithE(std::string input);
 
 	bool    SettingContentsChangeCheck(); // CalculationSettingDialog에서 setting 값이 바뀌었는 지 여부를 반환하는 함수
 	void    WearableTetrahedralization(); // Wearable tetrahedralization + Save macro data + .node tranformation
@@ -406,7 +397,7 @@ public:
 	void	OffsetPointsByNormals(vtkPolyData* polyData, std::vector<vtkIdType>& pointIds, double offset);
 	void    GenerateSideDosimeter(QString inputOrigianlDosimeterPath, int phantomIdx, double offset, QString OutputPath); // 선량계 side 부분 obj파일 생성하는 함수
 	void    CleaningPolyData(vtkSmartPointer<vtkPolyData> polyData, std::string path);
-	void    SkinLayerGeneration(); // 피부선량분포 계산을 위한 obj 파일 및 데이터들 초기화	
+	//void    SkinLayerGeneration(); // 피부선량분포 계산을 위한 obj 파일 및 데이터들 초기화	
 	void    ReadSkinDoseData(std::stringstream &ss);
 	
 	void    VisualizeVolumeRatio(int a);
@@ -440,62 +431,42 @@ public:
 	void WriteExtdataFile(std::string path);
 	void Read_mcsee_File_previous(QString filepath);
 
-	void	PhantomPolydataActor_Generate(QString strFileName, int SelectedIndex, BodySizeInfo BodySizeInfo_for_ThisPhantom);
-	std::string    GetPhantomFileTitle(std::string phantomDir); // 뒤의 확장자와 앞의 경로명이 제거된 순수 팬텀 파일명
-	
-	QString GetPhantomFile_AbsolutePath(int phantomType, int phantomGender, int phantomAge, int phantomPosture, int phantomFetalAge, int phantomIndex, BodySizeInfo BodySizeInfo_for_ThisPhantom);
-	void	PhantomClothingGenerate(QString strFileName, bool IsPreDefinedClothing); 
-	/* 최초 의복 입력 시, 의복 제작 함수 -> 가시화용(5 um offset, pCenter 0,0,0 맞춤) polydata와 사면체화용(offset X, pCenter 안 맞춤) obj 파일 생성
-	 PhantomClothingGenerate 함수는 Pre-defined 의복 뿐 아니라, User-defined 의복 입력 시에도 실행되어야함.
-	 이때, User-defined 의복 입력 시에는 ETInteractorStyleRubberBand 실행하여 제작완료 함수 입력 후에도 실행되어야 하기 때문에, 해당 함수에 의복정보를 저장 및 의복패널 초기화 함수가 포함되어 있음.
-	 */
-	std::string	ExtractPhantomOBJ(std::string PATH, std::string Name, std::vector<std::string> list);
+	void UpdatePhantom_ActorHighlighted(int phantomIndex);
 
 	void    MultipleUICloseTrigger();
 	std::string		ExtractInnerString(std::string& input);
-	void	RubberBandInitialization(); // 사용자 제작 의복을 제작할 때, 도구 초기화 과정
-	void    RubberBandUserClothingGenerate();
-	void    PhantomFlatGlassesGenerate();
-	void	PhantomWraparoundGlassesGenerate();
 	void	TranslatePhantomTetFile(int reset_phantomID); // resetID-> makingindex와 잔트상의 팬텀ID정렬 필요...
 	void	TranslateClothingTetFile(int reset_phantomID); // resetID-> makingindex와 잔트상의 팬텀ID정렬 필요...
 	void    GenerateGlassesTetFile(int phantomIdx);
 	void    TranslateGlassesTetFile(int phantomIdx);
-	void	DosimeterGenerate(int no);	
 	//void	ObjectGenerate_Group(int no);
 	// Geometry //
 	void	UpdateObject_ActorHighlighted(int objectIndex);	
 	
 
-	BodySizeInfo  CalcBoydSizeScaleFactor(int phantomType, int phantomGender, int phantomAge, int phantomPosture, double phantomHeight, double phantomWeight);
 
 	void    SetAssemblyOpacity(vtkAssembly* assembly, double value);
-	std::vector<Point_SolidAngle> GetPointsWithinSolidAngle_sourceCB(double maxAngle, double a, double b, double c, int numPoints);
-	void    GenerateSourceActor_sourceBB();
-	void	GenerateSourceActor_sourceEP(double* ptCenter);
-	void	GenerateSourceActor_sourceHP(double* ptCenter);
-	void	GenerateSourceActor_sourceCB(double* ptCenter);
-	void	GenerateSourceActor_sourceFD(double* center_radius);
-	void	GenerateSourceDirectionActor_sourceCB();	
-	void	GenerateSourceActor_sourcePB(double* center_radius, double* theta_phi);
-	void    Selecting3DShpere(double* ptCenter);
-	void    Selecting3DShpere_Delete();
+	// std::vector<Point_SolidAngle> GetPointsWithinSolidAngle_sourceCB(double maxAngle, double a, double b, double c, int numPoints);
+	// void    GenerateSourceActor_sourceBB();
+	// void	GenerateSourceActor_sourceEP(double* ptCenter);
+	// void	GenerateSourceActor_sourceHP(double* ptCenter);
+	// void	GenerateSourceActor_sourceCB(double* ptCenter);
+	// void	GenerateSourceActor_sourceFD(double* center_radius);
+	// void	GenerateSourceDirectionActor_sourceCB();	
+	// void	GenerateSourceActor_sourcePB(double* center_radius, double* theta_phi);
+	// void    Selecting3DShpere(double* ptCenter);
+	// void    Selecting3DShpere_Delete();
 	
 	
-	void    GenerateSourceActor_sourcePS(std::vector<std::tuple<double, double, double>> ptMultiple, std::vector<std::tuple<double, double, double>> dirMultiple);
+	//void    GenerateSourceActor_sourcePS(std::vector<std::tuple<double, double, double>> ptMultiple, std::vector<std::tuple<double, double, double>> dirMultiple);
 	
 	bool    arePointsEqual(double point1[3], double point2[3], double tolerance);
 	bool    areCellsEquivalent(vtkSmartPointer<vtkPolyData> polyData1, vtkIdType cellId1, vtkSmartPointer<vtkPolyData> polyData2, vtkIdType cellId2, double tolerance);
-	
-	void    RefreshDosimeter3DShpere(double PickedPos[3], int no);
-	void	RemoveDosimeter3DShpere();
 
-	void    UpdatePhantom_ActorHighlighted(int i);	
+
 	void    MouseControl_toActor();
 	void    MouseControl_toCamera();
-	void    UpdatePhantom_InfoStatus_InActorMouseControl(int phantomIndex);
 
-	void	AppendPhantomPolyData_GeneratePhantomActor(int PhantomIdx);
 
 	QHoverSensitiveButton* m_hoverButtonIntersectionInfo = nullptr;
 

@@ -1,6 +1,7 @@
 ﻿#include "ETHuman3DApp.h"
 #include "pch.h"
 #include "FunctionPanelRight.h"
+#include "Manager_Calculation.h"
 #include "ETQVTKWidget.h"
 #include "ETInteractorStyle.h"
 #include "ETInteractorStyleTrackballActor.h"
@@ -619,7 +620,8 @@ void ETQVTKWidget::runButtonClicked() {
 void ETQVTKWidget::stopButtonClicked() {
 	if (QMessageBox::Yes == theApp.SetMessageBox_YesNo("Do you want to stop the simulation and save the results so far?"))
 	{		
-		theApp.pRt->DoseCalculation_StopAndSave();
+		//theApp.pRt->DoseCalculation_StopAndSave();
+		theApp.managerCalculation->DoseCalculation_StopAndSave();
 		runButton->hide();
 		stopButton->hide();
 		resetButton->show();

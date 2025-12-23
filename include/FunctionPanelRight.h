@@ -3,7 +3,7 @@
 #include <QtWidgets>
 #include <ETHuman3D.h>
 #include <qlist.h>
-#include "ETHuman3DApp.h"
+//#include "ETHuman3DApp.h"
 #include "ETInteractorStyle.h"
 #include "StyleSheet.h"
 #include <map>
@@ -30,11 +30,20 @@
 #include <QJsonArray>
 #include "SceneDataTypes.h"
 
+
+#include "PhantomObjects.h"
+#include "SourceObjects.h"
+//#include "Manager_Calculation.h"
+
 // Qt6
 #include <QEnterEvent>
 
 using namespace utils::ui;
 
+class ETHuman3DApp;
+class Manager_Calculation;
+class PhantomObjects; // 필요하다면 추가
+class SourceObjects;  // 필요하다면 추가
 
 //************************************** Pre-defined Class/Struct **************************************//
 class CustomButton : public QPushButton {
@@ -411,9 +420,14 @@ namespace ValFactory {
 class FunctionPanelRight : public QWidget
 {
 	Q_OBJECT
+
+	//friend class Manager_Calculation;
+
 public:
 	explicit FunctionPanelRight(QWidget *parent = Q_NULLPTR);
 	virtual ~FunctionPanelRight();
+
+	void PhantomList_button_generate();
 	
 //************************************** Variables **************************************//
 public:
@@ -1611,8 +1625,8 @@ std::map<int, std::map<int, std::map<int, QString>>> m_PhantomWearableName; // m
 // Global int	
 	int Time_Interval = 4.9; // Calculation 시 UI update 주기 (s)
 	int RunningIndex = 0; // UI가 돌아가고 있는 지 누적해서 더해가는 변수
-	/*변수이동필요*/FILETIME OrgandoseFile_PRE_ModifiedTime = { 0,0 };
-	/*변수이동필요*/FILETIME SkindoseFile_PRE_ModifiedTime = { 0,0 };
+	// /*변수이동필요*/FILETIME OrgandoseFile_PRE_ModifiedTime = { 0,0 };
+	// /*변수이동필요*/FILETIME SkindoseFile_PRE_ModifiedTime = { 0,0 };
 
 // Global Qstring
 	QString DoseUnit_QString; // 피부선량 환산 unit
@@ -1631,7 +1645,7 @@ std::map<int, std::map<int, std::map<int, QString>>> m_PhantomWearableName; // m
 	std::uint64_t nEvent = 0; // 현재까지 Geant4에서 수송된 NPS 값	
 
 // Global string
-	/*변수이동필요*/std::string timeStamp;
+	///*변수이동필요*/std::string timeStamp;
 
 	// For server
 	std::string PreCumulative = "NULL"; // 이전의 Cumulative 선량결과 텍스트
@@ -1799,14 +1813,12 @@ public:
 	
 	void sourceOV_ObjectAddingSetting_Create();
 
-	void DoseCalculation_StopAndSave(); // 가시화창 우측 하단 Stop 버튼 클릭 시 실행
 	void triggerCalculate(); // 가시화창 우측 하단 실행 버튼 클릭 시 실행
 	void triggerSetting(); // 가시화창 우측 하단 설정 버튼 클릭 시 실행	
 	void Update_SkinDose_1_10cm2_GraphWidgets();
 	void Update_SkinDose_HP_LineGraphWidgets(); // checkProcessInfo_Local로 선량계산결과 주기적으로 업데이트 중, Hot particle 선원 피부선량깊이분포 꺾은선그래프 결과 업데이트
 
-	void handleProcessError(const QString& errorMessage);
-	std::vector<std::pair<double, double>> performAdaptiveDownsampling(const std::vector<std::pair<double, double>>& originalData, int targetSize);
+
 
 //************************************** Slots **************************************//
 public slots:	
@@ -2005,6 +2017,9 @@ public slots:
 	void slot_settingSave_ButtonClicked();
 	void slot_Calculate_ButtonClicked();
 	
+	/*
+	void DoseCalculation_StopAndSave(); // 가시화창 우측 하단 Stop 버튼 클릭 시 실행
+
 	void uiRunning();
 	void ServerInitialization();
 	void checkProcessInfo_Local(); // 선량계산 중 주기적 결과 업데이트(Local 버전)
@@ -2013,6 +2028,10 @@ public slots:
 	void DataInitialization_Server();
 	void Calculate_Local(); // 선량계산 실행(Local 버전)
 	void Calculate_Server();
+
+	void handleProcessError(const QString& errorMessage);
+	std::vector<std::pair<double, double>> performAdaptiveDownsampling(const std::vector<std::pair<double, double>>& originalData, int targetSize);
+	*/
 
 	void Write_TextResultFile_SimulationInfo(std::string filepath);
 	void Write_mcsee_File(QString filePath);	
@@ -2036,11 +2055,13 @@ public slots:
 	
 //************************************** Timer **************************************//
 public:
+	/*
 	QTimer *timer_DataInitialization_Local;
 	QTimer *timer_DataInitialization_Server;	
 	QTimer *timer_uiRunning;
 	QTimer *timer_checkProcessInfo_Local;
 	QTimer *timer_checkProcessInfo_Server;
+	*/
 	QTimer *timer_scroll_multiplePhantom;
 	QTimer *timer_scroll_dosimeter;
 	QTimer *timer_scroll_clothing;
@@ -2061,4 +2082,11 @@ public:
 	double minX_PhantomBox;
 	double minY_PhantomBox;
 	double minZ_PhantomBox;
+
+public slots:
+    // [추가] 매니저의 신호를 받을 슬롯
+    void onShowProgress(QString message);
+    void onHideProgress();
+private:
+	QMessageBox* m_progressMsgBox = nullptr;
 };
