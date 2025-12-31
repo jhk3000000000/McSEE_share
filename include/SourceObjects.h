@@ -22,7 +22,7 @@ public:
     void GenerateSourceActor_sourceHP(double* ptCenter); // Hot Particle
     void GenerateSourceActor_sourceCB(double* ptCenter); // Cone Beam
     void GenerateSourceDirectionActor_sourceCB();
-    void GenerateSourceActor_sourceRC(); // Room air Contamination
+    void GenerateSourceActor_sourceRC(double lenX, double lenY, double lenZ, double cenX, double cenY, double cenZ); // Room air Contamination
     // void GenerateSourceActor_sourceES(); // ICRP's Enviornment Source - Under Developement
     void GenerateSourceActor_sourcePB(double* center_radius, double* theta_phi); // Parallel Beam
     void Selecting3DShpere(double* ptCenter);

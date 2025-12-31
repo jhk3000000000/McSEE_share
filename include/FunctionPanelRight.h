@@ -34,7 +34,7 @@
 #include "PhantomObjects.h"
 #include "SourceObjects.h"
 //#include "Manager_Calculation.h"
-
+#include "SourceGeometryWidget.h"
 // Qt6
 #include <QEnterEvent>
 
@@ -1140,398 +1140,33 @@ std::map<int, std::map<int, std::map<int, QString>>> m_PhantomWearableName; // m
 
 // Global int	
 	int CurrentSourceType = -1;	
-	int List_sourceEP_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수	
-	int List_sourceFD_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수	
-	int List_sourceOV_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수
-	int Object_sourceOV_SelectedIndex = -1;	
 	/*변수이동필요*/int PhaseSpaceFileRow = 0; // Phase Space File의 입자 수(line 수)
-	int RIList_sourceHP_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수
-	int RIList_sourceCB_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수
-	int RIList_sourceRC_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수		
+
+
 		
-	int EnergyspectrumListTotalCount_CB = 0; // radionulcide에서 현재 입력한 핵종 개수
 
 // Global double
-	/*변수이동필요*/double SelectedPointNormalVector_sourceHP[3] = { 0., 0., 0. }; // Hot particle 선택한 지점의 노말벡터
+
 	/*변수이동필요*/double PSF_FileSize; // PSF의 파일 크기
 	
 
 // Global bool
-	bool b_IsSourceBiasingListGenerating_sourceEP = false;
-	std::map<int, bool> SourceBiasingCheckedPhantomList_sourceEP;		
-	bool b_IsSourceLocationVisualized_sourceOV = true;
-	bool b_IsSourceOV_AddingSettingClosed = false;
-	bool b_IsSourceOV_AddingSettingOKClicked = true; 
-	bool b_IsSourceLocationVisualized_sourceCB = true;
-	bool b_IsSourceLocationVisualized_sourcePB = true;
-	bool b_sourceOV_InObjectSelect = false;
 	
 // QGroupBox
 	QGroupBox* SourcePanel_QGroupBox = nullptr;
-	// Broad Beam (BB)
-	QGroupBox* m_sourceGeometryBroadBeamGroupBox = nullptr;
-	QGroupBox* m_AziPolGroupBox = nullptr;
-	// External Point (EP)
-	QGroupBox* m_sourceGeometryExternalPointGroupBox = nullptr;	
-	QGroupBox* m_sourceExternal_AddManuallyGroupBox = nullptr;
-	QGroupBox* m_sourceExternal_ExternalFileGroupBox = nullptr;
-	// Floor Disk (FD)
-	QGroupBox* m_sourceGeometryFloorDiskGroupBox = nullptr;
-	// Object Volume (OV)
-	QGroupBox* m_sourceGeometryObjectVolumeGroupBox = nullptr;
-	// Phase Space (PS)
-	QGroupBox* m_sourceGeometryPhaseSpaceGroupBox = nullptr;
-	QGroupBox* m_sourceIAEAphspGroupBox = nullptr;
-	QGroupBox* m_sourceUSERphspGroupBox = nullptr;
-	// Hot Particle (HP)
-	QGroupBox* m_sourceGeometryHotParticlePointGroupBox = nullptr;
-	QGroupBox* m_sourceHPSingleGroupBox = nullptr;
-	QGroupBox* m_sourceHPmultipleGroupBox = nullptr;
-	// Cone Beam (CB)
-	QGroupBox* m_sourceGeometryConeBeamGroupBox = nullptr;
-	// Room Air Contamination (RC)
-	QGroupBox* m_sourceGeometryRoomContaminationGroupBox = nullptr;
-	// Environmental Source (ES)
-	QGroupBox* m_sourceGeometryEnvironmentalSourceGroupBox = nullptr;
-	// Parallel Beam (PB)
-	QGroupBox* m_sourceGeometryParallelBeamGroupBox = nullptr;
-
-// QLabel
-
-	// External Point (EP)
-	QLabel* RI_Title_sourceEP_QLabel = nullptr;
-	QLabel* RI_Activity_sourceEP_QLabel = nullptr;
-	QLabel* RI_List_sourceEP_QLabel = nullptr;
-	QLabel* ES_List_sourceEP_QLabel = nullptr;
-	QLabel* ES_Title_sourceEP_QLabel = nullptr;
-	QLabel* ES_Intensity_sourceEP_QLabel = nullptr;
-	QLabel* ES_FileName_sourceEP_QLabel = nullptr;
-	// Floor Disk (FD)
-	QLabel* RI_Title_sourceFD_QLabel = nullptr;
-	QLabel* RI_Activity_sourceFD_QLabel = nullptr;
-	QLabel* RI_List_sourceFD_QLabel = nullptr;	
-	QLabel* ES_List_sourceFD_QLabel = nullptr;
-	QLabel* ES_Title_sourceFD_QLabel = nullptr;
-	QLabel* ES_Intensity_sourceFD_QLabel = nullptr;
-	QLabel* ES_FileName_sourceFD_QLabel = nullptr;
-	// Hot Particle (HP)
-	QLabel* RI_Title_sourceHP_QLabel = nullptr;
-	QLabel* RI_Activity_sourceHP_QLabel = nullptr;
-	QLabel* RI_List_sourceHP_QLabel = nullptr;
-	QLabel* ES_List_sourceHP_QLabel = nullptr;
-	QLabel* ES_Title_sourceHP_QLabel = nullptr;
-	QLabel* ES_Intensity_sourceHP_QLabel = nullptr;
-	QLabel* ES_FileName_sourceHP_QLabel = nullptr;
-	// Object Volume (OV)
-	QLabel* RI_Title_sourceOV_QLabel = nullptr;
-	QLabel* RI_Activity_sourceOV_QLabel = nullptr;
-	QLabel* RI_List_sourceOV_QLabel = nullptr;
-	QLabel* ES_List_sourceOV_QLabel = nullptr;
-	QLabel* ES_Title_sourceOV_QLabel = nullptr;
-	QLabel* ES_FileName_sourceOV_QLabel = nullptr;
-	QLabel* ES_Intensity_sourceOV_QLabel = nullptr;	
-	// Cone Beam (CB)
-	QLabel* labelConeBeamRadionuclideTitle = nullptr;
-	QLabel* labelConeBeamRadionuclideActivity = nullptr;
-	QLabel* labelConeBeamRadionuclideList = nullptr;
-	QLabel* labelConeBeamEnergyspectrumTitle = nullptr;
-	QLabel* labelConeBeamEnergyspectrumIntensity = nullptr;
-	QLabel* labelConeBeamEnergyspectrumFileName = nullptr;
-	QLabel* labelConeBeamEnergyspectrumList = nullptr;
-	// Room Air Contamination (RC)
-	QLabel* label_sourceRC_BoxLength = nullptr;
-	QLabel* label_sourceRC_BoxCenter = nullptr;
-	QLabel* RadionuclideList_sourceRC_QLabel = nullptr;
-	// Environmental Source (ES)
-	QLabel* labelEnvironmentalRadionuclideTitle = nullptr;
-	QLabel* labelEnvironmentalRadionuclideActivity = nullptr;
-	QLabel* labelEnvironmentalRadionuclideList = nullptr;
-	QLabel* labelEnvironmentalSoilDepth = nullptr;
-	// Parallel Beam (PB)
-	QLabel* labelParallelBeamParticleTypeTitle = nullptr;		
-	QLabel* labelParallelBeamEnergyTitle = nullptr;
-	QLabel* labelParallelBeamIntensityTitle = nullptr;
-	QLabel* labelParallelBeamEnergyspectrumTitle = nullptr;
-	QLabel* labelParallelBeamEnergyspectrumIntensity = nullptr;
-	QLabel* labelParallelBeamEnergyspectrumFileName = nullptr;
-	QLabel* labelParallelBeamEnergyspectrumList = nullptr;
-
-// QLineEdit
-	// B
-	QLineEdit* m_lineEditAzimuthalAngle = nullptr;
-	QLineEdit* m_lineEditPolarAngle = nullptr;
-	QLineEdit* m_lineBroadBeamEnergy = nullptr;
-
-	//EP
-	QLineEdit* RI_Radionuclide_sourceEP_QLineEdit = nullptr;
-	QLineEdit* RI_Activity_sourceEP_QLineEdit = nullptr;
-	QLineEdit* PosX_sourceEP_QLineEdit = nullptr;
-	QLineEdit* PosY_sourceEP_QLineEdit = nullptr;
-	QLineEdit* PosZ_sourceEP_QLineEdit = nullptr;
-	QLineEdit* ES_Intensity_sourceEP_QLineEdit = nullptr;	
-
-	// FD
-	QLineEdit* PosX_SourceFD_QLineEdit = nullptr;
-	QLineEdit* PosY_SourceFD_QLineEdit = nullptr;
-	QLineEdit* PosZ_SourceFD_QLineEdit = nullptr;
-	QLineEdit* Radius_sourceFD_QLineEdit = nullptr;
-	QLineEdit* RI_Radionuclide_sourceFD_QLineEdit = nullptr;
-	QLineEdit* RI_Activity_sourceFD_QLineEdit = nullptr;
-	QLineEdit* ES_Intensity_sourceFD_QLineEdit = nullptr;
-
-	// OV
-	QLineEdit* RI_Radionuclide_sourceOV_QLineEdit = nullptr;
-	QLineEdit* RI_Activity_sourceOV_QLineEdit = nullptr;
-	QLineEdit* ES_Intensity_sourceOV_QLineEdit = nullptr;
-
-	// PS
-
-	// HP
-	QLineEdit* PosX_SourceHP_QLineEdit = nullptr;
-	QLineEdit* PosY_SourceHP_QLineEdit = nullptr;
-	QLineEdit* PosZ_SourceHP_QLineEdit = nullptr;
-	QLineEdit* SeparationDist_SourceHP_QLineEdit = nullptr;
-	QLineEdit* RI_Radionuclide_sourceHP_QLineEdit = nullptr;
-	QLineEdit* RI_Activity_sourceHP_QLineEdit = nullptr;
-	QLineEdit* ES_Intensity_sourceHP_QLineEdit = nullptr;
-
-	// CB
-	QLineEdit* m_lineEditConeBeamPointX = nullptr;
-	QLineEdit* m_lineEditConeBeamPointY = nullptr;
-	QLineEdit* m_lineEditConeBeamPointZ = nullptr;
-	QLineEdit* m_lineEditConeBeamDirectionX = nullptr;
-	QLineEdit* m_lineEditConeBeamDirectionY = nullptr;
-	QLineEdit* m_lineEditConeBeamDirectionZ = nullptr;
-	QLineEdit* m_lineEditConeBeamDirectionSolidAngle = nullptr;
-	QLineEdit* m_lineEditConeBeamRadionuclide = nullptr;
-	QLineEdit* m_lineEditConeBeamActivity = nullptr;
-	QLineEdit* m_lineEditConeBeamIntensity = nullptr;
-
-	// RC
-	QLineEdit* Box_HalfLengthX_sourceRC_QLineEdit = nullptr;
-	QLineEdit* Box_HalfLengthY_sourceRC_QLineEdit = nullptr;
-	QLineEdit* Box_HalfLengthZ_sourceRC_QLineEdit = nullptr;
-	QLineEdit* Box_CenterX_sourceRC_QLineEdit = nullptr;
-	QLineEdit* Box_CenterY_sourceRC_QLineEdit = nullptr;
-	QLineEdit* Box_CenterZ_sourceRC_QLineEdit = nullptr;
-	QLineEdit* m_lineEditRCHemiRadius = nullptr;
-	QLineEdit* m_lineEditRCHemiCenterX = nullptr;
-	QLineEdit* m_lineEditRCHemiCenterY = nullptr;
-	QLineEdit* m_lineEditRCHemiCenterZ = nullptr;
-	QLineEdit* RI_sourceRC_QLineEdit = nullptr;
-	QLineEdit* Activity_sourceRC_QLineEdit = nullptr;
-
-	// ES
-	QLineEdit* m_lineEditEnvironmentalSoilDepth = nullptr;
-	QLineEdit* m_lineEditEnvironmentalRadionuclide = nullptr;
-	QLineEdit* m_lineEditEnvironmentalActivity = nullptr;
-
-	// PB
-	QLineEdit* m_lineEditParallelBeamPointX = nullptr;
-	QLineEdit* m_lineEditParallelBeamPointY = nullptr;
-	QLineEdit* m_lineEditParallelBeamPointZ = nullptr;
-	QLineEdit* m_lineEditParallelBeamRadius = nullptr;
-	QLineEdit* m_lineEditParallelBeamDirectionTheta = nullptr;
-	QLineEdit* m_lineEditParallelBeamDirectionPhi = nullptr;		
-	QLineEdit* m_lineEditParallelBeamEnergy = nullptr;
-	QLineEdit* m_lineEditParallelBeamIntensity_MonoEnergy = nullptr;
-	QLineEdit* m_lineEditParallelBeamIntensity_EnergySpectrum = nullptr;
+	QVBoxLayout* m_sourceGeometryContainerLayout = nullptr;
+	QList<SourceGeometryWidget*> m_sources;
 
 // QPushButton
-	QPushButton* m_sourceOKandResetButton = nullptr;
-	//
-	QPushButton* m_sourceBresetButton = nullptr;
-	QPushButton* m_BroadBeamSourceVisualizationButton = nullptr;
-
-	//EP
-	QPushButton* m_sourceEPresetButton = nullptr;
-	QPushButton* SourceEP_SphereSize_Minus_QPushButton = nullptr;
-	QPushButton* SourceEP_SphereSize_Plus_QPushButton = nullptr;
-	QPushButton* m_ExternalPointSourceVisualizationButton = nullptr;
-	QPushButton* m_sourceExternal_AddManuallyButton = nullptr;
-	QPushButton* ExternalSingleEnergyspectrumFileLoadButton = nullptr;	
-	QPushButton* sourceEP_UpdatePositionButton = nullptr;
-	QPushButton* pickExternal3DButton = nullptr;	
-	QPushButton* ExternalSingleRadionuclideButton = nullptr;
-	QPushButton* ExternalSingleRadionuclideAddButton = nullptr;
-	QPushButton* ExternalSingleEnergySpectrumAddButton = nullptr;	
-	QPushButton* m_sourceExternal_ExternalFileButton = nullptr;
-	QPushButton* ExternalFileEP_PositionTranslateButton = nullptr;
-	QPushButton* ExternalSingleSourceBiasingOnOffButton = nullptr;
-	QPushButton* loadFileButton_ExternalFileEP = nullptr;
-	std::vector<QPushButton*> RI_ListDelete_sourceEP_QButton;
-	std::vector<QPushButton*> RI_ListInfo_sourceEP_QButton;
-	std::vector<QPushButton*> ES_ListDelete_sourceEP_QButton;
-	std::vector<QPushButton*> ES_ListInfo_sourceEP_QButton;
-
-	//FD
-	QPushButton* m_sourceFDresetButton = nullptr;
-	QPushButton* m_FloorSourceVisualizationButton = nullptr;
-	QPushButton* m_FloorSetDefaultGeom = nullptr;
-	QPushButton* m_FloorZpos3DPickButton = nullptr;
-	QPushButton* m_FloorUpdateButton = nullptr;	
-	QPushButton* sourceFD_RadionuclideAddButton = nullptr;
-	QPushButton* sourceFD_EnergyspectrumFileLoadButton = nullptr;
-	QPushButton* sourceFD_EnergySpectrumAddButton = nullptr;
-	std::vector<QPushButton*> RI_ListDelete_sourceFD_QButton;
-	std::vector<QPushButton*> RI_ListInfo_sourceFD_QButton;
-	std::vector<QPushButton*> ES_ListDelete_sourceFD_QButton;
-	std::vector<QPushButton*> ES_ListInfo_sourceFD_QButton;
-
-	//	OV
-	std::map<int, QPushButton*> sourceOV_ObjectButton;
-	QPushButton* m_sourceOV_SettingOKButton = nullptr;
-	QPushButton* m_sourceOVresetButton = nullptr;
-	QPushButton* m_ObjectVolumeSourceVisualizationButton = nullptr;
-	QPushButton* sourceOV_ObjectAddButton = nullptr;
-	QPushButton* sourceOV_ObjectDeleteButton = nullptr;
-	QPushButton* sourceOV_EnergyspectrumFileLoadButton = nullptr;
-	QPushButton* sourceOV_EnergyspectrumAddButton = nullptr;
-	QPushButton* sourceOV_RadionuclideAddButton = nullptr;
-	std::vector<QPushButton*> RI_ListDelete_sourceOV_QButton;
-	std::vector<QPushButton*> RI_ListInfo_sourceOV_QButton;
-	std::vector<QPushButton*> ES_ListDelete_sourceOV_QButton;
-	std::vector<QPushButton*> ES_ListInfo_sourceOV_QButton;
-
-	//PS
-	QPushButton* m_sourcePSresetButton = nullptr;
-	QPushButton* SourceVisualziation_sourePS_QButton = nullptr;	
-	QPushButton* sourcePS_MCNP_button = nullptr;
-	QPushButton* sourcePS_PHITS_button = nullptr;
-	QPushButton* sourcePS_FLUKA_button = nullptr;
-	QPushButton* sourcePS_IAEA_button = nullptr;
-	QPushButton* sourcePS_USER_Button = nullptr;
-
-	//	HP
-	QPushButton* SourceHP_SphereSize_Plus_QPushButton = nullptr;
-	QPushButton* SourceHP_SphereSize_Minus_QPushButton = nullptr;
-	QPushButton* m_HotParticleSourceVisualizationButton = nullptr;
-	QPushButton* sourceHP_EnergyspectrumFileLoadButton = nullptr;	
-	QPushButton* Pick3D_HP_QButton = nullptr;
-	QPushButton* UpdatePosition_sourceHP_QButton = nullptr;
-	QPushButton* RIList_Add_sourceHP_QButton = nullptr;
-	std::vector<QPushButton*> RIList_Delete_sourceHP_QButton;
-	std::vector<QPushButton*> RIList_Info_sourceHP_QButton;
-	QPushButton* ESList_Add_sourceHP_QButton = nullptr;
-	std::vector<QPushButton*> ESList_Delete_sourceHP_QButton;
-	std::vector<QPushButton*> ESList_Info_sourceHP_QButton;
-
-	//CB
-	QPushButton* m_sourceCBresetButton = nullptr;
-	QPushButton* m_ConeBeamSourceVisualizationButton = nullptr;
-	QPushButton* m_ConeBeamDirectionVisualizationButton = nullptr;
-	QPushButton* pickConeBeam3DButton = nullptr;
-	QPushButton* sourceCB_UpdateButton = nullptr;
-	QPushButton* ConeBeamDirectionUpdateButton = nullptr;
-	QPushButton* ConeBeamRadionuclideButton = nullptr;
-	QPushButton* ConeBeamRadionuclideAddButton = nullptr;
-	QPushButton* ConeBeamEnergyspectrumButton = nullptr;
-	QPushButton* ConeBeamEnergyspectrumFileLoadButton = nullptr;
-	QPushButton* ConeBeamEnergyspectrumAddButton = nullptr;
-	std::vector<QPushButton*> m_sourceCB_listDeleteButton;
-	std::vector<QPushButton*> m_sourceCB_listInfoButton;
-
-	//PS
-	QPushButton* loadFileButton_IAEAphsp = nullptr;
-	QPushButton* sourcePS_loadPSFButton = nullptr;
-
-	// RC
-	QPushButton* UpdateRCposButton = nullptr;
-	QPushButton* m_sourceRCresetButton = nullptr;
-	QPushButton* m_RoomContaminationSourceVisualizationButton = nullptr;
-	QPushButton* RIList_Add_sourceRC_QButton = nullptr;
-	std::vector<QPushButton*> RIList_Delete_sourceRC_QButton;
-	std::vector<QPushButton*> RIList_Info_sourceRC_QButton;
-
-	// E
-	QPushButton* m_sourceEresetButton = nullptr;
-	QPushButton* m_EnvironmentalSourceVisualizationButton = nullptr;	
-	QPushButton* EnvironmentalRadionuclideAddButton = nullptr;
-
-	//PB
-	QPushButton* m_ParallelBeamSourceVisualizationButton = nullptr;
-	QPushButton* pickParallelBeam3DButton = nullptr;
-	QPushButton* sourcePB_UpdateButton = nullptr;
-	QPushButton* ParallelBeamRadionuclideAddButton = nullptr;
-	QPushButton* ParallelBeamEnergyspectrumFileLoadButton = nullptr;
-	QPushButton* ParallelBeamEnergyspectrumAddButton = nullptr;
+	QPushButton* m_sourceOKandResetButton = nullptr; //
+	
+	// QPushButton* ConeBeamRadionuclideButton = nullptr;
+	// QPushButton* ConeBeamEnergyspectrumButton = nullptr;
 
 // QComboBox
 	QComboBox* m_comboBoxSourceGeometry = nullptr;
-	QComboBox* m_comboBoxBeamdirection = nullptr;
-	QComboBox* m_comboBoxBroadBeamParticleType = nullptr;
-	QComboBox* m_comoboBoxHPphantoms = nullptr;
-	QComboBox* m_comboBoxMultipleHP = nullptr;
-	QComboBox* m_comboBoxEnvironmentalSourceType = nullptr;
-	QComboBox* m_comboBoxSetting_sourceOV_objectList = nullptr;
-	QComboBox* m_comboBoxParallelBeamParticleType = nullptr;
-// QTextEdit
-	QTextEdit* sourceEP_EnergyspectrumFileNameText = nullptr;
-	//
-	QTextEdit* sourceFD_EnergyspectrumFileNameText = nullptr;
-	//
-	QTextEdit* sourceOV_EnergyspectrumFileNameText = nullptr;
-	//
-	QTextEdit* sourcePS_PSFname = nullptr;
-	//
-	QTextEdit* sourceHP_EnergyspectrumFileNameText = nullptr;
-	//
-	QTextEdit* sourceCB_EnergyspectrumFileNameText = nullptr;
-	//
-	QTextEdit* sourcePB_EnergyspectrumFileNameText = nullptr;
-// QRadioButton
-	QRadioButton* RI_Select_sourceEP_QRadioButton = nullptr;
-	QRadioButton* ES_Select_sourceEP_QRadioButton = nullptr;
-	QRadioButton* RI_Select_sourceFD_QRadioButton = nullptr;
-	QRadioButton* ES_Select_sourceFD_QRadioButton = nullptr;
-	QRadioButton* RI_Select_sourceRC_QRadioButton = nullptr;
-	QRadioButton* ES_Select_sourceRC_QRadioButton = nullptr;
-	QRadioButton* RI_Select_sourceHP_QRadioButton = nullptr;
-	QRadioButton* ES_Select_sourceHP_QRadioButton = nullptr;
-	QRadioButton* sourceRC_Box_radioButton = nullptr;
-	QRadioButton* sourceRC_Hemisphere_radioButton = nullptr;
-	QRadioButton* sourceOV_Radionuclide_radioButton = nullptr;
-	QRadioButton* sourceOV_Energyspectrum_radioButton = nullptr;
-	QRadioButton* sourceCB_Radionuclide_radioButton = nullptr;
-	QRadioButton* sourceCB_Energyspectrum_radioButton = nullptr;	
-	QRadioButton* sourcePB_MonoEnergy_radioButton = nullptr;
-	QRadioButton* sourcePB_EnergySpectrum_radioButton = nullptr;
-	
-// QScrollArea
-	QScrollArea* scrollAreaTargetERR_EP = new QScrollArea();
-	QScrollArea* scrollAreaTargetERR_HP = new QScrollArea();
-// QListWidget
-	QListWidget *RI_List_sourceEP_QListWidget = nullptr;
-	QListWidget *ES_List_sourceEP_QListWidget = nullptr;
 
-	QListWidget *RI_List_sourceFD_QListWidget = nullptr;
-	QListWidget *ES_List_sourceFD_QListWidget = nullptr;
-	
-	QListWidget *RI_List_sourceHP_QListWidget = nullptr;
-	QListWidget *ES_List_sourceHP_QListWidget = nullptr;
 
-	QListWidget *RI_List_sourceRC_QListWidget = nullptr;
-	
-	QListWidget *RI_List_sourceOV_QListWidget = nullptr;	
-	QListWidget *ES_List_sourceOV_QListWidget = nullptr;
-
-	QListWidget *RI_List_sourceCB_QListWidget = nullptr;
-	QListWidget *ES_List_sourceCB_QListWidget = nullptr;
-
-	QListWidget *RI_List_sourcePB_QListWidget = nullptr;
-	QListWidget *ES_List_sourcePB_QListWidget = nullptr;
-
-	QListWidget *listWidget_E_Radionuclide = nullptr;
-
-// QCheckBox	
-	QCheckBox* DirectionCheck_sourcePS_QCheckBox = nullptr;
-	QCheckBox* sourceCB_dirCheckBox = nullptr;
-// QHBoxLayout
-	QHBoxLayout* layout_sourceOV_ObjectList = nullptr;
-// QScrollBar
-	QScrollBar*  sourceOV_ObjectScrollBar = nullptr;
-// 
-	MultipleUIDialog* sourceOV_ObjectAddingDialog = nullptr;
 // QStringList
 	QStringList RIsourceList; // Completer(자동완성)
 //////////////////////////////////////////////////////
@@ -1686,14 +1321,12 @@ std::map<int, std::map<int, std::map<int, QString>>> m_PhantomWearableName; // m
 ////////////////// Information Container ////////////////// 
 	
 // Source
-	std::vector<int> m_sourceOV_objectSequenceVector; // m_sourceOV_objectSequenceVector[ID] = Object ID
-	std::map<int, std::map<int, double>> sourceOV_objectBound; // sourceOV_objectBound[ID][0~5] = 0: Xmin, 1: Xmax, 2: Ymin, 3: Ymax, 4: Zmin, 5: Zmax
-	std::vector<std::map<int, QString>> ListInfo_sourceEP; // ListInfo_sourceEP[pointID][0~5] = 0: 사용여부(True or ""), 1: posX, 2: posY, 3: posZ, 4: RI, 5: activity(Bq)		
-	std::vector<std::map<int, QString>> sourceCB_info; // ListInfo_sourceEP[pointID][0~5] = 0: 사용여부(True or ""), 1: posX, 2: posY, 3: posZ, 4: RI, 5: activity(Bq)
-	std::vector<std::map<int, QString>> ListInfo_sourceFD; // RI_Info_sourceRC[pointID][0~2] = 0: 사용여부(True or ""), 1: RI, 2: activity(Bq/cm3)
-	std::vector<std::map<int, QString>> RI_Info_sourceRC; // RI_Info_sourceRC[pointID][0~2] = 0: 사용여부(True or ""), 1: RI, 2: activity(Bq/cm3)
+		
+	
+
+	
 	std::vector<std::map<int, QString>> ListInfo_sourceHP; // RI_Info_sourceRC[pointID][0~2] = 0: 사용여부(True or ""), 1: RI, 2: activity(Bq/cm3)
-	std::map<int, std::vector<std::map<int, QString>>> ListInfo_sourceOV; // RI_Info_sourceOV[objectID][RIindex][1~2] = 0: 사용여부, 1: RI, 2: activity(Bq/cm3)
+	
 	std::vector<std::map<int, QString>> MultipleHPinfoVector; // MultipleHPinfoVector[point#] = 0: posX, 1: posY, 2: posZ, 3: sepaDist, 4: RI, 5: activity(Bq)	
 //////////////////////////////////////////////////////
 
@@ -1734,7 +1367,7 @@ public:
 	void CreateSourceWidgets();
 
 	void CreateSourceGeometryBroadBeamWidgets(QVBoxLayout* layout);
-	void CreateAziPol(int idx, QVBoxLayout* layout);
+
 	void CreateSourceGeometryExternalPointWidgets(QVBoxLayout* layout);
 	void CreateSourceGeometryHotParticlePointWidgets(QVBoxLayout* layout);
 	void CreateSourceGeometryConeBeamWidgets(QVBoxLayout* layout);
@@ -1744,7 +1377,7 @@ public:
 	void CreateSourceGeometryRoomContaminationWidgets(QVBoxLayout* layout);
 	void CreateSourceGeometryEnviromentalSourceWidgets(QVBoxLayout* layout);
 	void CreateSourceGeometryParallelBeamWidgets(QVBoxLayout* layout);
-	void ExecuteSourceOVAddRoutines();
+
 
 	void CreateOutputWidgets();
 	void CreateOutputPhantomButtonWidget(QVBoxLayout* layout);
@@ -1807,11 +1440,10 @@ public:
 	void ClothingLayerAddingSetting(); // Phantom 패널 내 Clothing Layer Add 버튼 클릭 시 Clothing Layer Setting 창을 띄우는 함수
 
 	void SetSourceGeometryType(int index);
-	void SetBroadBeamAziPol(int user);	
 
 	void SetResultType(int user);
 	
-	void sourceOV_ObjectAddingSetting_Create();
+
 
 	void triggerCalculate(); // 가시화창 우측 하단 실행 버튼 클릭 시 실행
 	void triggerSetting(); // 가시화창 우측 하단 설정 버튼 클릭 시 실행	
@@ -1886,120 +1518,10 @@ public slots:
 	void slot_DosimeterPick3D_ButtonClicked();
 	void slot_DosimeterLocationUpdate_ButtonClicked();
 	void slot_DosimeterUpdate_ButtonClicked();
-	void slot_BroadBeamUserDefined(int user);
-	void slot_sourceEP_Pick3D_ButtonClicked();
+
+
 	
 	
-	void slot_HotParticle_Pick3D_ButtonClicked();
-	void slot_FloorSetDefaultGeom_ButtonClicked();	
-	void slot_FloorUpdate_ButtonClicked();
-	void slot_FloorSourceVisualization_ButtonClicked();
-	void slot_ObjectVolumeSourceVisualization_ButtonClicked();
-	void slot_RoomContaminationSourceVisualization_ButtonClicked();	
-	void slot_SourcePS_MCNP_ButtonClicked();
-	void slot_SourcePS_PHITS_ButtonClicked();
-	void slot_SourcePS_FLUKA_ButtonClicked();
-	void slot_SourcePS_IAEA_ButtonClicked();
-	void slot_SourcePS_USER_ButtonClicked();	
-	void slot_sourcePS_loadPSF_ButtonClicked();
-	void slot_PhaseSpaceSourceVisualization_ButtonClicked();
-	void slot_DirectionCheck_sourcePS_QCheckBox_ButtonClicked();
-	void slot_ConeBeam_Pick3D_ButtonClicked();
-
-	void slot_ParallelBeam_Pick3D_ButtonClicked();
-	void slot_ParallelBeamUpdate_ButtonClicked();
-
-	void slot_SourceOKandReset_ButtonClicked();
-	void slot_BUpdate_ButtonClicked();
-			
-	void slot_CBreset_ButtonClicked();	
-	void slot_Ereset_ButtonClicked();
-
-	void slot_UpdateRCpos_ButtonClicked();
-
-	void slot_BroadBeamSourceVisualization_ButtonClicked();
-
-	void slot_sourceEP_UpdatePosition_ButtonClicked();	
-	void slot_sourceEP_RadionuclideSelect_RadioButtonClicked();
-	void slot_sourceEP_EnergySpectrumSelect_RadioButtonClicked();
-	void slot_RIList_Add_sourceEP_ButtonClicked();
-	void slot_RIList_Delete_sourceEP_ButtonClicked();
-	void slot_RIList_Info_sourceEP_ButtonClicked();
-	void slot_ESList_Add_sourceEP_ButtonClicked();
-	void slot_ESList_Delete_sourceEP_ButtonClicked();
-	void slot_ESList_Info_sourceEP_ButtonClicked();
-	
-	void slot_SourceEP_SphereSize_Minus_ButtonClicked();
-	void slot_SourceEP_SphereSize_Plus_ButtonClicked();
-	void slot_ExternalPointSourceVisualization_ButtonClicked();
-	void slot_EnergyspectrumFileLoad_sourceEP_ButtonClicked();
-	void slot_sourceFD_EnergyspectrumFileLoad_ButtonClicked();
-	void slot_sourceFD_RadionuclideSelect_RadioButtonClicked();
-	void slot_sourceFD_EnergySpectrumSelect_RadioButtonClicked();
-	void slot_RIList_Add_sourceFD_ButtonClicked();
-	void slot_RIList_Delete_sourceFD_ButtonClicked();
-	void slot_RIList_Info_sourceFD_ButtonClicked();
-
-	void slot_ESList_Add_sourceFD_ButtonClicked();
-	void slot_ESList_Delete_sourceFD_ButtonClicked();
-	void slot_ESList_Info_sourceFD_ButtonClicked();
-
-	void slot_RIList_Add_sourceRC_ButtonClicked();
-	void slot_RIList_Delete_sourceRC_ButtonClicked();
-	void slot_RIList_Info_sourceRC_ButtonClicked();
-
-	void slot_sourceOV_RadionuclideSelect_RadioButtonClicked();
-	void slot_sourceOV_EnergySpectrumSelect_RadioButtonClicked();
-	void slot_sourceOV_ObjectAdd_ButtonClicked();
-	void slot_sourceOV_ObjectSelect_ButtonClicked();
-	void slot_sourceOV_ObjectDelete_ButtonClicked();
-	void slot_sourceOV_ObjectSettingChangeCombo(int index);
-	void slot_sourceOV_SettingOK_ButtonClicked();
-	void slot_sourceOV_RadionuclideAdd_ButtonClicked();
-	void slot_sourceOV_RadionuclideDelete_ButtonClicked();
-	void slot_sourceOV_RadionuclideInfo_ButtonClicked();
-	void slot_sourceOV_EnergyspectrumFileLoad_ButtonClicked();
-	void slot_ESList_Add_sourceOV_ButtonClicked();
-	void slot_ESList_Delete_sourceOV_ButtonClicked();
-	void slot_ESList_Info_sourceOV_ButtonClicked();
-	
-	void slot_RIList_Add_sourceHP_ButtonClicked();
-	void slot_Update_Position_HP_ButtonClicked();
-	void slot_SourceHP_SphereSize_Minus_ButtonClicked();
-	void slot_SourceHP_SphereSize_Plus_ButtonClicked();
-	void slot_HotParticleSourceVisualization_ButtonClicked();
-	void slot_RI_Select_sourceHP_RadioButtonClicked();	
-	void slot_RIList_Delete_sourceHP_ButtonClicked();
-	void slot_RIList_Info_sourceHP_ButtonClicked();
-
-	void slot_ES_Select_sourceHP_RadioButtonClicked();
-	void slot_ESList_Add_sourceHP_ButtonClicked();
-	void slot_ESList_Delete_sourceHP_ButtonClicked();
-	void slot_ESList_Info_sourceHP_ButtonClicked();
-	void slot_EnergyspectrumFileLoad_sourceHP_ButtonClicked();
-
-
-
-	void slot_ConeBeamSourceVisualization_ButtonClicked();
-	void slot_ConeBeamUpdate_ButtonClicked();
-	void slot_ConeBeamRadionuclide_ButtonClicked();
-	void slot_ConeBeamRadionuclideAdd_ButtonClicked();
-	void slot_ConeBeamRadionuclideDelete_ButtonClicked();
-	void slot_ConeBeamRadionuclideInfo_ButtonClicked();
-	void slot_ConeBeamEnergyspectrum_ButtonClicked();
-	void slot_ConeBeamEnergyspectrumFileLoad_ButtonClicked();
-	void slot_ConeBeamEnergyspectrumAdd_ButtonClicked();
-	void slot_ConeBeamEnergyspectrumInfo_ButtonClicked();
-	void slot_EnvironmentalSourceVisualization_ButtonClicked();
-	void slot_EnvironmentalRadionuclideAdd_ButtonClicked();
-	void slot_ChangeEnvironmentalSourceType(int idx);
-	void slot_RI_Select_sourceRC_RadioButtonClicked();
-	void slot_ES_Select_sourceRC_RadioButtonClicked();
-	void slot_ParallelBeamSourceVisualization_ButtonClicked();
-	void slot_ParallelBeamRadionuclideAdd_ButtonClicked();
-	void slot_ParallelBeamEnergyspectrumFileLoad_ButtonClicked();
-	void slot_ParallelBeamEnergyspectrumAdd_ButtonClicked();
-
 	void slot_DosimeterSelect_ButtonClicked();
 	void slot_DosimeterAdd_ButtonClicked();
 	void slot_DosimeterDelete_ButtonClicked();
@@ -2010,10 +1532,13 @@ public slots:
 	void slot_ObjectMoveLeft_ButtonClicked();
 	void slot_ObjectMoveRight_ButtonClicked();
 	void slot_ObjectUpdate_ButtonClicked();
+	
+	void slot_SourceOKandReset_ButtonClicked();
+	void slot_BUpdate_ButtonClicked();
 
 	void slot_SkinDoseVisualization_ButtonClicked();
 	void slot_Output_resultType(int user);
-
+	
 	void slot_settingSave_ButtonClicked();
 	void slot_Calculate_ButtonClicked();
 	

@@ -66,11 +66,11 @@
 void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor 가시화 -> 전용코드로 따로 관리
 {
 	// Reset process
-	for (auto itr : theApp.theApp.actors_cylinderB)
+	for (auto itr : theApp.actors_cylinderB)
 	{
 		if (itr != nullptr)
 		{
-			theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(itr);
+			theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(itr);
 			itr = nullptr;
 		}
 	}
@@ -79,7 +79,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 	{
 		if (itr != nullptr)
 		{
-			theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(itr);
+			theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(itr);
 			itr = nullptr;
 		}
 	}
@@ -88,17 +88,17 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 	{
 		if (itr != nullptr)
 		{
-			theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(itr);
+			theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(itr);
 			itr = nullptr;
 		}
 	}
 	theApp.actors_arrowB.clear();
 
-	theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.actor_circleB);
+	theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.actor_circleB);
 	theApp.actor_circleB = nullptr;
-	theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.actor_sphereB);
+	theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.actor_sphereB);
 	theApp.actor_sphereB = nullptr;
-	theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.actor_single_cylinderB);
+	theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.actor_single_cylinderB);
 	theApp.actor_single_cylinderB = nullptr;
 
 	// set varialbes
@@ -110,7 +110,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 	double PhantomBoxYmax = -DBL_MAX;
 	double PhantomBoxZmin = DBL_MAX;
 	double PhantomBoxZmax = -DBL_MAX;
-	for (auto phantomID : theApp.theApp.pRt->m_Phantom_SequenceVector)
+	for (auto phantomID : theApp.pRt->m_Phantom_SequenceVector)
 	{
 		double* bounds = theApp.PhantomPanelActor[phantomID]->GetBounds();
 		if (bounds[0] < PhantomBoxXmin) PhantomBoxXmin = bounds[0];
@@ -143,8 +143,8 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 	double ConeHeight = 10;
 	double ConeRadius = 2;
 	int iterationNo = 1;
-	if (theApp.theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 4) iterationNo = 8;
-	if (theApp.theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 5) iterationNo = 14;
+	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 4) iterationNo = 8;
+	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 5) iterationNo = 14;
 	for (int actorNo = 0; actorNo < iterationNo; actorNo++)
 	{
 		// Create a cylinder (shaft of the arrow)
@@ -157,7 +157,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_cylinderB.push_back(vtkSmartPointer<vtkActor>::New());
 		theApp.actors_cylinderB.back()->SetMapper(cylinderMapper);
 		theApp.actors_cylinderB.back()->SetProperty(property);
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_cylinderB.back());
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_cylinderB.back());
 		// Create a cone (arrowhead)
 		vtkSmartPointer<vtkConeSource> coneSource = vtkSmartPointer<vtkConeSource>::New();
 		coneSource->SetHeight(ConeHeight);
@@ -168,9 +168,9 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB.push_back(vtkSmartPointer<vtkActor>::New());
 		theApp.actors_coneB.back()->SetMapper(coneMapper);
 		theApp.actors_coneB.back()->SetProperty(property);
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_coneB.back());
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_coneB.back());
 	}
-	if (theApp.theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 0) // AP
+	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 0) // AP
 	{
 		// Create a circle
 		double radius_AP;
@@ -187,7 +187,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actor_circleB->SetMapper(mapper_disk);
 		theApp.actor_circleB->SetProperty(property);
 		theApp.actor_circleB->PickableOff();
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
 		// Set position	
 		theApp.actor_circleB->SetPosition(centerX, centerY - DistanceFromPhantomBox, centerZ);
 		theApp.actor_circleB->SetOrientation(90, 0, 0);
@@ -196,7 +196,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB[0]->SetOrientation(0, 0, 90);
 		theApp.actors_coneB[0]->SetPosition(centerX, centerY - DistanceFromPhantomBox + ConeHeight / 2 + CylinderHeight, centerZ);
 	}
-	if (theApp.theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 1) //PA
+	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 1) //PA
 	{
 		double radius_PA;
 		if (xLength >= zLength) radius_PA = xLength / 2 * 1.05;
@@ -212,7 +212,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actor_circleB->SetMapper(mapper_disk);
 		theApp.actor_circleB->SetProperty(property);
 		theApp.actor_circleB->PickableOff();
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
 		// Set position	
 		theApp.actor_circleB->SetPosition(centerX, centerY + DistanceFromPhantomBox, centerZ);
 		theApp.actor_circleB->SetOrientation(90, 0, 0);
@@ -221,7 +221,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB[0]->SetOrientation(0, 0, 270);
 		theApp.actors_coneB[0]->SetPosition(centerX, centerY + DistanceFromPhantomBox - ConeHeight / 2 - CylinderHeight, centerZ); 
 	}
-	if (theApp.theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 2) // LLAT
+	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 2) // LLAT
 	{
 		double radius_LLAT;
 		if (xLength >= zLength) radius_LLAT = xLength / 2 * 1.05;
@@ -237,7 +237,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actor_circleB->SetMapper(mapper_disk);
 		theApp.actor_circleB->SetProperty(property);
 		theApp.actor_circleB->PickableOff();
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
 		// Set position	
 		theApp.actor_circleB->SetPosition(centerX - DistanceFromPhantomBox, centerY, centerZ);
 		theApp.actor_circleB->SetOrientation(90, 0, 90);
@@ -246,7 +246,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB[0]->SetOrientation(0, 0, 0);
 		theApp.actors_coneB[0]->SetPosition(centerX - DistanceFromPhantomBox + ConeHeight / 2 + CylinderHeight, centerY, centerZ);
 	}
-	if (theApp.theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 3) // RLAT
+	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 3) // RLAT
 	{
 		double radius_AP;
 		if (xLength >= zLength) radius_AP = xLength / 2 * 1.05;
@@ -262,7 +262,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actor_circleB->SetMapper(mapper_disk);
 		theApp.actor_circleB->SetProperty(property);
 		theApp.actor_circleB->PickableOff();
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
 		// Set position	
 		theApp.actor_circleB->SetPosition(centerX + DistanceFromPhantomBox, centerY, centerZ);
 		theApp.actor_circleB->SetOrientation(90, 0, 90);
@@ -271,7 +271,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB[0]->SetOrientation(0, 0, 180);
 		theApp.actors_coneB[0]->SetPosition(centerX + DistanceFromPhantomBox - ConeHeight / 2 - CylinderHeight, centerY, centerZ);
 	}
-	if (theApp.theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 4) // ROT
+	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 4) // ROT
 	{
 		// Create a circle
 		double radius_ROT = sqrt((yLength / 2 * yLength / 2) + (zLength / 2 * zLength / 2)) * 1.05; // 5% margin
@@ -286,7 +286,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actor_circleB->SetMapper(mapper_disk);
 		theApp.actor_circleB->SetProperty(property);
 		theApp.actor_circleB->PickableOff();
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
 
 		// Create a cylinder
 		double distance_ROT = xLength / 2 + 50; // 원점(팬텀박스중심)으로부터 원판이 떨어진 거리 + 50 cm (도합 100 cm)
@@ -305,7 +305,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		property_cylinder->SetOpacity(0.05);
 		theApp.actor_single_cylinderB->SetProperty(property_cylinder);
 		theApp.actor_single_cylinderB->PickableOff();
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_single_cylinderB);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_single_cylinderB);
 		 
 		// Create curved arrow
 		double radiusX_ROT = distance_ROT / 3; // Larger radius for x-axis
@@ -361,7 +361,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 			theApp.actors_arrowB[i]->AddPart(tubeActor);
 			theApp.actors_arrowB[i]->AddPart(coneActor);
 			theApp.actors_arrowB[i]->PickableOff();
-			theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_arrowB[i]);
+			theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_arrowB[i]);
 		}
 
 		// Set position
@@ -374,7 +374,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actor_single_cylinderB->SetPosition(centerX, centerY, centerZ);
 		theApp.actor_single_cylinderB->SetOrientation(90, 0, 0);
 	}
-	if (theApp.theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 5) // ISO
+	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 5) // ISO
 	{
 		// Create a circle
 		double XYarea = xLength * yLength;
@@ -401,7 +401,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actor_circleB->SetMapper(mapper_disk);
 		theApp.actor_circleB->SetProperty(property);
 		theApp.actor_circleB->PickableOff();
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_circleB);
 
 		// Create a sphere
 		double distance_ISO = sqrt((xLength / 2 * xLength / 2) + (yLength / 2 * yLength / 2) + (zLength / 2 * zLength / 2)) * 1.05 + 50; // 원점(팬텀박스중심)으로부터 원판이 떨어진 거리 + 50 cm (도합 100 cm)
@@ -420,7 +420,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		property_sphere->SetOpacity(0.05);
 		theApp.actor_sphereB->SetProperty(property_sphere);
 		theApp.actor_sphereB->PickableOff();
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_sphereB);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actor_sphereB);
 
 		// Create curved arrow
 		double radiusX_ISO = distance_ISO / 1.5; // Larger radius for x-axis
@@ -476,7 +476,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 			theApp.actors_arrowB[i]->AddPart(tubeActor);
 			theApp.actors_arrowB[i]->AddPart(coneActor);
 			theApp.actors_arrowB[i]->PickableOff();
-			theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_arrowB[i]);
+			theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_arrowB[i]);
 		}		
 
 		// Set position
@@ -487,7 +487,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actor_circleB->SetPosition(centerX, centerY, centerZ + distance_ISO);
 		theApp.actor_sphereB->SetPosition(centerX, centerY, centerZ);
 	}
-	if (theApp.theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 6) //User-defined
+	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 6) //User-defined
 	{
 		double radius_USER;
 		double XYarea = xLength * yLength;
@@ -514,7 +514,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		actor_circle->SetMapper(mapper_disk);
 		actor_circle->SetProperty(property);
 		actor_circle->PickableOff();
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(actor_circle);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(actor_circle);
 		// Set position	
 		actor_circle->SetPosition(centerX, centerY, centerZ - DistanceFromPhantomBox);
 		actor_circle->SetOrientation(0, 0, 0);
@@ -524,18 +524,18 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB[0]->SetOrientation(0, -90, 180);
 		theApp.actors_arrowB.push_back(vtkSmartPointer<vtkAssembly>::New());
 		theApp.actors_arrowB[0]->AddPart(actor_circle);
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(actor_circle);
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(actor_circle);
 		theApp.actors_arrowB[0]->AddPart(theApp.actors_cylinderB[0]);
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.actors_cylinderB[0]);
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.actors_cylinderB[0]);
 		theApp.actors_arrowB[0]->AddPart(theApp.actors_coneB[0]);
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.actors_coneB[0]);
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.actors_coneB[0]);
 		theApp.actors_arrowB[0]->PickableOff();
 
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_arrowB[0]);
-		theApp.actors_arrowB[0]->SetOrientation(0, theApp.theApp.pRt->m_lineEditPolarAngle->text().toDouble(), theApp.theApp.pRt->m_lineEditAzimuthalAngle->text().toDouble());
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_arrowB[0]);
+		theApp.actors_arrowB[0]->SetOrientation(0, theApp.pRt->m_lineEditPolarAngle->text().toDouble(), theApp.pRt->m_lineEditAzimuthalAngle->text().toDouble());
 	}
 
-	theApp.theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+	theApp.m_pVTKWidget->renderWindow()->Render();
 }
 void SourceObjects::GenerateSourceActor_sourcePS(double* ptCenter) // Point Source, originally EP
 {
@@ -554,19 +554,19 @@ void SourceObjects::GenerateSourceActor_sourcePS(double* ptCenter) // Point Sour
 	vtkSmartPointer<vtkNamedColors> colors = vtkSmartPointer<vtkNamedColors>::New();
 
 	// actor 생성	
-	theApp.theApp.SourcePanelActor_Position.push_back(vtkSmartPointer<vtkActor>::New());
-	theApp.theApp.SourcePanelActor_Position.back()->SetMapper(mapper);
-	theApp.theApp.SourcePanelActor_Position.back()->GetProperty()->SetColor(colors->GetColor3d("Red").GetData());
-	theApp.theApp.SourcePanelActor_Position.back()->SetPosition(ptCenter);
-	theApp.theApp.SourcePanelActor_Position.back()->SetPickable(false);
-	theApp.theApp.SourcePanelActor_Position.back()->SetScale(pow(theApp.const_PointSource_ScaleFactorPerClick, theApp.m_Point_Source_Scale));
+	theApp.SourcePanelActor_Position.push_back(vtkSmartPointer<vtkActor>::New());
+	theApp.SourcePanelActor_Position.back()->SetMapper(mapper);
+	theApp.SourcePanelActor_Position.back()->GetProperty()->SetColor(colors->GetColor3d("Red").GetData());
+	theApp.SourcePanelActor_Position.back()->SetPosition(ptCenter);
+	theApp.SourcePanelActor_Position.back()->SetPickable(false);
+	theApp.SourcePanelActor_Position.back()->SetScale(pow(theApp.const_PointSource_ScaleFactorPerClick, theApp.m_Point_Source_Scale));
 
-	theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.theApp.SourcePanelActor_Position.back());
+	theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position.back());
 
 	// 임시 actor 삭제
 	Selecting3DShpere_Delete();
 
-	theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+	theApp.m_pVTKWidget->renderWindow()->Render();
 }
 void SourceObjects::GenerateSourceActor_sourceFD(double* center_radius)// Floor Disk
 {	
@@ -596,10 +596,10 @@ void SourceObjects::GenerateSourceActor_sourceFD(double* center_radius)// Floor 
 
 	// actor 생성
 	theApp.SourcePanelActor_Position.push_back(vtkSmartPointer<vtkActor>::New());
-	if (theApp.theApp.SourcePanelActor_Position.size() != 1)// 벡터 크기가 1이 아니어서 기존에 있었을때
+	if (theApp.SourcePanelActor_Position.size() != 1)// 벡터 크기가 1이 아니어서 기존에 있었을때
 	{
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.theApp.SourcePanelActor_Position[0]);
-		theApp.theApp.SourcePanelActor_Position = { theApp.theApp.SourcePanelActor_Position.back() }; // 마지막 원소 하나로만 있게 변경
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.SourcePanelActor_Position[0]);
+		theApp.SourcePanelActor_Position = { theApp.SourcePanelActor_Position.back() }; // 마지막 원소 하나로만 있게 변경
 	}
 	theApp.SourcePanelActor_Position.back()->SetMapper(mapper);
 	double color[3] = { 0.66, 0.33, 0.0 };
@@ -607,9 +607,9 @@ void SourceObjects::GenerateSourceActor_sourceFD(double* center_radius)// Floor 
 	theApp.SourcePanelActor_Position.back()->SetPosition(center); // 원 위치 설정
 	theApp.SourcePanelActor_Position.back()->SetPickable(false);
 
-	theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position.back());
+	theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position.back());
 
-	theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+	theApp.m_pVTKWidget->renderWindow()->Render();
 }
 void SourceObjects::GenerateSourceActor_sourceVS()
 {
@@ -630,7 +630,7 @@ void SourceObjects::GenerateSourceActor_sourceVS()
     theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][5] = bounds[5];
 
     // 3. 화면 갱신
-    theApp.theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+    theApp.m_pVTKWidget->renderWindow()->Render();
 }
 void SourceObjects::GenerateSourceActor_sourcePSF(std::vector<std::tuple<double, double, double>> ptMultiple, std::vector<std::tuple<double, double, double>> dirMultiple) // Phase-space File, originally PS
 {
@@ -680,7 +680,7 @@ void SourceObjects::GenerateSourceActor_sourcePSF(std::vector<std::tuple<double,
 		theApp.SourcePanelActor_Position[i]->SetPosition(ptCenter);
 		theApp.SourcePanelActor_Position[i]->SetPickable(false);
 
-		theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position[i]);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position[i]);
 
 		//dir actor
 		vtkSmartPointer<vtkLineSource> lineSource =
@@ -700,8 +700,8 @@ void SourceObjects::GenerateSourceActor_sourcePSF(std::vector<std::tuple<double,
 		theApp.SourcePanelActor_Direction.back()->SetPosition(ptCenter);
 		theApp.SourcePanelActor_Direction.back()->SetPickable(false);
 
-		theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Direction.back());
-		theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Direction.back());
+		theApp.m_pVTKWidget->renderWindow()->Render();
 	}
 }
 void SourceObjects::GenerateSourceActor_sourceHP(double* ptCenter) // Hot Particle
@@ -728,12 +728,12 @@ void SourceObjects::GenerateSourceActor_sourceHP(double* ptCenter) // Hot Partic
 	theApp.SourcePanelActor_Position.back()->SetPickable(false);
 	theApp.SourcePanelActor_Position.back()->SetScale(pow(theApp.const_PointSource_ScaleFactorPerClick, theApp.m_Point_Source_Scale));
 
-	theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position.back());
+	theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position.back());
 
 	// 임시 actor 삭제
 	Selecting3DShpere_Delete();
 
-	theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+	theApp.m_pVTKWidget->renderWindow()->Render();
 }
 void SourceObjects::GenerateSourceActor_sourceCB(double* ptCenter) // Cone beam
 {
@@ -755,7 +755,7 @@ void SourceObjects::GenerateSourceActor_sourceCB(double* ptCenter) // Cone beam
 	if(theApp.SourcePanelActor_Position.size()==0) theApp.SourcePanelActor_Position.push_back(vtkSmartPointer<vtkActor>::New());
 	else
 	{
-		theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.SourcePanelActor_Position[0]); // 반투명 임시 actor 삭세
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.SourcePanelActor_Position[0]); // 반투명 임시 actor 삭세
 		theApp.SourcePanelActor_Position[0] = nullptr;
 	}
 	theApp.SourcePanelActor_Position[0]->SetMapper(mapper);
@@ -763,23 +763,23 @@ void SourceObjects::GenerateSourceActor_sourceCB(double* ptCenter) // Cone beam
 	theApp.SourcePanelActor_Position[0]->SetPosition(ptCenter);
 	theApp.SourcePanelActor_Position[0]->SetPickable(false);
 
-	theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position[0]);
-	theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.NowSelecting3DSphereActor); // 반투명 임시 actor 삭세
+	theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position[0]);
+	theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.NowSelecting3DSphereActor); // 반투명 임시 actor 삭세
 	theApp.NowSelecting3DSphereActor = nullptr;
 
-	theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+	theApp.m_pVTKWidget->renderWindow()->Render();
 }
 void SourceObjects::GenerateSourceDirectionActor_sourceCB()
 {
 	// 방향
-	double maxAngle = theApp.theApp.pRt->m_lineEditConeBeamDirectionSolidAngle->text().toDouble();  // 예: 30도
-	double a = theApp.theApp.pRt->m_lineEditConeBeamDirectionX->text().toDouble();
-	double b = theApp.theApp.pRt->m_lineEditConeBeamDirectionY->text().toDouble();
-	double c = theApp.theApp.pRt->m_lineEditConeBeamDirectionZ->text().toDouble();
-	double cx = theApp.theApp.pRt->m_lineEditConeBeamPointX->text().toDouble();
-	double cy = theApp.theApp.pRt->m_lineEditConeBeamPointY->text().toDouble();
-	double cz = theApp.theApp.pRt->m_lineEditConeBeamPointZ->text().toDouble();
-	int numPoints = 5 * theApp.theApp.pRt->m_lineEditConeBeamDirectionSolidAngle->text().toDouble();
+	double maxAngle = theApp.pRt->m_lineEditConeBeamDirectionSolidAngle->text().toDouble();  // 예: 30도
+	double a = theApp.pRt->m_lineEditConeBeamDirectionX->text().toDouble();
+	double b = theApp.pRt->m_lineEditConeBeamDirectionY->text().toDouble();
+	double c = theApp.pRt->m_lineEditConeBeamDirectionZ->text().toDouble();
+	double cx = theApp.pRt->m_lineEditConeBeamPointX->text().toDouble();
+	double cy = theApp.pRt->m_lineEditConeBeamPointY->text().toDouble();
+	double cz = theApp.pRt->m_lineEditConeBeamPointZ->text().toDouble();
+	int numPoints = 5 * theApp.pRt->m_lineEditConeBeamDirectionSolidAngle->text().toDouble();
 
 	if(maxAngle <= 0 || (a == 0 && b ==0 && c ==0)) return;
 
@@ -788,11 +788,11 @@ void SourceObjects::GenerateSourceDirectionActor_sourceCB()
 	// Delete remaining actors
 	for (auto itr_actors : theApp.SourceDirectionActor)
 	{
-		theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(itr_actors);
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(itr_actors);
 	}
 	theApp.SourceDirectionActor.clear();
 
-	theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+	theApp.m_pVTKWidget->renderWindow()->Render();
 
 	for (const Point_SolidAngle& point : points) {
 		// Create a sphere
@@ -824,63 +824,107 @@ void SourceObjects::GenerateSourceDirectionActor_sourceCB()
 		theApp.SourceDirectionActor.back()->SetPosition(ptCenter);
 		theApp.SourceDirectionActor.back()->SetPickable(false);
 
-		theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourceDirectionActor.back());
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourceDirectionActor.back());
 	}
 
-	theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+	theApp.m_pVTKWidget->renderWindow()->Render();
 }
-void SourceObjects::GenerateSourceActor_sourceRC() 
-{
-	// Parameter 불러오기
-	double XHalfLength = theApp.theApp.pRt->Box_HalfLengthX_sourceRC_QLineEdit->text().toDouble();
-	double YHalfLength = theApp.theApp.pRt->Box_HalfLengthY_sourceRC_QLineEdit->text().toDouble();
-	double ZHalfLength = theApp.theApp.pRt->Box_HalfLengthZ_sourceRC_QLineEdit->text().toDouble();
-	double XCenter = theApp.theApp.pRt->Box_CenterX_sourceRC_QLineEdit->text().toDouble();
-	double YCenter = theApp.theApp.pRt->Box_CenterY_sourceRC_QLineEdit->text().toDouble();
-	double ZCenter = theApp.theApp.pRt->Box_CenterZ_sourceRC_QLineEdit->text().toDouble();
+// void SourceObjects::GenerateSourceActor_sourceRC() 
+// {
+// 	// Parameter 불러오기
+// 	double XHalfLength = theApp.pRt->Box_HalfLengthX_sourceRC_QLineEdit->text().toDouble();
+// 	double YHalfLength = theApp.pRt->Box_HalfLengthY_sourceRC_QLineEdit->text().toDouble();
+// 	double ZHalfLength = theApp.pRt->Box_HalfLengthZ_sourceRC_QLineEdit->text().toDouble();
+// 	double XCenter = theApp.pRt->Box_CenterX_sourceRC_QLineEdit->text().toDouble();
+// 	double YCenter = theApp.pRt->Box_CenterY_sourceRC_QLineEdit->text().toDouble();
+// 	double ZCenter = theApp.pRt->Box_CenterZ_sourceRC_QLineEdit->text().toDouble();
 
-	// Parameter 불러오기 ENDS
-	auto property1 = Util::GetProperty();
-	double color1[3] = { 1., 0., 0. };
-	property1->SetColor(color1);
-	property1->SetInterpolationToPhong();
-	property1->SetOpacity(0.2);
+// 	// Parameter 불러오기 ENDS
+// 	auto property1 = Util::GetProperty();
+// 	double color1[3] = { 1., 0., 0. };
+// 	property1->SetColor(color1);
+// 	property1->SetInterpolationToPhong();
+// 	property1->SetOpacity(0.2);
 
-	// Create the outer cube
-	vtkSmartPointer<vtkCubeSource> outerCube = vtkSmartPointer<vtkCubeSource>::New();
-	outerCube->SetXLength(2 * XHalfLength);
-	outerCube->SetYLength(2 * YHalfLength);
-	outerCube->SetZLength(2 * ZHalfLength);
-	outerCube->SetCenter(0, 0, 0);
-	outerCube->Update();
+// 	// Create the outer cube
+// 	vtkSmartPointer<vtkCubeSource> outerCube = vtkSmartPointer<vtkCubeSource>::New();
+// 	outerCube->SetXLength(2 * XHalfLength);
+// 	outerCube->SetYLength(2 * YHalfLength);
+// 	outerCube->SetZLength(2 * ZHalfLength);
+// 	outerCube->SetCenter(0, 0, 0);
+// 	outerCube->Update();
 
-	vtkSmartPointer<vtkPolyDataMapper> mapper1 = vtkSmartPointer<vtkPolyDataMapper>::New();
-	mapper1->SetInputConnection(outerCube->GetOutputPort());
+// 	vtkSmartPointer<vtkPolyDataMapper> mapper1 = vtkSmartPointer<vtkPolyDataMapper>::New();
+// 	mapper1->SetInputConnection(outerCube->GetOutputPort());
 		
-	theApp.theApp.SourcePanelActor_Position.push_back(vtkSmartPointer<vtkActor>::New());
-	if (theApp.theApp.SourcePanelActor_Position.size() != 1)// 벡터 크기가 1이 아니어서 기존에 있었을때
-	{
-		theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.theApp.SourcePanelActor_Position[0]);
-		theApp.theApp.SourcePanelActor_Position = { theApp.theApp.SourcePanelActor_Position.back() };
-	}
-	theApp.theApp.SourcePanelActor_Position[0]->SetMapper(mapper1);
+// 	theApp.SourcePanelActor_Position.push_back(vtkSmartPointer<vtkActor>::New());
+// 	if (theApp.SourcePanelActor_Position.size() != 1)// 벡터 크기가 1이 아니어서 기존에 있었을때
+// 	{
+// 		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.SourcePanelActor_Position[0]);
+// 		theApp.SourcePanelActor_Position = { theApp.SourcePanelActor_Position.back() };
+// 	}
+// 	theApp.SourcePanelActor_Position[0]->SetMapper(mapper1);
 
-	theApp.theApp.SourcePanelActor_Position[0]->SetProperty(property1);
-	theApp.theApp.SourcePanelActor_Position[0]->PickableOff();
-	theApp.theApp.SourcePanelActor_Position[0]->SetPosition(XCenter, YCenter, ZCenter);
+// 	theApp.SourcePanelActor_Position[0]->SetProperty(property1);
+// 	theApp.SourcePanelActor_Position[0]->PickableOff();
+// 	theApp.SourcePanelActor_Position[0]->SetPosition(XCenter, YCenter, ZCenter);
 	
-	theApp.theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.theApp.SourcePanelActor_Position[0]);
-	theApp.theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+// 	theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position[0]);
+// 	theApp.m_pVTKWidget->renderWindow()->Render();
+// }
+void SourceObjects::GenerateSourceActor_sourceRC(double lenX, double lenY, double lenZ, double cenX, double cenY, double cenZ) 
+{
+    // [삭제] 파라미터 불러오는 부분이 필요 없어짐 (인자로 받았으니까)
+    /* double XHalfLength = theApp.pRt->Box_HalfLengthX_sourceRC_QLineEdit->text().toDouble();
+    ... (삭제) ...
+    */
+
+    // Parameter 불러오기 ENDS
+    auto property1 = Util::GetProperty();
+    double color1[3] = { 1., 0., 0. };
+    property1->SetColor(color1);
+    property1->SetInterpolationToPhong();
+    property1->SetOpacity(0.2);
+
+    // Create the outer cube
+    vtkSmartPointer<vtkCubeSource> outerCube = vtkSmartPointer<vtkCubeSource>::New();
+    
+    // [변경] 인자로 받은 변수 사용
+    outerCube->SetXLength(2 * lenX);
+    outerCube->SetYLength(2 * lenY);
+    outerCube->SetZLength(2 * lenZ);
+    outerCube->SetCenter(0, 0, 0); // 센터는 아래 SetPosition에서 처리하므로 여기선 0,0,0
+    outerCube->Update();
+
+    vtkSmartPointer<vtkPolyDataMapper> mapper1 = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper1->SetInputConnection(outerCube->GetOutputPort());
+        
+    theApp.SourcePanelActor_Position.push_back(vtkSmartPointer<vtkActor>::New());
+    if (theApp.SourcePanelActor_Position.size() != 1)
+    {
+        theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.SourcePanelActor_Position[0]);
+        theApp.SourcePanelActor_Position = { theApp.SourcePanelActor_Position.back() };
+    }
+    theApp.SourcePanelActor_Position[0]->SetMapper(mapper1);
+
+    theApp.SourcePanelActor_Position[0]->SetProperty(property1);
+    theApp.SourcePanelActor_Position[0]->PickableOff();
+    
+    // // [변경] 인자로 받은 변수 사용
+    // theApp.SourcePanelActor_Position[0]->SetPosition(cenX, cenY, cenZ);
+    
+    // theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position[0]);
+    // theApp.m_pVTKWidget->renderWindow()->Render();
 }
 //void SourceObjects::GenerateSourceActor_sourceEC() {} // Under-development
 void SourceObjects::GenerateSourceActor_sourcePB(double* center_radius, double* theta_phi) // Parallel Beam
 {
 	// Reset process
-	for (auto itr : theApp.theApp.SourcePanelActor_Position)
+	for (auto itr : theApp.SourcePanelActor_Position)
 	{
 		if (itr != nullptr)
 		{
-			theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(itr);
+			theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(itr);
 			itr = nullptr;
 		}
 	}
@@ -982,7 +1026,7 @@ void SourceObjects::GenerateSourceActor_sourcePB(double* center_radius, double* 
 	theApp.SourcePanelActor_Position.back()->SetPickable(false);
 
 	// Add cylinder actor to renderer
-	theApp.theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position.back());
+	theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SourcePanelActor_Position.back());
 
 	theApp.SourcePanelActor_Position.back()->SetPosition(center_x, center_y, center_z);
 
@@ -993,13 +1037,13 @@ void SourceObjects::GenerateSourceActor_sourcePB(double* center_radius, double* 
 
 	theApp.SourcePanelActor_Position.back()->SetOrientation(orientationAngles);
 
-	theApp.theApp.m_pVTKWidget->renderWindow()->Render();
+	theApp.m_pVTKWidget->renderWindow()->Render();
 }
 void SourceObjects::Selecting3DShpere(double* ptCenter) // 마우스 클릭한 지점을 임시로 표시하는 기능
 {
-	if (theApp.theApp.NowSelecting3DSphereActor != nullptr)
+	if (theApp.NowSelecting3DSphereActor != nullptr)
 	{
-		theApp.theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.NowSelecting3DSphereActor);
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(theApp.NowSelecting3DSphereActor);
 		theApp.NowSelecting3DSphereActor = nullptr; // Actor 삭제
 		//theApp.m_pVTKWidget->renderWindow()->Render();
 		theApp.m_pVTKWidget->renderWindow()->Render();
@@ -1043,13 +1087,13 @@ void SourceObjects::Selecting3DShpere_Delete()
 }
 bool SourceObjects::LoadPSF_data(QString path) // 위의 file header 주석은 사용자가 직접 지워주어야 함
 {
-	theApp.theApp.PSF_data.clear(); // 입자 정보 순서대로 나열한 data
-	theApp.theApp.PSF_location_vector.clear(); // 위치만 포함된 vector (가시화용)
-	theApp.theApp.PSF_direction_vector.clear(); // 방향만 포함된 vector (가시화용)
+	theApp.PSF_data.clear(); // 입자 정보 순서대로 나열한 data
+	theApp.PSF_location_vector.clear(); // 위치만 포함된 vector (가시화용)
+	theApp.PSF_direction_vector.clear(); // 방향만 포함된 vector (가시화용)
 
 	QFont font;
 	font.setFamily("Arial");    // Font family
-	font.setPointSize(theApp.theApp.pRt->FontSizeScaling(10));      // Font size
+	font.setPointSize(theApp.pRt->FontSizeScaling(10));      // Font size
 	font.setWeight(QFont::Bold);   // Font weight
 
 	std::string stdPath = path.toStdString();
@@ -1068,7 +1112,7 @@ bool SourceObjects::LoadPSF_data(QString path) // 위의 file header 주석은 �
 	QCoreApplication::processEvents();
 
 	// ====== [IAEA 처리 시작] ======
-	if (theApp.theApp.pRt->sourcePS_IAEA_button->isChecked())
+	if (theApp.pRt->sourcePS_IAEA_button->isChecked())
 	{
 		// 경로에서 .IAEAphsp 확장자 제거
 		std::string IAEA_filename = stdPath;
