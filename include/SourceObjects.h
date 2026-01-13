@@ -34,6 +34,7 @@ public:
     bool LoadPSF_data(QString path);
 
     std::vector<Point_SolidAngle> GetPointsWithinSolidAngle_sourceCB(double maxAngle, double a, double b, double c, int numPoints);
+    std::pair<std::vector<std::map<int, std::string>>, double> Read_RI_File(std::string RIpath);
 
     // MCNP/PHITS 파싱 로직 (가장 복잡한 부분)
     void PSF_MCNP_ssw_parse_file(const std::string& filename);

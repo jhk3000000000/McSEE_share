@@ -65,6 +65,9 @@
 
 void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor 가시화 -> 전용코드로 따로 관리
 {
+	auto* BBWidget = theApp.pRt->getSourceWidget<BroadBeamWidget>();
+	if(!BBWidget) return;
+
 	// Reset process
 	for (auto itr : theApp.actors_cylinderB)
 	{
@@ -143,8 +146,11 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 	double ConeHeight = 10;
 	double ConeRadius = 2;
 	int iterationNo = 1;
-	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 4) iterationNo = 8;
-	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 5) iterationNo = 14;
+
+	int currentIndex = BBWidget->getModel().BroadBeamDirectionIndex;
+	//etBB_DirectionIndex();
+	if (currentIndex == 4) iterationNo = 8;
+	if (currentIndex == 5) iterationNo = 14;
 	for (int actorNo = 0; actorNo < iterationNo; actorNo++)
 	{
 		// Create a cylinder (shaft of the arrow)
@@ -170,7 +176,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB.back()->SetProperty(property);
 		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_coneB.back());
 	}
-	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 0) // AP
+	if (currentIndex == 0) // AP
 	{
 		// Create a circle
 		double radius_AP;
@@ -196,7 +202,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB[0]->SetOrientation(0, 0, 90);
 		theApp.actors_coneB[0]->SetPosition(centerX, centerY - DistanceFromPhantomBox + ConeHeight / 2 + CylinderHeight, centerZ);
 	}
-	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 1) //PA
+	if (currentIndex == 1) //PA
 	{
 		double radius_PA;
 		if (xLength >= zLength) radius_PA = xLength / 2 * 1.05;
@@ -221,7 +227,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB[0]->SetOrientation(0, 0, 270);
 		theApp.actors_coneB[0]->SetPosition(centerX, centerY + DistanceFromPhantomBox - ConeHeight / 2 - CylinderHeight, centerZ); 
 	}
-	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 2) // LLAT
+	if (currentIndex == 2) // LLAT
 	{
 		double radius_LLAT;
 		if (xLength >= zLength) radius_LLAT = xLength / 2 * 1.05;
@@ -246,7 +252,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB[0]->SetOrientation(0, 0, 0);
 		theApp.actors_coneB[0]->SetPosition(centerX - DistanceFromPhantomBox + ConeHeight / 2 + CylinderHeight, centerY, centerZ);
 	}
-	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 3) // RLAT
+	if (currentIndex == 3) // RLAT
 	{
 		double radius_AP;
 		if (xLength >= zLength) radius_AP = xLength / 2 * 1.05;
@@ -271,7 +277,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_coneB[0]->SetOrientation(0, 0, 180);
 		theApp.actors_coneB[0]->SetPosition(centerX + DistanceFromPhantomBox - ConeHeight / 2 - CylinderHeight, centerY, centerZ);
 	}
-	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 4) // ROT
+	if (currentIndex == 4) // ROT
 	{
 		// Create a circle
 		double radius_ROT = sqrt((yLength / 2 * yLength / 2) + (zLength / 2 * zLength / 2)) * 1.05; // 5% margin
@@ -374,7 +380,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actor_single_cylinderB->SetPosition(centerX, centerY, centerZ);
 		theApp.actor_single_cylinderB->SetOrientation(90, 0, 0);
 	}
-	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 5) // ISO
+	if (currentIndex == 5) // ISO
 	{
 		// Create a circle
 		double XYarea = xLength * yLength;
@@ -487,7 +493,7 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actor_circleB->SetPosition(centerX, centerY, centerZ + distance_ISO);
 		theApp.actor_sphereB->SetPosition(centerX, centerY, centerZ);
 	}
-	if (theApp.pRt->m_comboBoxBeamdirection->currentIndex() == 6) //User-defined
+	if (currentIndex == 6) //User-defined
 	{
 		double radius_USER;
 		double XYarea = xLength * yLength;
@@ -532,7 +538,8 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 		theApp.actors_arrowB[0]->PickableOff();
 
 		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.actors_arrowB[0]);
-		theApp.actors_arrowB[0]->SetOrientation(0, theApp.pRt->m_lineEditPolarAngle->text().toDouble(), theApp.pRt->m_lineEditAzimuthalAngle->text().toDouble());
+		//theApp.actors_arrowB[0]->SetOrientation(0, BBWidget->getBB_PolarAngle(), BBWidget->getBB_AzimAngle());
+		theApp.actors_arrowB[0]->SetOrientation(0, BBWidget->getModel().PolarAngle, BBWidget->getModel().AzimuthalAngle);
 	}
 
 	theApp.m_pVTKWidget->renderWindow()->Render();
@@ -613,21 +620,40 @@ void SourceObjects::GenerateSourceActor_sourceFD(double* center_radius)// Floor 
 }
 void SourceObjects::GenerateSourceActor_sourceVS()
 {
+	auto* OVWidget = theApp.pRt->getSourceWidget<ObjectVolumeWidget>();
+	if(!OVWidget) return;
+
+	//int SourceOV_Index = OVWidget->getOV_SelectIndex();
+	int SourceOV_Index = OVWidget->getModel().Object_sourceOV_SelectedIndex;
     // 1. 빨간색으로 변경 (시각적 표시)
     // "이 도형은 이제 선원입니다"라고 표시하는 것
-    theApp.ObjectPanelActors[theApp.pRt->Object_sourceOV_SelectedIndex]->GetProperty()->SetColor(1.0, 0., 0.);
+    theApp.ObjectPanelActors[SourceOV_Index]->GetProperty()->SetColor(1.0, 0., 0.);
 
     // 2. 경계 박스(Bounds) 계산 및 저장
     // 시뮬레이션을 위해 이 도형이 차지하는 공간(x,y,z 범위)을 잽니다.
-    double* bounds = theApp.ObjectPanelActors[theApp.pRt->Object_sourceOV_SelectedIndex]->GetBounds();
+    double* bounds = theApp.ObjectPanelActors[SourceOV_Index]->GetBounds();
     
     // theApp에 있는 데이터 저장소에 기록 (이건 나중에 Manager로 옮길 예정)
-    theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][0] = bounds[0];
-    theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][1] = bounds[1];
-    theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][2] = bounds[2];
-    theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][3] = bounds[3];
-    theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][4] = bounds[4];
-    theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][5] = bounds[5];
+	// OVWidget->setOV_ObjectBound(SourceOV_Index, 
+	// 							bounds[0], 
+	// 							bounds[1], 
+	// 							bounds[2], 
+	// 							bounds[3], 
+	// 							bounds[4], 
+	// 							bounds[5]
+	// 							);
+	OVWidget->getModel().sourceOV_objectBound[SourceOV_Index][0] = bounds[0];
+	OVWidget->getModel().sourceOV_objectBound[SourceOV_Index][1] = bounds[1];
+	OVWidget->getModel().sourceOV_objectBound[SourceOV_Index][2] = bounds[2];
+	OVWidget->getModel().sourceOV_objectBound[SourceOV_Index][3] = bounds[3];
+	OVWidget->getModel().sourceOV_objectBound[SourceOV_Index][4] = bounds[4];
+	OVWidget->getModel().sourceOV_objectBound[SourceOV_Index][5] = bounds[5];
+    // theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][0] = bounds[0];
+    // theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][1] = bounds[1];
+    // theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][2] = bounds[2];
+    // theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][3] = bounds[3];
+    // theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][4] = bounds[4];
+    // theApp.pRt->sourceOV_objectBound[theApp.pRt->Object_sourceOV_SelectedIndex][5] = bounds[5];
 
     // 3. 화면 갱신
     theApp.m_pVTKWidget->renderWindow()->Render();
@@ -772,14 +798,26 @@ void SourceObjects::GenerateSourceActor_sourceCB(double* ptCenter) // Cone beam
 void SourceObjects::GenerateSourceDirectionActor_sourceCB()
 {
 	// 방향
-	double maxAngle = theApp.pRt->m_lineEditConeBeamDirectionSolidAngle->text().toDouble();  // 예: 30도
-	double a = theApp.pRt->m_lineEditConeBeamDirectionX->text().toDouble();
-	double b = theApp.pRt->m_lineEditConeBeamDirectionY->text().toDouble();
-	double c = theApp.pRt->m_lineEditConeBeamDirectionZ->text().toDouble();
-	double cx = theApp.pRt->m_lineEditConeBeamPointX->text().toDouble();
-	double cy = theApp.pRt->m_lineEditConeBeamPointY->text().toDouble();
-	double cz = theApp.pRt->m_lineEditConeBeamPointZ->text().toDouble();
-	int numPoints = 5 * theApp.pRt->m_lineEditConeBeamDirectionSolidAngle->text().toDouble();
+	auto* CBWidget = theApp.pRt->getSourceWidget<ConeBeamWidget>();
+	if(!CBWidget) return;
+	auto params = CBWidget->getCB_Params();
+	
+	double maxAngle = params.maxAngle;
+	// theApp.pRt->m_lineEditConeBeamDirectionSolidAngle->text().toDouble();  // 예: 30도
+	double a = params.direction[0];
+	// theApp.pRt->m_lineEditConeBeamDirectionX->text().toDouble();
+	double b = params.direction[1];
+	// theApp.pRt->m_lineEditConeBeamDirectionY->text().toDouble();
+	double c = params.direction[2];
+	// theApp.pRt->m_lineEditConeBeamDirectionZ->text().toDouble();
+	double cx = params.point[0];
+	// theApp.pRt->m_lineEditConeBeamPointX->text().toDouble();
+	double cy = params.point[1];
+	// theApp.pRt->m_lineEditConeBeamPointY->text().toDouble();
+	double cz = params.point[2];
+	// theApp.pRt->m_lineEditConeBeamPointZ->text().toDouble();
+	int numPoints = params.numPoints;
+	// 5 * theApp.pRt->m_lineEditConeBeamDirectionSolidAngle->text().toDouble();
 
 	if(maxAngle <= 0 || (a == 0 && b ==0 && c ==0)) return;
 
@@ -1085,263 +1123,277 @@ void SourceObjects::Selecting3DShpere_Delete()
 		theApp.m_pVTKWidget->renderWindow()->Render();
 	}
 }
-bool SourceObjects::LoadPSF_data(QString path) // 위의 file header 주석은 사용자가 직접 지워주어야 함
+
+bool SourceObjects::LoadPSF_data(QString path)
 {
-	theApp.PSF_data.clear(); // 입자 정보 순서대로 나열한 data
-	theApp.PSF_location_vector.clear(); // 위치만 포함된 vector (가시화용)
-	theApp.PSF_direction_vector.clear(); // 방향만 포함된 vector (가시화용)
+    // 1. 초기화: 데이터 비우기
+    theApp.PSF_data.clear(); 
+    theApp.PSF_location_vector.clear(); 
+    theApp.PSF_direction_vector.clear(); 
 
-	QFont font;
-	font.setFamily("Arial");    // Font family
-	font.setPointSize(theApp.pRt->FontSizeScaling(10));      // Font size
-	font.setWeight(QFont::Bold);   // Font weight
+    // 2. 위젯 포인터 및 모드 가져오기 (핵심 리팩토링)
+    // -> 루프 돌 때마다 접근하지 않고 미리 가져옵니다.
+    auto* PSWidget = theApp.pRt->getSourceWidget<PhaseSpaceWidget>();
+    if (!PSWidget) {
+        theApp.SetMessageBox("PhaseSpaceWidget not found!");
+        return false;
+    }
 
-	std::string stdPath = path.toStdString();
-	QString qPath = QString::fromStdString(stdPath);
+    // 현재 선택된 모드 확인 (Enum 활용)
+//    PhaseSpaceWidget::PSMode currentMode = PSWidget->getModel();
 
-	// Progress Dialog 초기화
-	QProgressDialog progressDialog;
-	progressDialog.setWindowFlag(Qt::WindowStaysOnTopHint);
-	progressDialog.setWindowModality(Qt::WindowModal);
-	progressDialog.setLabelText("Initializing...");
-	progressDialog.setCancelButton(nullptr);
-	progressDialog.setMinimumDuration(0);
-	progressDialog.setRange(0, 0); // Indeterminate
-	progressDialog.setFont(font);
-	progressDialog.show();
-	QCoreApplication::processEvents();
+	PSMode currentMode = PSWidget->getModel().selectedMode;
+    if (currentMode == PSMode::None) {
+        theApp.SetMessageBox("No Phase Space Mode Selected!");
+        return false;
+    }
 
-	// ====== [IAEA 처리 시작] ======
-	if (theApp.pRt->sourcePS_IAEA_button->isChecked())
-	{
-		// 경로에서 .IAEAphsp 확장자 제거
-		std::string IAEA_filename = stdPath;
-		std::string IAEA_extension = ".IAEAphsp";
-		size_t extension_pos = IAEA_filename.find(IAEA_extension);
-		if (extension_pos != std::string::npos)
-			IAEA_filename.erase(extension_pos);
+    // 3. UI 설정 (폰트 및 다이얼로그)
+    QFont font;
+    font.setFamily("Arial");
+    font.setPointSize(theApp.pRt->FontSizeScaling(10));
+    font.setWeight(QFont::Bold);
 
-		// .IAEAheader 파일 존재 확인
-		QString headerFilePath = QString::fromStdString(IAEA_filename) + ".IAEAheader";
-		QFileInfo headerFileInfo(headerFilePath);
-		if (!headerFileInfo.exists()) {
-			theApp.SetMessageBox("Cannot find IAEAheader file");
-			return false;
-		}
+    std::string stdPath = path.toStdString();
 
-		QString basePath = QString::fromStdString(IAEA_filename);
-		QString exePath = ".\\Ext_lib\\IAEA2ascii.exe";
+    QProgressDialog progressDialog;
+    progressDialog.setWindowFlag(Qt::WindowStaysOnTopHint);
+    progressDialog.setWindowModality(Qt::WindowModal);
+    progressDialog.setLabelText("Initializing...");
+    progressDialog.setCancelButton(nullptr);
+    progressDialog.setMinimumDuration(0);
+    progressDialog.setRange(0, 0);
+    progressDialog.setFont(font);
+    progressDialog.show();
+    QCoreApplication::processEvents();
 
-		progressDialog.setLabelText("Loading " + basePath + ".IAEAphsp\nThis process will take a few minutes.");
-		QCoreApplication::processEvents();
+    // ====== [IAEA 파일 변환 처리] ======
+    // 루프 진입 전, IAEA 모드일 때만 수행하는 전처리 작업
+    if (currentMode == PSMode::IAEA)
+    {
+        std::string IAEA_filename = stdPath;
+        std::string IAEA_extension = ".IAEAphsp";
+        size_t extension_pos = IAEA_filename.find(IAEA_extension);
+        if (extension_pos != std::string::npos)
+            IAEA_filename.erase(extension_pos);
 
-		QString output_IAEA;
-		// QProcess로 실행 -> 외부.exe 실행 폴링방식으로 메인스레드에서 while문 내에서 0.1초마다 잠깐 porcessEvents()를 호출하여 로딩창 업데이트
-		{
-			QProcess process;
-			process.setProgram(exePath);
-			process.setArguments(QStringList() << basePath);
-			process.setProcessChannelMode(QProcess::MergedChannels); // stdout + stderr 같이 읽기
-			process.start();
+        QString headerFilePath = QString::fromStdString(IAEA_filename) + ".IAEAheader";
+        if (!QFileInfo::exists(headerFilePath)) {
+            theApp.SetMessageBox("Cannot find IAEAheader file");
+            return false;
+        }
 
-			if (!process.waitForStarted()) {
-				theApp.SetMessageBox("Cannot start IAEA2ascii.exe");
-				return false;
-			}
+        QString basePath = QString::fromStdString(IAEA_filename);
+        QString exePath = ".\\Ext_lib\\IAEA2ascii.exe";
 
-			while (!process.waitForFinished(100)) {
-				// 0.1초마다 UI 갱신 (중간에 응답 없음 방지)
-				QCoreApplication::processEvents();
-			}
+        progressDialog.setLabelText("Loading " + basePath + ".IAEAphsp\nThis process will take a few minutes.");
+        QCoreApplication::processEvents();
 
-			output_IAEA = process.readAllStandardOutput();
-		}
-		
-		if (output_IAEA.contains("Normal Program Termination")) {
-		}
-		else {
-			theApp.SetMessageBox("IAEA2ascii conversion failed.");
-			return false;
-		}
-		QStringList output_lines = output_IAEA.split('\n');
-		QString history_keyword = " Total number of histories:";
-		int totalHistories = -1;
+        QString output_IAEA;
+        {
+            QProcess process;
+            process.setProgram(exePath);
+            process.setArguments(QStringList() << basePath);
+            process.setProcessChannelMode(QProcess::MergedChannels);
+            process.start();
 
-		for (const QString& line : output_lines)
-		{
-			if (line.contains(history_keyword))
-			{
-				// 키워드 이후의 문자열 잘라냄
-				QString numberPart = line.section(history_keyword, 1).trimmed();
+            if (!process.waitForStarted()) {
+                theApp.SetMessageBox("Cannot start IAEA2ascii.exe");
+                return false;
+            }
 
-				// 숫자만 남기기 (혹시 공백 등 있을 경우 대비)
-				bool ok = false;
-				totalHistories = numberPart.toInt(&ok);
-				if (ok) break;
-			}
-		}
-		if (totalHistories == -1)
-		{
-			qDebug() << "Keyword not found or number parse error";
-			return false;
-		}
+            while (!process.waitForFinished(100)) {
+                QCoreApplication::processEvents(); // UI 응답 없음 방지
+            }
+            output_IAEA = process.readAllStandardOutput();
+        }
+        
+        if (!output_IAEA.contains("Normal Program Termination")) {
+            theApp.SetMessageBox("IAEA2ascii conversion failed.");
+            return false;
+        }
 
-		stdPath = IAEA_filename + ".txt"; // ASCII 파일로 경로 변경
-	}
-	// ====== [일반 PSF 파일 처리] ======
-	std::ifstream ifp_phsp_size(stdPath, std::ios::binary);
-	ifp_phsp_size.seekg(0, std::ios::end);
-	std::streamsize size = ifp_phsp_size.tellg();
-	double fileSize = static_cast<double>(size);
-	ifp_phsp_size.close();
+        // 히스토리 개수 파싱
+        QStringList output_lines = output_IAEA.split('\n');
+        QString history_keyword = " Total number of histories:";
+        int totalHistories = -1;
 
-	double size_scale_factor = 100.0 / static_cast<double>(fileSize);
+        for (const QString& line : output_lines) {
+            if (line.contains(history_keyword)) {
+                QString numberPart = line.section(history_keyword, 1).trimmed();
+                bool ok = false;
+                totalHistories = numberPart.toInt(&ok);
+                if (ok) break;
+            }
+        }
 
-	// ====== [데이터 읽기 시작] ======
+        if (totalHistories == -1) {
+            qDebug() << "Keyword not found or number parse error";
+            return false;
+        }
 
-	std::ifstream ifp(stdPath);
-	std::string line;
-	std::string particle, x, y, z, u, v, w, E, SWF;
-	double pCode;
-	std::string pCode_str_PHITS;
-	theApp.pRt->PhaseSpaceFileRow = 0;
+        stdPath = IAEA_filename + ".txt"; // 변환된 ASCII 파일로 경로 변경
+    }
 
-	progressDialog.setLabelText("Reading phase space file...");
-	progressDialog.setRange(0, 100);
-	QCoreApplication::processEvents();
+    // ====== [파일 크기 계산 및 스케일링] ======
+    std::ifstream ifp_phsp_size(stdPath, std::ios::binary);
+    if (!ifp_phsp_size.is_open()) {
+        theApp.SetMessageBox("Cannot open file: " + QString::fromStdString(stdPath));
+        return false;
+    }
+    ifp_phsp_size.seekg(0, std::ios::end);
+    double fileSize = static_cast<double>(ifp_phsp_size.tellg());
+    ifp_phsp_size.close();
 
-	int lastPercent = -1;
-	while (std::getline(ifp, line)) {
-		// Trim any leading whitespace from the line for safety
-		line.erase(0, line.find_first_not_of(" \t"));
+    double size_scale_factor = (fileSize > 0) ? (100.0 / fileSize) : 0.0;
 
-		// Skip lines starting with '#' -> In FLUKA or 주석
-		if (!line.empty() && line[0] == '#') {
-			continue;
-		}
+    // ====== [메인 루프: 데이터 읽기] ======
+    std::ifstream ifp(stdPath);
+    std::string line;
+    
+    // 파싱용 변수 선언 (루프 밖으로 이동하여 재할당 비용 감소)
+    std::string particle, x, y, z, u, v, w, E, SWF;
+    double pCode = 0; 
+    std::string pCode_str_PHITS;
+    double charge = 0, history = 0; // IAEA용
 
-		std::istringstream iss(line); // Create a stream from the line for parsing
-		if (theApp.pRt->sourcePS_MCNP_button->isChecked()) // MCNP6
-		{
-			iss >> pCode >> x >> y >> z >> u >> v >> w >> E >> SWF; // Converted ASCII-formatted MCNP WSSA file
-			if (pCode == 22) particle = "gamma";
-			else if (pCode == 11) particle = "e-";
-			else if (pCode == -11) particle = "e+";
-			else if (pCode == 2112) particle = "neutron";
-			else if (pCode == 2212) particle = "proton";
-			else if (pCode == 2000004) particle = "alpha";
-			else
-			{
-				theApp.SetMessageBox("Invalid particle code!!");
-				theApp.PSF_data.clear();
-				theApp.PSF_location_vector.clear();
-				theApp.PSF_direction_vector.clear();
-				ifp.close();
-				return false;
-			}
-		}
-		if (theApp.pRt->sourcePS_PHITS_button->isChecked()) // PHITS
-		{
-			iss >> pCode_str_PHITS >> x >> y >> z >> u >> v >> w >> E >> SWF; // PHITS dmp file format (pCode, cm, cm, cm, u, v, w, MeV, SWF), manual 98p.
-			pCode = std::stod(PSF_PHITS_replaceDwithE(pCode_str_PHITS)); // PHITS는 거듭제곱으로 E대신 D를 씀
-			x = PSF_PHITS_replaceDwithE(x);
-			y = PSF_PHITS_replaceDwithE(y);
-			z = PSF_PHITS_replaceDwithE(z);
-			u = PSF_PHITS_replaceDwithE(u);
-			v = PSF_PHITS_replaceDwithE(v);
-			w = PSF_PHITS_replaceDwithE(w);
-			E = PSF_PHITS_replaceDwithE(E);
-			SWF = PSF_PHITS_replaceDwithE(SWF);
-			if (pCode == 22) particle = "gamma";
-			else if (pCode == 11) particle = "e-";
-			else if (pCode == -11) particle = "e+";
-			else if (pCode == 2112) particle = "neutron";
-			else if (pCode == 2212) particle = "proton";
-			else if (pCode == 2000004) particle = "alpha";
-			else
-			{
-				theApp.SetMessageBox("Invalid particle code!!");
-				theApp.PSF_data.clear();
-				theApp.PSF_location_vector.clear();
-				theApp.PSF_direction_vector.clear();
-				ifp.close();
-				return false;
-			}
-		}
-		if (theApp.pRt->sourcePS_FLUKA_button->isChecked()) // FLUKA
-		{
-			iss >> pCode >> E >> x >> y >> z >> u >> v >> w >> SWF; // FLUKA phsp file 
-			//iss >> pCode >> E >> z >> x >> y >> w >> u >> v >> SWF; // Coords converted Otto FULKA phsp file 
-			if (pCode == 22 || pCode == 7) particle = "gamma";
-			else if (pCode == 11 || pCode == 3) particle = "e-";
-			else if (pCode == -11 || pCode == 4) particle = "e+";
-			else if (pCode == 2112 || pCode == 8) particle = "neutron";
-			else if (pCode == 2212 || pCode == 1) particle = "proton";
-			else if (pCode == 2000004 || pCode == -6) particle = "alpha";
-			else
-			{
-				theApp.SetMessageBox("Invalid particle code!!");
-				theApp.PSF_data.clear();
-				theApp.PSF_location_vector.clear();
-				theApp.PSF_direction_vector.clear();
-				ifp.close();
-				return false;
-			}
-			E = std::to_string(std::stod(E) * 1000.); // GeV to MeV
-		}
-		if (theApp.pRt->sourcePS_IAEA_button->isChecked()) // IAEAphsp
-		{
-			double charge, history;
-			iss >> pCode >> charge >> x >> y >> z >> u >> v >> w >> E >> SWF >> history; 
-			if (pCode == 1) particle = "gamma";
-			else if (pCode == 2) particle = "e-";
-			else if (pCode == 3) particle = "e+";
-			else if (pCode == 4) particle = "neutron";
-			else if (pCode == 5) particle = "proton";
-			else
-			{
-				theApp.SetMessageBox("Invalid particle code!!");
-				theApp.PSF_data.clear();
-				theApp.PSF_location_vector.clear();
-				theApp.PSF_direction_vector.clear();
-				ifp.close();
-				return false;
-			}
-		}
-		if (theApp.pRt->sourcePS_USER_Button->isChecked())
-		{
-			iss >> particle >> x >> y >> z >> u >> v >> w >> E >> SWF; // USER sequence (particle_ASCII, cm, cm, cm, u, v, w, MeV, SWF)
-		}
+    theApp.pRt->PhaseSpaceFileRow = 0;
 
-		//
-		std::streampos currentPos = ifp.tellg();
-		if (currentPos != -1)
-		{
-			int percent = static_cast<int>(currentPos * size_scale_factor);
+    progressDialog.setLabelText("Reading phase space file...");
+    progressDialog.setRange(0, 100);
+    QCoreApplication::processEvents();
 
-			if (percent != lastPercent && percent % 1 == 0)
-			{
-				lastPercent = percent;
-				progressDialog.setValue(percent);
-				progressDialog.setLabelText(QString("Reading phase space file... %1%").arg(percent));
-				QCoreApplication::processEvents();
-			}
-		}
-		theApp.PSF_data.push_back(std::make_tuple(particle, x, y, z, u, v, w, E, SWF));
-		theApp.PSF_location_vector.push_back(std::make_tuple(std::stof(x), std::stof(y), std::stof(z)));
-		theApp.PSF_direction_vector.push_back(std::make_tuple(std::stof(u), std::stof(v), std::stof(w)));
-		theApp.pRt->PhaseSpaceFileRow++;
+    int lastPercent = -1;
+    
+    while (std::getline(ifp, line)) 
+    {
+        // 1. 전처리: 공백 제거 및 주석 스킵
+        line.erase(0, line.find_first_not_of(" \t"));
+        if (!line.empty() && line[0] == '#') continue;
 
-	}
-	progressDialog.close();
-	GenerateSourceActor_sourcePSF(theApp.PSF_location_vector, theApp.PSF_direction_vector);
+        std::istringstream iss(line);
+        bool isInvalidCode = false; // 에러 플래그
 
-	ifp.close();
-	if (theApp.pRt->sourcePS_IAEA_button->isChecked())
-	{
-		remove(stdPath.c_str());
-	}
-	return true;
+        // 2. 모드별 파싱 (Switch 문 사용으로 속도 향상)
+        switch (currentMode)
+        {
+        case PSMode::MCNP:
+            iss >> pCode >> x >> y >> z >> u >> v >> w >> E >> SWF;
+            
+            if (pCode == 22) particle = "gamma";
+            else if (pCode == 11) particle = "e-";
+            else if (pCode == -11) particle = "e+";
+            else if (pCode == 2112) particle = "neutron";
+            else if (pCode == 2212) particle = "proton";
+            else if (pCode == 2000004) particle = "alpha";
+            else isInvalidCode = true;
+            break;
+
+        case PSMode::PHITS:
+            iss >> pCode_str_PHITS >> x >> y >> z >> u >> v >> w >> E >> SWF;
+            
+            // D -> E 변환 (Helper 함수 필요)
+            pCode = std::stod(PSF_PHITS_replaceDwithE(pCode_str_PHITS));
+            x = PSF_PHITS_replaceDwithE(x);
+            y = PSF_PHITS_replaceDwithE(y);
+            z = PSF_PHITS_replaceDwithE(z);
+            u = PSF_PHITS_replaceDwithE(u);
+            v = PSF_PHITS_replaceDwithE(v);
+            w = PSF_PHITS_replaceDwithE(w);
+            E = PSF_PHITS_replaceDwithE(E);
+            SWF = PSF_PHITS_replaceDwithE(SWF);
+
+            if (pCode == 22) particle = "gamma";
+            else if (pCode == 11) particle = "e-";
+            else if (pCode == -11) particle = "e+";
+            else if (pCode == 2112) particle = "neutron";
+            else if (pCode == 2212) particle = "proton";
+            else if (pCode == 2000004) particle = "alpha";
+            else isInvalidCode = true;
+            break;
+
+        case PSMode::FLUKA:
+            iss >> pCode >> E >> x >> y >> z >> u >> v >> w >> SWF;
+            
+            if (pCode == 22 || pCode == 7) particle = "gamma";
+            else if (pCode == 11 || pCode == 3) particle = "e-";
+            else if (pCode == -11 || pCode == 4) particle = "e+";
+            else if (pCode == 2112 || pCode == 8) particle = "neutron";
+            else if (pCode == 2212 || pCode == 1) particle = "proton";
+            else if (pCode == 2000004 || pCode == -6) particle = "alpha";
+            else isInvalidCode = true;
+
+            // GeV -> MeV 변환
+            if (!isInvalidCode) E = std::to_string(std::stod(E) * 1000.);
+            break;
+
+        case PSMode::IAEA:
+            iss >> pCode >> charge >> x >> y >> z >> u >> v >> w >> E >> SWF >> history;
+            
+            if (pCode == 1) particle = "gamma";
+            else if (pCode == 2) particle = "e-";
+            else if (pCode == 3) particle = "e+";
+            else if (pCode == 4) particle = "neutron";
+            else if (pCode == 5) particle = "proton";
+            else isInvalidCode = true;
+            break;
+
+        case PSMode::USER:
+            iss >> particle >> x >> y >> z >> u >> v >> w >> E >> SWF;
+            break;
+
+        default:
+            isInvalidCode = true;
+            break;
+        }
+
+        // 3. 에러 처리 (중복 코드 제거됨)
+        if (isInvalidCode) {
+            theApp.SetMessageBox("Invalid particle code or Mode error!!");
+            theApp.PSF_data.clear();
+            theApp.PSF_location_vector.clear();
+            theApp.PSF_direction_vector.clear();
+            ifp.close();
+            return false;
+        }
+
+        // 4. 진행률 업데이트
+        std::streampos currentPos = ifp.tellg();
+        if (currentPos != -1) {
+            int percent = static_cast<int>(currentPos * size_scale_factor);
+            if (percent != lastPercent && percent % 1 == 0) {
+                lastPercent = percent;
+                progressDialog.setValue(percent);
+                progressDialog.setLabelText(QString("Reading phase space file... %1%").arg(percent));
+                QCoreApplication::processEvents();
+            }
+        }
+
+        // 5. 데이터 저장
+        // string을 double로 변환하여 벡터에 저장
+        try {
+            theApp.PSF_data.push_back(std::make_tuple(particle, x, y, z, u, v, w, E, SWF));
+            theApp.PSF_location_vector.push_back(std::make_tuple(std::stof(x), std::stof(y), std::stof(z)));
+            theApp.PSF_direction_vector.push_back(std::make_tuple(std::stof(u), std::stof(v), std::stof(w)));
+            theApp.pRt->PhaseSpaceFileRow++;
+        } catch (...) {
+            // stof 변환 실패 등에 대한 예외 처리 (선택 사항)
+            continue; 
+        }
+
+    } // While Loop End
+
+    progressDialog.close();
+    GenerateSourceActor_sourcePSF(theApp.PSF_location_vector, theApp.PSF_direction_vector);
+
+    ifp.close();
+
+    // IAEA 임시 파일 삭제
+    if (currentMode == PSMode::IAEA) {
+        remove(stdPath.c_str());
+    }
+
+    return true;
 }
 
 std::vector<Point_SolidAngle> SourceObjects::GetPointsWithinSolidAngle_sourceCB(double maxAngle, double a, double b, double c, int numPoints) {
@@ -1371,6 +1423,44 @@ std::vector<Point_SolidAngle> SourceObjects::GetPointsWithinSolidAngle_sourceCB(
 		}
 	}
 	return result;
+}
+
+std::pair<std::vector<std::map<int, std::string>>, double> SourceObjects::Read_RI_File(std::string RIpath)
+{	
+	std::ifstream ifp_RI(RIpath);
+	double yield;
+	double yieldSum = 0;
+	std::string radionuclide_name;
+	std::string dump, yield_str, energy, particle;
+	std::vector<std::map<int, std::string>> radionuclide_yield_energy_particle;
+	ifp_RI >> radionuclide_name;
+	while (!ifp_RI.eof()) {
+		ifp_RI >> dump >> yield_str >> energy >> particle;		
+		if (ifp_RI.fail()) break; // 마지막 줄이 한번더 안읽혀도 이전 데이터로 실행되므로, 이를 방지하기 위함
+		
+		yield = std::stod(yield_str);		
+		yieldSum += yield;
+		std::map<int, std::string> temp_map;
+		temp_map[0] = yield_str; temp_map[1] = energy;
+		if (particle == "G") temp_map[2] = "gamma";
+		else if (particle == "PG") temp_map[2] = "gamma";
+		else if (particle == "DG") temp_map[2] = "gamma";
+		else if (particle == "X") temp_map[2] = "gamma";
+		else if (particle == "AQ") temp_map[2] = "gamma";
+		else if (particle == "B+") temp_map[2] = "e+";
+		else if (particle == "B-") temp_map[2] = "e-";
+		else if (particle == "DB") temp_map[2] = "e-";
+		else if (particle == "IE") temp_map[2] = "e-";
+		else if (particle == "AE") temp_map[2] = "e-";
+		else if (particle == "A") temp_map[2] = "alpha";
+		else if (particle == "N") temp_map[2] = "neutron";
+		else if (particle == "H") temp_map[2] = "proton";
+		else temp_map[2] = "geantino"; // for non-supproted paritlce while considering the total yields
+		radionuclide_yield_energy_particle.push_back(temp_map);
+	}
+	ifp_RI.close();
+	
+	return std::make_pair(radionuclide_yield_energy_particle, yieldSum); 
 }
 
 void SourceObjects::PSF_MCNP_ssw_parse_file(const std::string& filename) {
@@ -1504,3 +1594,4 @@ std::string SourceObjects::PSF_PHITS_replaceDwithE(std::string input)
 	}
 	return result;
 }
+

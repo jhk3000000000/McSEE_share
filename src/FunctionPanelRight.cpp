@@ -8207,6 +8207,16 @@ void FunctionPanelRight::CreateSourceWidgets()
     // 8. 초기 화면 설정
     SetSourceGeometryType(0); // 0번(BroadBeam)을 기본값으로 설정
 }
+SourceGeometryWidget* FunctionPanelRight::getCurrentSourceWidget()
+{
+	int index = m_comboBoxSourceGeometry->currentIndex();
+
+	if(index >= 0 && index < m_sources.size())
+	{
+		return m_sources[index];
+	}
+	else return nullptr;
+}
 void FunctionPanelRight::slot_ChangeSourceGeometryCombo(int idx)
 {
 
@@ -8272,6 +8282,8 @@ void FunctionPanelRight::SetSourceGeometryType(int index)
 		}
 	}
 }
+
+
 /////////////////////////////////////////////////////
 
 //************************************** Output Widget **************************************//
@@ -10189,8 +10201,9 @@ void FunctionPanelRight::checkProcessInfo_Server()
 //************************************** Save/Load and WriteFile Process **************************************//
 void FunctionPanelRight::Write_TextResultFile_SimulationInfo(std::string filepath)
 {
-	QFile* outFile = new QFile(QString::fromStdString(filepath));
-	QIODeviceOStream ofp_info(outFile);
+	// QFile* outFile = new QFile(QString::fromStdString(filepath));
+	// QIODeviceOStream ofp_info(outFile);
+	std::ofstream ofp_info(filepath);
 
 	// Save simulation information
 	//ofstream ofp_info(filepath);
@@ -10470,164 +10483,11 @@ void FunctionPanelRight::Write_TextResultFile_SimulationInfo(std::string filepat
 	//Source information
 	ofp_info << "============================ Source_input ============================" << endl;
 
-	if (CurrentSourceType == 0) // Broad beam
-	{
-		ofp_info << "Source_type: Broad_beam" << endl;
-		ofp_info << "\tBeam_direction: " << m_comboBoxBeamdirection->currentText().toStdString() << endl;
-		if (m_comboBoxBeamdirection->currentText() == "User_defined") {
-			ofp_info << "\t\tAzimuthal_angle(degree): " << QString::number(m_lineEditAzimuthalAngle->text().toDouble()).toStdString() << endl; // approximately 57.2958 degrees = 1 radian
-			ofp_info << "\t\tPolar_angle(degree): " << QString::number(m_lineEditPolarAngle->text().toDouble()).toStdString() << endl;
-		}
-		ofp_info << "\tParticle: " << m_comboBoxBroadBeamParticleType->currentText().toStdString() << endl;
-		ofp_info << "\tEnergy(MeV): " << m_lineBroadBeamEnergy->text().toStdString() << endl;
-	}
-	if (CurrentSourceType == 1) // External point 
-	{
-		ofp_info << "Source_type: External_point" << endl;
-		if (RI_Select_sourceEP_QRadioButton->isChecked())
-		{
-			ofp_info << "\t" << std::setw(24) << "Position" << std::setw(18) << "Radionuclide" << std::setw(24) << "Activity(Bq)" << endl;
-			for (auto itr_RI_Info : ListInfo_sourceEP)
-			{
-				ofp_info << "\t" << std::setw(8) << itr_RI_Info[1].toStdString() << std::setw(8) << itr_RI_Info[2].toStdString() << std::setw(8) << itr_RI_Info[3].toStdString()
-					<< std::setw(18) << itr_RI_Info[4].toStdString() << std::right << ::setw(24) << itr_RI_Info[5].toStdString() << endl;
-			}
-		}
-		else if (ES_Select_sourceEP_QRadioButton->isChecked())
-		{
-			ofp_info << "\t" << std::setw(24) << "Position" << std::setw(18) << "Energy Spectrum" << std::setw(24) << "Activity(Bq)" << endl;
-			for (auto itr_RI_Info : ListInfo_sourceEP)
-			{
-				ofp_info << "\t" << std::setw(8) << itr_RI_Info[1].toStdString() << std::setw(8) << itr_RI_Info[2].toStdString() << std::setw(8) << itr_RI_Info[3].toStdString()
-					<< std::setw(18) << QFileInfo(itr_RI_Info[4]).fileName().toStdString() << std::right << ::setw(24) << itr_RI_Info[5].toStdString() << endl;
-			}
-		}		
-	}
-	if (CurrentSourceType == 2) // Floor disk
-	{
-		ofp_info << "Source_type: Floor_disk" << endl;
-		std::string posX_FD; std::string posY_FD; std::string posZ_FD; std::string radius_FD;
-		if (PosX_SourceFD_QLineEdit->text().toStdString() == "") posX_FD = "0";
-		else posX_FD = PosX_SourceFD_QLineEdit->text().toStdString();
-		if (PosY_SourceFD_QLineEdit->text().toStdString() == "") posY_FD = "0";
-		else posY_FD = PosY_SourceFD_QLineEdit->text().toStdString();
-		if (PosZ_SourceFD_QLineEdit->text().toStdString() == "") posZ_FD = "0";
-		else posZ_FD = PosZ_SourceFD_QLineEdit->text().toStdString();
-		if (Radius_sourceFD_QLineEdit->text().toStdString() == "") radius_FD = "0";
-		else radius_FD = Radius_sourceFD_QLineEdit->text().toStdString();
-		ofp_info << "\tCenter_PosX(cm): " << posX_FD << endl;
-		ofp_info << "\tCenter_PosY(cm): " << posY_FD << endl;
-		ofp_info << "\tCenter_PosZ(cm): " << posZ_FD << endl;
-		ofp_info << "\tRadius(cm): " << radius_FD << endl;
-
-		if (RI_Select_sourceFD_QRadioButton->isChecked())
-		{
-			ofp_info << "\t" << std::setw(18) << "Radionuclide" << std::setw(24) << "Activity(Bq/cm2)" << endl;
-			for (auto itr_RI_Info : ListInfo_sourceFD)
-			{
-				ofp_info << "\t" << std::setw(18) << itr_RI_Info[1].toStdString() << std::setw(24) << itr_RI_Info[2].toStdString() << endl;
-			}
-		}
-		else if (ES_Select_sourceFD_QRadioButton->isChecked())
-		{
-			ofp_info << "\t" << std::setw(18) << "Energy Spectrum" << std::setw(24) << "Activity(Bq/cm2)" << endl;
-			for (auto itr_RI_Info : ListInfo_sourceFD)
-			{
-				ofp_info << "\t" << std::setw(18) << QFileInfo(itr_RI_Info[1]).fileName().toStdString() << std::setw(24) << itr_RI_Info[2].toStdString() << endl;
-			}
-		}
-		
-	}
-	else if (CurrentSourceType == 3)// Object volume
-	{
-		ofp_info << "Source_type: Object_volume" << endl;
-		for (auto itr_sourceOV_index : m_sourceOV_objectSequenceVector)
-		{
-			ofp_info << "\tObject:" << endl;
-			ofp_info << "\t[" << m_Object_ButtonName[itr_sourceOV_index].toStdString() << "]" << endl;
-			ofp_info << "\t\tRadionuclide\tActivity(Bq/cm3) " << endl;
-			for (auto itr_RIvector : ListInfo_sourceOV[itr_sourceOV_index])
-			{
-				ofp_info << "\t\t" << itr_RIvector[1].toStdString() << "\t" << itr_RIvector[2].toStdString() << endl;
-			}
-			ofp_info << "\t^" << endl;
-		}
-	}
-	if (CurrentSourceType == 4) // Phase space
-	{
-		ofp_info << "Source_type: Phase_space_file" << endl;
-		if (sourcePS_USER_Button->isChecked()) ofp_info << "\tType: USER_defined_file" << endl;
-		if (sourcePS_MCNP_button->isChecked()) ofp_info << "\tType: MCNP_file" << endl;
-		if (sourcePS_PHITS_button->isChecked()) ofp_info << "\tType: PHITS_file" << endl;
-		if (sourcePS_FLUKA_button->isChecked()) ofp_info << "\tType: FLUKA_file" << endl;
-		ofp_info << "\tFile_name: " << sourcePS_PSFname->placeholderText().toStdString() << endl;
-	}
-	if (CurrentSourceType == 5) // Hot particle
-	{
-		ofp_info << "Source_type: Hot_particle_point" << endl;
-
-		if (RI_Select_sourceHP_QRadioButton->isChecked())
-		{
-			ofp_info << "\t" << std::setw(24) << "Position" << std::setw(18) << "Radionuclide" << std::setw(24) << "Activity(Bq)" << endl;
-			for (auto itr_RI_Info : ListInfo_sourceHP)
-			{
-				ofp_info << "\t" << std::setw(8) << itr_RI_Info[1].toStdString() << std::setw(8) << itr_RI_Info[2].toStdString() << std::setw(8) << itr_RI_Info[3].toStdString()
-					<< std::setw(18) << itr_RI_Info[4].toStdString() << std::right << ::setw(24) << itr_RI_Info[5].toStdString() << endl;
-			}
-		}
-		else if (ES_Select_sourceHP_QRadioButton->isChecked())
-		{
-			ofp_info << "\t" << std::setw(24) << "Position" << std::setw(18) << "Energy Spectrum" << std::setw(24) << "Activity(Bq)" << endl;
-			for (auto itr_RI_Info : ListInfo_sourceHP)
-			{
-				ofp_info << "\t" << std::setw(8) << itr_RI_Info[1].toStdString() << std::setw(8) << itr_RI_Info[2].toStdString() << std::setw(8) << itr_RI_Info[3].toStdString()
-					<< std::setw(18) << QFileInfo(itr_RI_Info[4]).fileName().toStdString() << std::right << ::setw(24) << itr_RI_Info[5].toStdString() << endl;
-			}
-		}
-		
-	}
-	if (CurrentSourceType == 6) // Cone beam 개발 필요
-	{
-		if (m_lineEditConeBeamDirectionX->text().toStdString() == ""
-			&& m_lineEditConeBeamDirectionY->text().toStdString() == ""
-			&& m_lineEditConeBeamDirectionZ->text().toStdString() == "")
-		{
-			ofp_info << "\tDirection (x, y, z): Isotropic" << endl;
-		}
-		else
-		{
-			std::string directionX; std::string directionY; std::string directionZ;
-			if (m_lineEditConeBeamDirectionX->text().toStdString() == "") directionX = "0";
-			else directionX = m_lineEditConeBeamDirectionX->text().toStdString();
-			if (m_lineEditConeBeamDirectionY->text().toStdString() == "") directionY = "0";
-			else directionY = m_lineEditConeBeamDirectionY->text().toStdString();
-			if (m_lineEditConeBeamDirectionZ->text().toStdString() == "") directionZ = "0";
-			else directionZ = m_lineEditConeBeamDirectionZ->text().toStdString();
-			ofp_info << "\tDirection (x, y, z): " << directionX << " " << directionY << " " << directionZ << endl;
-
-			std::string SolidAngle;
-			if (m_lineEditConeBeamDirectionSolidAngle->text().toStdString() == "") SolidAngle = "0";
-			else SolidAngle = m_lineEditConeBeamDirectionSolidAngle->text().toStdString();
-			ofp_info << "\tSolid angle (degree): " << SolidAngle << endl;
-		}
-	}
-	if (CurrentSourceType == 7) // Room contamination
-	{
-		ofp_info << "Source_type: Room_air_contamination" << endl;
-		ofp_info << "\tHalfLengthX(cm): " << Box_HalfLengthX_sourceRC_QLineEdit->text().toStdString() << endl;
-		ofp_info << "\tHalfLengthY(cm): " << Box_HalfLengthY_sourceRC_QLineEdit->text().toStdString() << endl;
-		ofp_info << "\tHalfLengthZ(cm): " << Box_HalfLengthZ_sourceRC_QLineEdit->text().toStdString() << endl;
-		ofp_info << "\tCenter_PosX(cm): " << Box_CenterX_sourceRC_QLineEdit->text().toStdString() << endl;
-		ofp_info << "\tCenter_PosY(cm): " << Box_CenterY_sourceRC_QLineEdit->text().toStdString() << endl;
-		ofp_info << "\tCenter_PosZ(cm): " << Box_CenterZ_sourceRC_QLineEdit->text().toStdString() << endl;
-
-		ofp_info << "\t" << std::setw(18) << "Radionuclide" << std::setw(24) << "Activity(Bq/cm3)" << endl;
-		for (auto itr_RI_Info : RI_Info_sourceRC)
-		{
-			ofp_info << "\t" << std::setw(18) << itr_RI_Info[1].toStdString() << std::setw(24) << itr_RI_Info[2].toStdString() << endl;
-		}
-	}
-
+	///
+	auto* sourceWidget = getCurrentSourceWidget();
+	sourceWidget->WriteSourceInfo(ofp_info);
+	/// Write Source info
+	
 	ofp_info << endl << "===================== Calculation_setting_input ======================" << endl;
 	// Target error
 	ofp_info << setw(20) << std::left << "\tTarget_organ" << setw(20) << std::left << "Statistical_error(%)" << endl;
@@ -10660,7 +10520,7 @@ void FunctionPanelRight::Write_TextResultFile_SimulationInfo(std::string filepat
 	//if (SettingCalcModeInfo == 0)  ofp_info << "Local" << endl;
 	//if (SettingCalcModeInfo == 1)  ofp_info << "Server" << endl;
 
-	outFile->close();
+	// outFile->close();
 }
 
 void FunctionPanelRight::Write_mcsee_File(QString filePath)
@@ -11411,10 +11271,10 @@ void FunctionPanelRight::ResetCalculation() // Output 패널 관련 정보를 �
 
 void FunctionPanelRight::LoadReconsturctionFile_previous(QString dir) // 무조건 아예 프로그램 처음 킨 상태로 시작해야 함
 {	
-	QFile* inputFile = new QFile(dir);
-	QIODeviceIStream ifp(inputFile);
+	// QFile* inputFile = new QFile(dir);
+	// QIODeviceIStream ifp(inputFile);
 
-	//ifstream ifp(dir.toStdString());
+	std::ifstream ifp(dir.toStdString());
 	std::string dump;
 	while (!ifp.eof())
 	{
@@ -11781,23 +11641,11 @@ void FunctionPanelRight::LoadReconsturctionFile_previous(QString dir) // 무조�
 				ifp >> dump >> dump; // Source_geometry: X
 				if (dump == "External_point")
 				{
-					ifp >> dump >> dump >> dump; //  Position      Radionuclide            Activity(Bq)
-					while (ifp >> dump) // posX or "====================="
-					{
-						if (dump == "=====================") break;
-						if (dump != "=====================")
-						{
-							// status 입력
-							PosX_sourceEP_QLineEdit->setText(QString::fromStdString(dump));
-							ifp >> dump; PosY_sourceEP_QLineEdit->setText(QString::fromStdString(dump));
-							ifp >> dump; PosZ_sourceEP_QLineEdit->setText(QString::fromStdString(dump));
-							ifp >> dump; RI_Radionuclide_sourceEP_QLineEdit->setText(QString::fromStdString(dump));
-							ifp >> dump; RI_Activity_sourceEP_QLineEdit->setText(QString::fromStdString(dump));
-							// Add 버튼 누른 것처럼 실행
-							slot_RIList_Add_sourceEP_ButtonClicked(); 
-						}
-					}
+					// auto* EPWidget = getSourceWidget<ExternalPointWidget>();
+					// EPWidget->ReadSourceInfo(ifp);
 					m_comboBoxSourceGeometry->setCurrentIndex(1);
+					auto* sourceWidget = getCurrentSourceWidget();
+					sourceWidget->ReadSourceInfo(ifp);
 					SetSourceGeometryType(m_comboBoxSourceGeometry->currentIndex());
 					m_comboBoxSourceGeometry->setDisabled(true);
 					m_sourceOKandResetButton->setText("Reset");
@@ -11807,29 +11655,11 @@ void FunctionPanelRight::LoadReconsturctionFile_previous(QString dir) // 무조�
 				
 				if (dump == "Floor_disk")
 				{
-					ifp >> dump >> dump; //  Center_PosX(cm):      posX
-					PosX_SourceFD_QLineEdit->setText(QString::fromStdString(dump));
-					ifp >> dump >> dump; //  Center_PosY(cm):      posY
-					PosY_SourceFD_QLineEdit->setText(QString::fromStdString(dump));
-					ifp >> dump >> dump; //  Center_PosZ(cm):      posZ
-					PosZ_SourceFD_QLineEdit->setText(QString::fromStdString(dump));
-					ifp >> dump >> dump; //  Radius(cm):      radi
-					Radius_sourceFD_QLineEdit->setText(QString::fromStdString(dump));
-					ifp >> dump >> dump; //  Radionuclide        Activity(Bq/cm2)
-					slot_FloorUpdate_ButtonClicked(); // Source geometry 가시화를 위한 업데이트 버튼 누르기
-					while (ifp >> dump) // posX or "====================="
-					{
-						if (dump == "=====================") break;
-						if (dump != "=====================")
-						{
-							// status 입력
-							RI_Radionuclide_sourceFD_QLineEdit->setText(QString::fromStdString(dump));
-							ifp >> dump; RI_Activity_sourceFD_QLineEdit->setText(QString::fromStdString(dump));
-							// Add 버튼 누르기
-							slot_RIList_Add_sourceFD_ButtonClicked();
-						}
-					}
+					// auto* FDWidget = getSourceWidget<FloorDiskWidget>();
+					// FDWidget->ReadSourceInfo(ifp);
 					m_comboBoxSourceGeometry->setCurrentIndex(2);
+					auto* sourceWidget = getCurrentSourceWidget();
+					sourceWidget->ReadSourceInfo(ifp);
 					SetSourceGeometryType(m_comboBoxSourceGeometry->currentIndex());
 					m_comboBoxSourceGeometry->setDisabled(true);
 					m_sourceOKandResetButton->setText("Reset");
@@ -11839,37 +11669,12 @@ void FunctionPanelRight::LoadReconsturctionFile_previous(QString dir) // 무조�
 
 				if (dump == "Object_volume")
 				{				
-					int sourceOV_object_index;
-					int sourceOV_making_index;
-					while (ifp >> dump) // [object_name] or "^"
-					{
-						if (dump == "^") break;
-						if (dump != "^")
-						{						
-							// Source OV에서 버튼 만들기
-							QString targetValue = QString::fromStdString(theApp.ExtractInnerString(dump));
-							auto it = std::find_if(m_Object_ButtonName.begin(), m_Object_ButtonName.end(),
-								[&targetValue](const std::pair<int, QString>& pair) {
-									return pair.second == targetValue;
-								});
-							if (it != m_Object_ButtonName.end()) sourceOV_object_index = it->first;  // QString 값을 찾으면 key 값을 반환
-
-							// 
-							theApp.ObjectPanelActors[sourceOV_object_index]->GetProperty()->SetColor(1.0, 0., 0.);
-							theApp.m_pVTKWidget->renderWindow()->Render();
-
-							double* bounds = theApp.ObjectPanelActors[sourceOV_object_index]->GetBounds();
-							theApp.pRt->sourceOV_objectBound[sourceOV_object_index][0] = bounds[0];
-							theApp.pRt->sourceOV_objectBound[sourceOV_object_index][1] = bounds[1];
-							theApp.pRt->sourceOV_objectBound[sourceOV_object_index][2] = bounds[2];
-							theApp.pRt->sourceOV_objectBound[sourceOV_object_index][3] = bounds[3];
-							theApp.pRt->sourceOV_objectBound[sourceOV_object_index][4] = bounds[4];
-							theApp.pRt->sourceOV_objectBound[sourceOV_object_index][5] = bounds[5];
-						}
-					}
-
+					// auto* OVWidget = getSourceWidget<ObjectVolumeWidget>();
+					// OVWidget->ReadSourceInfo(ifp);
 					// Initialize selecting source geometry
 					m_comboBoxSourceGeometry->setCurrentIndex(3);
+					auto* sourceWidget = getCurrentSourceWidget();
+					sourceWidget->ReadSourceInfo(ifp);
 					SetSourceGeometryType(m_comboBoxSourceGeometry->currentIndex());
 					m_comboBoxSourceGeometry->setDisabled(true);
 					m_sourceOKandResetButton->setText("Reset");
@@ -12029,7 +11834,7 @@ void FunctionPanelRight::LoadReconsturctionFile_previous(QString dir) // 무조�
 			}
 		}
 	}
-	inputFile->close();
+	// inputFile->close();
 	if (b_IsCalculationExecuted == false) // 결과파일 제외하고 불러왔을 때
 	{
 		SetGeometryPanelMode();

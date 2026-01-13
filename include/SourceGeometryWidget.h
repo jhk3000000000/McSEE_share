@@ -6,6 +6,7 @@
 #include <QComboBox>
 #include <QLineEdit>
 #include <QVBoxLayout>
+#include "SourceModels.h" // 위에서 만든 헤더 포함
 
 
 class FunctionPanelRight;       // 부모패널
@@ -22,6 +23,9 @@ protected:
 public:
 	virtual ~SourceGeometryWidget();
 
+    virtual void WriteSourceMacro(std::ofstream& ofp_source);
+    virtual void WriteSourceInfo(std::ofstream& ofp_info);
+    virtual void ReadSourceInfo(std::ifstream& ifp);
 	FunctionPanelRight* panel = Q_NULLPTR;
 
 public:
@@ -34,34 +38,58 @@ public:
 //////////////////////////////////////////////////////////////////////
 class BroadBeamWidget : public SourceGeometryWidget
 {
-	using ParentT = SourceGeometryWidget;
-
-	Q_OBJECT
+    using ParentT = SourceGeometryWidget;
+    Q_OBJECT
 
 public:
-	explicit BroadBeamWidget(QWidget* parent = Q_NULLPTR);
-	virtual ~BroadBeamWidget();
+    explicit BroadBeamWidget(QWidget* parent = Q_NULLPTR);
+    virtual ~BroadBeamWidget();
 
-	bool initialize() override;
+    bool initialize() override;
 
+    void WriteSourceMacro(std::ofstream& ofp_source) override;
+    void WriteSourceInfo(std::ofstream& ofp_info) override;
+    void ReadSourceInfo(std::ifstream& ifp) override;
+
+    // [New] 모델 접근 함수 (이제 이 함수 하나로 모든 데이터에 접근 가능)
+    BroadBeamModel& getModel() { return m_model; }
+    void setModel(const BroadBeamModel& data); // 필요 시 구현
+
+    // [Old] 기존 Getter들 (호환성을 위해 남겨둠, 나중에 m_model 값 리턴하도록 수정 권장)
+    // int getBB_DirectionIndex();
+    // double getBB_PolarAngle();
+    // double getBB_AzimAngle();
 
 private:
-	QPushButton* m_BroadBeamSourceVisualizationButton = Q_NULLPTR;
-	QComboBox* m_comboBoxBeamdirection = Q_NULLPTR;
-	QComboBox* m_comboBoxBroadBeamParticleType = Q_NULLPTR;
-	QLineEdit* m_lineBroadBeamEnergy = Q_NULLPTR;
+    // [New] 순수 데이터 저장소
+    BroadBeamModel m_model;
 
-	QGroupBox* m_AziPolGroupBox = Q_NULLPTR;
-	QLineEdit* m_lineEditAzimuthalAngle = Q_NULLPTR;
-	QLineEdit* m_lineEditPolarAngle = Q_NULLPTR;
+    // [New] UI -> Model 데이터 동기화 함수
+    void updateModelFromUI();
+    void updateUI();
+
+    // --- UI Components (View) ---
+    // 포인터들은 그대로 둡니다.
+    QPushButton* m_BroadBeamSourceVisualizationButton = Q_NULLPTR;
+    QComboBox* m_comboBoxBeamdirection = Q_NULLPTR;
+    QComboBox* m_comboBoxBroadBeamParticleType = Q_NULLPTR;
+    QLineEdit* m_lineBroadBeamEnergy = Q_NULLPTR;
+
+    QGroupBox* m_AziPolGroupBox = Q_NULLPTR;
+    QLineEdit* m_lineEditAzimuthalAngle = Q_NULLPTR;
+    QLineEdit* m_lineEditPolarAngle = Q_NULLPTR;
 
 private:
-	void CreateAziPol(int idx, QVBoxLayout*);
-	void SetBroadBeamAziPol(int user);
+    // 내부 UI 생성 로직 (그대로 유지)
+    void CreateAziPol(int idx, QVBoxLayout*);
+    void SetBroadBeamAziPol(int user);
+    std::string GetBeamDirectionString(int index);
 
 public slots:
-	void slot_BroadBeamUserDefined(int user);
-	void slot_BroadBeamSourceVisualization_ButtonClicked();
+    // UI 이벤트 슬롯 (그대로 유지)
+    void slot_BroadBeamUpdate_ButtonClicked();
+    void slot_BroadBeamUserDefined(int user);
+    void slot_BroadBeamSourceVisualization_ButtonClicked();
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -77,14 +105,37 @@ public:
     virtual ~ExternalPointWidget();
 
     bool initialize() override;
+    
+    void WriteSourceMacro(std::ofstream& ofp_source) override;
+    void WriteSourceInfo(std::ofstream& ofp_info) override;
+    void ReadSourceInfo(std::ifstream& ifp) override;
+
+    // // [기존 함수] 좌표 업데이트용 (외부에서 호출되는 경우 유지)
+    void updateEP_Points(double x, double y, double z);
+
+    // [New] 모델 접근 및 동기화
+    ExternalPointModel& getModel() { return m_model; }
+    void setModel(const ExternalPointModel& data); // 필요 시 구현
 
 private:
-    // --- UI Components (기존 코드에서 추출) ---
+    // [New] 데이터 저장소
+    ExternalPointModel m_model;
+
+    // [New] UI -> Model 동기화 함수
+    void updateModelFromUI();
+
+    // ============================================================
+    // [UI Components] 화면 구성 요소들은 그대로 둡니다.
+    // ============================================================
     QGroupBox* m_sourceGeometryExternalPointGroupBox = Q_NULLPTR;
+    
+    // Sphere Size Buttons
     QPushButton* SourceEP_SphereSize_Minus_QPushButton = Q_NULLPTR;
     QPushButton* SourceEP_SphereSize_Plus_QPushButton = Q_NULLPTR;
+    
     QPushButton* m_ExternalPointSourceVisualizationButton = Q_NULLPTR;
     
+    // Position Inputs
     QLineEdit* PosX_sourceEP_QLineEdit = Q_NULLPTR;
     QLineEdit* PosY_sourceEP_QLineEdit = Q_NULLPTR;
     QLineEdit* PosZ_sourceEP_QLineEdit = Q_NULLPTR;
@@ -92,6 +143,7 @@ private:
     QPushButton* pickExternal3DButton = Q_NULLPTR;
     QPushButton* sourceEP_UpdatePositionButton = Q_NULLPTR;
     
+    // Mode Selection
     QRadioButton* RI_Select_sourceEP_QRadioButton = Q_NULLPTR;
     QRadioButton* ES_Select_sourceEP_QRadioButton = Q_NULLPTR;
     
@@ -115,22 +167,30 @@ private:
     QPushButton* ExternalSingleEnergySpectrumAddButton = Q_NULLPTR;
     QListWidget* ES_List_sourceEP_QListWidget = Q_NULLPTR;
 
-    // --- Data & Logic Variables (패널에서 가져옴) ---
-    // 리스트 관리를 위한 벡터들입니다.
-    std::vector<std::map<int, QString>> ListInfo_sourceEP; // ListInfo_sourceEP[pointID][0~5] = 0: 사용여부(True or ""), 1: posX, 2: posY, 3: posZ, 4: RI, 5: activity(Bq)		
+
+    // ============================================================
+    // [주의] 아래 벡터들은 UI(버튼) 리스트이므로 Widget에 남깁니다!
+    // ============================================================
     std::vector<QPushButton*> RI_ListDelete_sourceEP_QButton;
     std::vector<QPushButton*> RI_ListInfo_sourceEP_QButton;
+    
     std::vector<QPushButton*> ES_ListDelete_sourceEP_QButton;
     std::vector<QPushButton*> ES_ListInfo_sourceEP_QButton;
-    int List_sourceEP_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수	
+
+    // [삭제됨] 아래 변수들은 Model로 이동했으므로 삭제합니다.
+    // std::vector<std::map<int, QString>> ListInfo_sourceEP; 
+    // int List_sourceEP_MakingIndex = 0; 
 
 private slots:
-    // --- 기능 함수들 (기존 Panel의 Slot 함수들) ---
+    // --- 기능 함수들 ---
     void slot_SourceEP_SphereSize_Minus_ButtonClicked();
     void slot_SourceEP_SphereSize_Plus_ButtonClicked();
     void slot_ExternalPointSourceVisualization_ButtonClicked();
     void slot_sourceEP_Pick3D_ButtonClicked();
-    void slot_sourceEP_UpdatePosition_ButtonClicked();
+    
+    // [참고] Update 버튼은 데이터 저장을 위해 this->updateModelFromUI()를 호출해야 함
+    void slot_sourceEP_UpdatePosition_ButtonClicked(); 
+
     void slot_sourceEP_RadionuclideSelect_RadioButtonClicked();
     void slot_sourceEP_EnergySpectrumSelect_RadioButtonClicked();
 
@@ -158,28 +218,44 @@ public:
 
     bool initialize() override;
 
+    void WriteSourceMacro(std::ofstream& ofp_source) override;
+    void WriteSourceInfo(std::ofstream& ofp_info) override;
+    void ReadSourceInfo(std::ifstream& ifp) override;
+    // [New] 모델 접근 함수
+    FloorDiskModel& getModel() { return m_model; }
+    void setModel(const FloorDiskModel& data); // 필요 시 구현
+
 private:
-    // --- UI Components (Main GroupBox) ---
+    // [New] 데이터 저장소
+    FloorDiskModel m_model;
+
+    // [New] UI -> Model 동기화 함수 (Update 버튼 등에서 호출)
+    void updateModelFromUI();
+
+
+    // ============================================================
+    // [UI Components] 화면 구성 요소 (그대로 유지)
+    // ============================================================
     QGroupBox* m_sourceGeometryFloorDiskGroupBox = Q_NULLPTR;
     
-    // --- Visualization ---
+    // Visualization
     QPushButton* m_FloorSourceVisualizationButton = Q_NULLPTR;
 
-    // --- Geometry (Position & Radius) ---
+    // Geometry (Position & Radius)
     QLineEdit* PosX_SourceFD_QLineEdit = Q_NULLPTR;
     QLineEdit* PosY_SourceFD_QLineEdit = Q_NULLPTR;
     QLineEdit* PosZ_SourceFD_QLineEdit = Q_NULLPTR;
     QLineEdit* Radius_sourceFD_QLineEdit = Q_NULLPTR;
     
-    // --- Update & Default Buttons ---
+    // Update & Default Buttons
     QPushButton* m_FloorSetDefaultGeom = Q_NULLPTR;
     QPushButton* m_FloorUpdateButton = Q_NULLPTR;
 
-    // --- Type Selection (Radionuclide vs Energy Spectrum) ---
+    // Type Selection
     QRadioButton* RI_Select_sourceFD_QRadioButton = Q_NULLPTR;
     QRadioButton* ES_Select_sourceFD_QRadioButton = Q_NULLPTR;
 
-    // --- Radionuclide UI ---
+    // Radionuclide UI
     QLabel* RI_Title_sourceFD_QLabel = Q_NULLPTR;
     QLineEdit* RI_Radionuclide_sourceFD_QLineEdit = Q_NULLPTR;
     QLabel* RI_Activity_sourceFD_QLabel = Q_NULLPTR;
@@ -188,7 +264,7 @@ private:
     QPushButton* sourceFD_RadionuclideAddButton = Q_NULLPTR;
     QListWidget* RI_List_sourceFD_QListWidget = Q_NULLPTR;
 
-    // --- Energy Spectrum UI ---
+    // Energy Spectrum UI
     QLabel* ES_Title_sourceFD_QLabel = Q_NULLPTR;
     QPushButton* sourceFD_EnergyspectrumFileLoadButton = Q_NULLPTR;
     QLabel* ES_FileName_sourceFD_QLabel = Q_NULLPTR;
@@ -199,20 +275,26 @@ private:
     QPushButton* sourceFD_EnergySpectrumAddButton = Q_NULLPTR;
     QListWidget* ES_List_sourceFD_QListWidget = Q_NULLPTR;
 
-    // --- Data Management (리스트 관리용 변수들) ---
-    // FunctionPanelRight에 있던 ListInfo 및 관리용 벡터들을 멤버로 가져옵니다.
-    std::vector<std::map<int, QString>> ListInfo_sourceFD; // RI_Info_sourceRC[pointID][0~2] = 0: 사용여부(True or ""), 1: RI, 2: activity(Bq/cm3)
+
+    // ============================================================
+    // [주의] 버튼 관리용 벡터는 UI 리스트이므로 Widget에 남깁니다!
+    // ============================================================
     std::vector<QPushButton*> RI_ListDelete_sourceFD_QButton;
     std::vector<QPushButton*> RI_ListInfo_sourceFD_QButton;
     std::vector<QPushButton*> ES_ListDelete_sourceFD_QButton;
     std::vector<QPushButton*> ES_ListInfo_sourceFD_QButton;
-    int List_sourceFD_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수	
+    
+    // [삭제됨] 아래 변수들은 Model(SourceModels.h)로 이동했습니다.
+    // std::vector<std::map<int, QString>> ListInfo_sourceFD;
+    // int List_sourceFD_MakingIndex = 0;
 
 private slots:
-    // --- Slot Functions (기존 FunctionPanelRight의 함수들) ---
+    // --- Slot Functions (기존 유지) ---
     void slot_FloorSourceVisualization_ButtonClicked();
     void slot_FloorSetDefaultGeom_ButtonClicked();
-    void slot_FloorUpdate_ButtonClicked();
+    
+    // [참고] 이 함수 내부에서 updateModelFromUI() 호출 필요
+    void slot_FloorUpdate_ButtonClicked(); 
     
     void slot_sourceFD_RadionuclideSelect_RadioButtonClicked();
     void slot_sourceFD_EnergySpectrumSelect_RadioButtonClicked();
@@ -243,25 +325,41 @@ public:
     virtual ~ObjectVolumeWidget();
 
     bool initialize() override;
+    
+    void WriteSourceMacro(std::ofstream& ofp_source) override;
+    void WriteSourceInfo(std::ofstream& ofp_info) override;
+    void ReadSourceInfo(std::ifstream& ifp) override;
+    bool hasOV_Obejcts() const;
+    // int getOV_SelectIndex();
+    // void setOV_ObjectBound(int idx, double Xmin, double Xmax, double Ymin, double Ymax, double Zmin, double Zmax);
+    // bool isOV_AddingSettingOKClicked();
+    // void setOV_AddingSettingClosed();
+
+    // [New] 모델 접근
+    ObjectVolumeModel& getModel() { return m_model; }
+    void setModel(const ObjectVolumeModel& data);
 
 private:
-    // --- UI Components: Main GroupBox ---
+    // [New] 데이터 저장소
+    ObjectVolumeModel m_model;
+
+    // [New] 동기화 함수
+    void updateModelFromUI();
+
+    // ============================================================
+    // [UI Components] (그대로 유지)
+    // ============================================================
     QGroupBox* m_sourceGeometryObjectVolumeGroupBox = Q_NULLPTR;
-    
-    // --- Visualization ---
     QPushButton* m_ObjectVolumeSourceVisualizationButton = Q_NULLPTR;
 
-    // --- Object List Area (Scroll Area) ---
     QHBoxLayout* layout_sourceOV_ObjectList = Q_NULLPTR;
     QScrollBar* sourceOV_ObjectScrollBar = Q_NULLPTR;
     QPushButton* sourceOV_ObjectAddButton = Q_NULLPTR;
     QPushButton* sourceOV_ObjectDeleteButton = Q_NULLPTR;
 
-    // --- Type Selection ---
     QRadioButton* sourceOV_Radionuclide_radioButton = Q_NULLPTR;
     QRadioButton* sourceOV_Energyspectrum_radioButton = Q_NULLPTR;
 
-    // --- Radionuclide UI ---
     QLabel* RI_Title_sourceOV_QLabel = Q_NULLPTR;
     QLineEdit* RI_Radionuclide_sourceOV_QLineEdit = Q_NULLPTR;
     QLabel* RI_Activity_sourceOV_QLabel = Q_NULLPTR;
@@ -270,7 +368,6 @@ private:
     QPushButton* sourceOV_RadionuclideAddButton = Q_NULLPTR;
     QListWidget* RI_List_sourceOV_QListWidget = Q_NULLPTR;
 
-    // --- Energy Spectrum UI ---
     QLabel* ES_Title_sourceOV_QLabel = Q_NULLPTR;
     QPushButton* sourceOV_EnergyspectrumFileLoadButton = Q_NULLPTR;
     QLabel* ES_FileName_sourceOV_QLabel = Q_NULLPTR;
@@ -281,62 +378,44 @@ private:
     QPushButton* sourceOV_EnergyspectrumAddButton = Q_NULLPTR;
     QListWidget* ES_List_sourceOV_QListWidget = Q_NULLPTR;
 
-    // --- Modal Dialog UI (Object Adding Setting) ---
-    // 다이얼로그는 멤버로 가지고 있어야 제어가 가능합니다.
     MultipleUIDialog* sourceOV_ObjectAddingDialog = Q_NULLPTR;
     QComboBox* m_comboBoxSetting_sourceOV_objectList = Q_NULLPTR;
     QPushButton* m_sourceOV_SettingOKButton = Q_NULLPTR;
 
-    // --- Data Management (중요: 복잡한 데이터 구조 이관) ---
-    // 1. 선택된 Object 관리
-    std::vector<int> m_sourceOV_objectSequenceVector; // 추가된 오브젝트 ID 목록 // m_sourceOV_objectSequenceVector[ID] = Object ID
-    std::map<int, QPushButton*> sourceOV_ObjectButton; // 오브젝트별 버튼 관리
-    std::map<int, std::vector<double>> sourceOV_objectBound; // 오브젝트 바운딩 박스 정보 sourceOV_objectBound[ID][0~5] = 0: Xmin, 1: Xmax, 2: Ymin, 3: Ymax, 4: Zmin, 5: Zmax
+    // ============================================================
+    // [View Data] (UI 버튼 관리용 - Widget에 유지)
+    // ============================================================
+    std::map<int, QPushButton*> sourceOV_ObjectButton; // 버튼 포인터 맵
 
-    // 2. 오브젝트별 소스 리스트 관리 (Map <ObjID, Vector <SourceInfo Map>>)
-    std::map<int, std::vector<std::map<int, QString>>> ListInfo_sourceOV; // RI_Info_sourceOV[objectID][RIindex][1~2] = 0: 사용여부, 1: RI, 2: activity(Bq/cm3)
-    int List_sourceOV_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수
-
-    // 3. 리스트 아이템별 버튼 관리
     std::vector<QPushButton*> RI_ListDelete_sourceOV_QButton;
     std::vector<QPushButton*> RI_ListInfo_sourceOV_QButton;
     std::vector<QPushButton*> ES_ListDelete_sourceOV_QButton;
     std::vector<QPushButton*> ES_ListInfo_sourceOV_QButton;
 
-    // 4. 상태 플래그
-    bool b_IsSourceLocationVisualized_sourceOV = false;
-    bool b_IsSourceOV_AddingSettingClosed = false;
-    bool b_IsSourceOV_AddingSettingOKClicked = false;
-    bool b_sourceOV_InObjectSelect = false;
+    // [삭제됨] 모델로 이동한 변수들 (기존 이름과 동일하므로 주석 처리 후 비교 가능)
+    // std::vector<int> m_sourceOV_objectSequenceVector;
+    // std::map<int, std::vector<double>> sourceOV_objectBound;
+    // int Object_sourceOV_SelectedIndex = -1; 
+    // std::map<int, std::vector<std::map<int, QString>>> ListInfo_sourceOV;
+    // int List_sourceOV_MakingIndex = 0;
+    // bool b_IsSourceLocationVisualized_sourceOV ...
 
 private:
-    // --- Helper Functions (Private Logic) ---
     void ExecuteSourceOVAddRoutines();
     void sourceOV_ObjectAddingSetting_Create();
 
 private slots:
-    // --- Slot Functions ---
     void slot_ObjectVolumeSourceVisualization_ButtonClicked();
-    
-    // Object List Management
     void slot_sourceOV_ObjectAdd_ButtonClicked();
-    void slot_sourceOV_ObjectDelete_ButtonClicked(); // 기존 코드에 구현부 빈 상태, 확인 필요
+    void slot_sourceOV_ObjectDelete_ButtonClicked();
     void slot_sourceOV_ObjectSelect_ButtonClicked();
-
-    // Type Selection
     void slot_sourceOV_RadionuclideSelect_RadioButtonClicked();
     void slot_sourceOV_EnergySpectrumSelect_RadioButtonClicked();
-
-    // Dialog Interaction
     void slot_sourceOV_ObjectSettingChangeCombo(int idx);
     void slot_sourceOV_SettingOK_ButtonClicked();
-
-    // Radionuclide Operations
     void slot_sourceOV_RadionuclideAdd_ButtonClicked();
     void slot_sourceOV_RadionuclideDelete_ButtonClicked();
     void slot_sourceOV_RadionuclideInfo_ButtonClicked();
-
-    // Energy Spectrum Operations
     void slot_sourceOV_EnergyspectrumFileLoad_ButtonClicked();
     void slot_ESList_Add_sourceOV_ButtonClicked();
     void slot_ESList_Delete_sourceOV_ButtonClicked();
@@ -357,32 +436,51 @@ public:
 
     bool initialize() override;
 
+    void WriteSourceMacro(std::ofstream& ofp_source) override;
+    void WriteSourceInfo(std::ofstream& ofp_info) override;
+    void ReadSourceInfo(std::ifstream& ifp) override;
+    // [Moved] enum class PSMode는 SourceModels.h로 이동했습니다.
+
+    // [New] 모델 접근 함수
+    PhaseSpaceModel& getModel() { return m_model; }
+    void setModel(const PhaseSpaceModel& data);
+
+    // [Old] 호환성 유지용 (구현부에서 m_model.selectedMode를 리턴하게 수정)
+    // PSMode getPS_mode() const;
+
 private:
-    // --- UI Components: Main GroupBox ---
+    // [New] 데이터 저장소
+    PhaseSpaceModel m_model;
+
+    // [New] UI -> Model 동기화 함수
+    void updateModelFromUI();
+
+    // ============================================================
+    // [UI Components] (그대로 유지)
+    // ============================================================
     QGroupBox* m_sourceGeometryPhaseSpaceGroupBox = Q_NULLPTR;
     
-    // --- Visualization ---
+    // Visualization
     QPushButton* SourceVisualziation_sourePS_QButton = Q_NULLPTR;
     QCheckBox* DirectionCheck_sourcePS_QCheckBox = Q_NULLPTR;
 
-    // --- Format Selection Buttons ---
+    // Format Selection Buttons
     QPushButton* sourcePS_MCNP_button = Q_NULLPTR;
     QPushButton* sourcePS_PHITS_button = Q_NULLPTR;
     QPushButton* sourcePS_FLUKA_button = Q_NULLPTR;
-    QPushButton* sourcePS_IAEA_button = Q_NULLPTR; // (New)
+    QPushButton* sourcePS_IAEA_button = Q_NULLPTR;
     QPushButton* sourcePS_USER_Button = Q_NULLPTR;
 
-    // --- File Loading UI ---
+    // File Loading UI
     QPushButton* sourcePS_loadPSFButton = Q_NULLPTR;
     QTextEdit* sourcePS_PSFname = Q_NULLPTR;
 
 private slots:
     // --- Slot Functions ---
-    // Visualization Control
     void slot_PhaseSpaceSourceVisualization_ButtonClicked();
     void slot_DirectionCheck_sourcePS_QCheckBox_ButtonClicked();
 
-    // Format Selection (Radio behavior using PushButtons)
+    // Format Selection
     void slot_SourcePS_MCNP_ButtonClicked();
     void slot_SourcePS_PHITS_ButtonClicked();
     void slot_SourcePS_FLUKA_ButtonClicked();
@@ -407,16 +505,34 @@ public:
 
     bool initialize() override;
 
+    void WriteSourceMacro(std::ofstream& ofp_source) override;
+    void WriteSourceInfo(std::ofstream& ofp_info) override;
+    void ReadSourceInfo(std::ifstream& ifp) override;
+    
+    // // [기존 함수] 외부에서 3D 포인팅 시 호출됨
+    void updateHP_Vector(double x, double y, double z);
+    void updateHP_Points(double x, double y, double z);
+
+    // [New] 모델 접근
+    HotParticleModel& getModel() { return m_model; }
+    void setModel(const HotParticleModel& data);
+
 private:
-    // --- UI Components: Main GroupBox ---
+    // [New] 데이터 저장소
+    HotParticleModel m_model;
+
+    // [New] 동기화 함수
+    void updateModelFromUI();
+
+    // ============================================================
+    // [UI Components] (그대로 유지)
+    // ============================================================
     QGroupBox* m_sourceGeometryHotParticlePointGroupBox = Q_NULLPTR;
 
-    // --- Visualization & Size Control ---
     QPushButton* SourceHP_SphereSize_Minus_QPushButton = Q_NULLPTR;
     QPushButton* SourceHP_SphereSize_Plus_QPushButton = Q_NULLPTR;
     QPushButton* m_HotParticleSourceVisualizationButton = Q_NULLPTR;
 
-    // --- Geometry & Interaction ---
     QLineEdit* PosX_SourceHP_QLineEdit = Q_NULLPTR;
     QLineEdit* PosY_SourceHP_QLineEdit = Q_NULLPTR;
     QLineEdit* PosZ_SourceHP_QLineEdit = Q_NULLPTR;
@@ -425,11 +541,9 @@ private:
     QPushButton* Pick3D_HP_QButton = Q_NULLPTR;
     QPushButton* UpdatePosition_sourceHP_QButton = Q_NULLPTR;
 
-    // --- Type Selection ---
     QRadioButton* RI_Select_sourceHP_QRadioButton = Q_NULLPTR;
     QRadioButton* ES_Select_sourceHP_QRadioButton = Q_NULLPTR;
 
-    // --- Radionuclide UI ---
     QLabel* RI_Title_sourceHP_QLabel = Q_NULLPTR;
     QLineEdit* RI_Radionuclide_sourceHP_QLineEdit = Q_NULLPTR;
     QLabel* RI_Activity_sourceHP_QLabel = Q_NULLPTR;
@@ -438,7 +552,6 @@ private:
     QPushButton* RIList_Add_sourceHP_QButton = Q_NULLPTR;
     QListWidget* RI_List_sourceHP_QListWidget = Q_NULLPTR;
 
-    // --- Energy Spectrum UI ---
     QLabel* ES_Title_sourceHP_QLabel = Q_NULLPTR;
     QPushButton* sourceHP_EnergyspectrumFileLoadButton = Q_NULLPTR;
     QLabel* ES_FileName_sourceHP_QLabel = Q_NULLPTR;
@@ -449,40 +562,33 @@ private:
     QPushButton* ESList_Add_sourceHP_QButton = Q_NULLPTR;
     QListWidget* ES_List_sourceHP_QListWidget = Q_NULLPTR;
 
-    // --- Data Management (리스트 및 로직 변수) ---
-    // 리스트 관리
-    std::vector<std::map<int, QString>> ListInfo_sourceHP; // RI_Info_sourceRC[pointID][0~2] = 0: 사용여부(True or ""), 1: RI, 2: activity(Bq/cm3)
+    // ============================================================
+    // [UI Lists] 버튼 관리 벡터는 Widget에 남김
+    // ============================================================
     std::vector<QPushButton*> RIList_Delete_sourceHP_QButton;
     std::vector<QPushButton*> RIList_Info_sourceHP_QButton;
     std::vector<QPushButton*> ESList_Delete_sourceHP_QButton;
     std::vector<QPushButton*> ESList_Info_sourceHP_QButton;
-    int RIList_sourceHP_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수
 
-    // 3D Pick 로직용 벡터 (기존 코드 로직상 필요함)
-    double SelectedPointNormalVector_sourceHP[3] = { 0.0, 0.0, 0.0 }; // Hot particle 선택한 지점의 노말벡터
+    // [삭제됨] 모델로 이동한 변수들
+    // ListInfo_sourceHP, RIList_sourceHP_MakingIndex, SelectedPointNormalVector_sourceHP
 
 private slots:
     // --- Slot Functions ---
-    
-    // Visualization & Size
     void slot_SourceHP_SphereSize_Minus_ButtonClicked();
     void slot_SourceHP_SphereSize_Plus_ButtonClicked();
     void slot_HotParticleSourceVisualization_ButtonClicked();
 
-    // 3D Pick & Update
     void slot_HotParticle_Pick3D_ButtonClicked();
-    void slot_Update_Position_HP_ButtonClicked();
+    void slot_Update_Position_HP_ButtonClicked(); // Update 버튼
 
-    // Type Selection
     void slot_RI_Select_sourceHP_RadioButtonClicked();
     void slot_ES_Select_sourceHP_RadioButtonClicked();
 
-    // Radionuclide Operations
     void slot_RIList_Add_sourceHP_ButtonClicked();
     void slot_RIList_Delete_sourceHP_ButtonClicked();
     void slot_RIList_Info_sourceHP_ButtonClicked();
 
-    // Energy Spectrum Operations
     void slot_EnergyspectrumFileLoad_sourceHP_ButtonClicked();
     void slot_ESList_Add_sourceHP_ButtonClicked();
     void slot_ESList_Delete_sourceHP_ButtonClicked();
@@ -502,37 +608,58 @@ public:
     virtual ~ConeBeamWidget();
 
     bool initialize() override;
+    
+    void WriteSourceMacro(std::ofstream& ofp_source) override;
+    void WriteSourceInfo(std::ofstream& ofp_info) override;
+    void ReadSourceInfo(std::ifstream& ifp) override;
+    // [기존 함수]
+    void updateCB_Points(double x, double y, double z);
+    
+    // [수정] 구조체 정의는 SourceModels.h로 이동했으므로 리턴 타입만 유지
+    ConeBeamParams getCB_Params();
+
+    // [New] 모델 접근
+    ConeBeamModel& getModel() { return m_model; }
+    void setModel(const ConeBeamModel& data);
 
 private:
-    // --- UI Components: Main GroupBox ---
+    // [New] 데이터 저장소
+    ConeBeamModel m_model;
+
+    // [New] 동기화 함수
+    void updateModelFromUI();
+
+    // ============================================================
+    // [UI Components] (그대로 유지)
+    // ============================================================
     QGroupBox* m_sourceGeometryConeBeamGroupBox = Q_NULLPTR;
 
-    // --- Visualization ---
+    // Visualization
     QPushButton* m_ConeBeamSourceVisualizationButton = Q_NULLPTR;
     QCheckBox* sourceCB_dirCheckBox = Q_NULLPTR;
 
-    // --- Geometry: Position (XYZ) ---
+    // Geometry: Position
     QLineEdit* m_lineEditConeBeamPointX = Q_NULLPTR;
     QLineEdit* m_lineEditConeBeamPointY = Q_NULLPTR;
     QLineEdit* m_lineEditConeBeamPointZ = Q_NULLPTR;
 
-    // --- Geometry: Direction Vector (XYZ) ---
+    // Geometry: Direction
     QLineEdit* m_lineEditConeBeamDirectionX = Q_NULLPTR;
     QLineEdit* m_lineEditConeBeamDirectionY = Q_NULLPTR;
     QLineEdit* m_lineEditConeBeamDirectionZ = Q_NULLPTR;
 
-    // --- Geometry: Solid Angle ---
+    // Geometry: Solid Angle
     QLineEdit* m_lineEditConeBeamDirectionSolidAngle = Q_NULLPTR;
 
-    // --- Action Buttons ---
+    // Action Buttons
     QPushButton* pickConeBeam3DButton = Q_NULLPTR;
     QPushButton* sourceCB_UpdateButton = Q_NULLPTR;
 
-    // --- Type Selection ---
+    // Type Selection
     QRadioButton* sourceCB_Radionuclide_radioButton = Q_NULLPTR;
     QRadioButton* sourceCB_Energyspectrum_radioButton = Q_NULLPTR;
 
-    // --- Radionuclide UI ---
+    // Radionuclide UI
     QLabel* labelConeBeamRadionuclideTitle = Q_NULLPTR;
     QLineEdit* m_lineEditConeBeamRadionuclide = Q_NULLPTR;
     QLabel* labelConeBeamRadionuclideActivity = Q_NULLPTR;
@@ -541,59 +668,46 @@ private:
     QPushButton* ConeBeamRadionuclideAddButton = Q_NULLPTR;
     QListWidget* RI_List_sourceCB_QListWidget = Q_NULLPTR;
 
-    // --- Energy Spectrum UI ---
+    // Energy Spectrum UI
     QLabel* labelConeBeamEnergyspectrumTitle = Q_NULLPTR;
     QPushButton* ConeBeamEnergyspectrumFileLoadButton = Q_NULLPTR;
     QLabel* labelConeBeamEnergyspectrumFileName = Q_NULLPTR;
-    QTextEdit* sourceCB_EnergyspectrumFileNameText = Q_NULLPTR; // Note: QTextEdit
+    QTextEdit* sourceCB_EnergyspectrumFileNameText = Q_NULLPTR; 
     QLabel* labelConeBeamEnergyspectrumIntensity = Q_NULLPTR;
     QLineEdit* m_lineEditConeBeamIntensity = Q_NULLPTR;
     QLabel* labelConeBeamEnergyspectrumList = Q_NULLPTR;
     QPushButton* ConeBeamEnergyspectrumAddButton = Q_NULLPTR;
     QListWidget* ES_List_sourceCB_QListWidget = Q_NULLPTR;
 
-    // --- Data Management (리스트 및 로직 변수) ---
-    
-    // Radionuclide List Data
-    std::vector<std::map<int, QString>> sourceCB_info; // 기존 코드 변수명 유지 // ListInfo_sourceEP[pointID][0~5] = 0: 사용여부(True or ""), 1: posX, 2: posY, 3: posZ, 4: RI, 5: activity(Bq)
+    // ============================================================
+    // [View Data] UI 버튼 관리 리스트는 Widget에 남김
+    // ============================================================
     std::vector<QPushButton*> m_sourceCB_listDeleteButton;
     std::vector<QPushButton*> m_sourceCB_listInfoButton;
-    int RIList_sourceCB_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수
+    
+    // [New] ES 쪽 버튼 리스트가 기존 코드엔 없었지만, 필요하다면 여기에 추가
+    // std::vector<QPushButton*> m_sourceCB_ES_listDeleteButton; ...
 
-    // Energy Spectrum List Data (기존 코드에 없던 벡터들도 필요시 추가)
-    // ConeBeam 코드는 특이하게 로컬 변수나 즉석 생성 방식을 썼을 수 있으나, 
-    // 관리를 위해 아래 벡터들을 멤버로 두는 것을 추천합니다.
-    int EnergyspectrumListTotalCount_CB = 0; // radionulcide에서 현재 입력한 핵종 개수
-
-    // Visualization Flag
-    bool b_IsSourceLocationVisualized_sourceCB = false;
+    // [삭제됨] 모델로 이동한 변수들
+    // sourceCB_info, RIList_sourceCB_MakingIndex, EnergyspectrumListTotalCount_CB, b_IsSourceLocationVisualized_sourceCB
 
 private slots:
     // --- Slot Functions ---
-
-    // Visualization
     void slot_ConeBeamSourceVisualization_ButtonClicked();
     
-    // Geometry & Interaction
     void slot_ConeBeam_Pick3D_ButtonClicked();
-    void slot_ConeBeamUpdate_ButtonClicked();
+    void slot_ConeBeamUpdate_ButtonClicked(); // Update 버튼
     void slot_CBreset_ButtonClicked();
 
-    // Type Selection
     void slot_ConeBeamRadionuclide_ButtonClicked();
     void slot_ConeBeamEnergyspectrum_ButtonClicked();
 
-    // Radionuclide Operations
     void slot_ConeBeamRadionuclideAdd_ButtonClicked();
-    // [중요] 기존 코드에서는 EP(ExternalPoint) 함수를 호출하고 있었으나,
-    // 독립적인 위젯이 되려면 CB 전용 함수가 필요합니다.
     void slot_ConeBeamRadionuclideDelete_ButtonClicked(); 
     void slot_ConeBeamRadionuclideInfo_ButtonClicked();
 
-    // Energy Spectrum Operations
     void slot_ConeBeamEnergyspectrumFileLoad_ButtonClicked();
     void slot_ConeBeamEnergyspectrumAdd_ButtonClicked();
-    // [중요] ES 리스트의 Delete/Info도 별도 구현 필요
     void slot_ConeBeamEnergyspectrumDelete_ButtonClicked(); 
     void slot_ConeBeamEnergyspectrumInfo_ButtonClicked();
 };
@@ -612,61 +726,66 @@ public:
 
     bool initialize() override;
 
-private:
-    // --- UI Components: Main GroupBox ---
-    QGroupBox* m_sourceGeometryRoomContaminationGroupBox = Q_NULLPTR;
+    void WriteSourceMacro(std::ofstream& ofp_source) override;
+    void WriteSourceInfo(std::ofstream& ofp_info) override;
+    void ReadSourceInfo(std::ifstream& ifp) override;
+    // [New] 모델 접근
+    RoomContaminationModel& getModel() { return m_model; }
+    void setModel(const RoomContaminationModel& data);
 
-    // --- Visualization ---
+private:
+    // [New] 데이터 저장소
+    RoomContaminationModel m_model;
+
+    // [New] 동기화 함수
+    void updateModelFromUI();
+
+    // ============================================================
+    // [UI Components] (그대로 유지)
+    // ============================================================
+    QGroupBox* m_sourceGeometryRoomContaminationGroupBox = Q_NULLPTR;
     QPushButton* m_RoomContaminationSourceVisualizationButton = Q_NULLPTR;
 
-    // --- Geometry: Box Dimensions (Half Length) ---
+    // Geometry: Box Dimensions
     QLabel* label_sourceRC_BoxLength = Q_NULLPTR;
     QLineEdit* Box_HalfLengthX_sourceRC_QLineEdit = Q_NULLPTR;
     QLineEdit* Box_HalfLengthY_sourceRC_QLineEdit = Q_NULLPTR;
     QLineEdit* Box_HalfLengthZ_sourceRC_QLineEdit = Q_NULLPTR;
 
-    // --- Geometry: Box Center ---
+    // Geometry: Box Center
     QLabel* label_sourceRC_BoxCenter = Q_NULLPTR;
     QLineEdit* Box_CenterX_sourceRC_QLineEdit = Q_NULLPTR;
     QLineEdit* Box_CenterY_sourceRC_QLineEdit = Q_NULLPTR;
     QLineEdit* Box_CenterZ_sourceRC_QLineEdit = Q_NULLPTR;
 
-    // --- Action Button ---
+    // Action Button
     QPushButton* UpdateRCposButton = Q_NULLPTR;
 
-    // --- Type Selection ---
+    // Type Selection
     QRadioButton* RI_Select_sourceRC_QRadioButton = Q_NULLPTR;
     QRadioButton* ES_Select_sourceRC_QRadioButton = Q_NULLPTR;
 
-    // --- Radionuclide UI ---
-    // (Title, LineEdit, Activity, List 등)
-    // 기존 코드에서는 전용 변수명을 썼으므로 그대로 유지
-    QLineEdit* RI_sourceRC_QLineEdit = Q_NULLPTR;       // Radionuclide Name
+    // Radionuclide UI
+    QLineEdit* RI_sourceRC_QLineEdit = Q_NULLPTR;       // Name
     QLineEdit* Activity_sourceRC_QLineEdit = Q_NULLPTR; // Activity
     QLabel* RadionuclideList_sourceRC_QLabel = Q_NULLPTR;
     QPushButton* RIList_Add_sourceRC_QButton = Q_NULLPTR;
     QListWidget* RI_List_sourceRC_QListWidget = Q_NULLPTR;
 
-    // --- Data Management ---
-    std::vector<std::map<int, QString>> RI_Info_sourceRC; // RI_Info_sourceRC[pointID][0~2] = 0: 사용여부(True or ""), 1: RI, 2: activity(Bq/cm3)
+    // ============================================================
+    // [View Data] UI 버튼 관리용 (Widget에 유지)
+    // ============================================================
     std::vector<QPushButton*> RIList_Delete_sourceRC_QButton;
     std::vector<QPushButton*> RIList_Info_sourceRC_QButton;
-    int RIList_sourceRC_MakingIndex = 0; // radionulcide에서 현재 입력한 핵종 개수		
+
+    // [삭제됨] 모델로 이동한 변수들
+    // RI_Info_sourceRC, RIList_sourceRC_MakingIndex
 
 private slots:
-    // --- Slot Functions ---
-
-    // Visualization
     void slot_RoomContaminationSourceVisualization_ButtonClicked();
-
-    // Geometry Update
     void slot_UpdateRCpos_ButtonClicked();
-
-    // Type Selection (현재 비어있지만 선언 유지)
     void slot_RI_Select_sourceRC_RadioButtonClicked();
     void slot_ES_Select_sourceRC_RadioButtonClicked();
-
-    // Radionuclide Operations
     void slot_RIList_Add_sourceRC_ButtonClicked();
     void slot_RIList_Delete_sourceRC_ButtonClicked();
     void slot_RIList_Info_sourceRC_ButtonClicked();
@@ -686,29 +805,49 @@ public:
 
     bool initialize() override;
 
+    void WriteSourceMacro(std::ofstream& ofp_source) override;
+    void WriteSourceInfo(std::ofstream& ofp_info) override;
+    void ReadSourceInfo(std::ifstream& ifp) override;
+    // [New] 모델 접근
+    EnvironmentalContaminationModel& getModel() { return m_model; }
+    void setModel(const EnvironmentalContaminationModel& data);
+
 private:
-    // --- Visualization ---
+    // [New] 데이터 저장소
+    EnvironmentalContaminationModel m_model;
+
+    // [New] 동기화 함수
+    void updateModelFromUI();
+
+    // ============================================================
+    // [UI Components] (그대로 유지)
+    // ============================================================
+    
+    // Visualization
     QPushButton* m_EnvironmentalSourceVisualizationButton = Q_NULLPTR;
 
-    // --- Type Selection ---
+    // Type Selection
     QComboBox* m_comboBoxEnvironmentalSourceType = Q_NULLPTR;
 
-    // --- Depth Input (Visible only for Soil) ---
+    // Depth Input
     QLabel* labelEnvironmentalSoilDepth = Q_NULLPTR;
     QLineEdit* m_lineEditEnvironmentalSoilDepth = Q_NULLPTR;
 
-    // --- Radionuclide Input ---
+    // Radionuclide Input
     QLabel* labelEnvironmentalRadionuclideTitle = Q_NULLPTR;
     QLineEdit* m_lineEditEnvironmentalRadionuclide = Q_NULLPTR;
     
-    // --- Activity Input ---
+    // Activity Input
     QLabel* labelEnvironmentalRadionuclideActivity = Q_NULLPTR;
     QLineEdit* m_lineEditEnvironmentalActivity = Q_NULLPTR;
 
-    // --- Add Button & List ---
+    // Add Button & List
     QLabel* labelEnvironmentalRadionuclideList = Q_NULLPTR;
     QPushButton* EnvironmentalRadionuclideAddButton = Q_NULLPTR;
     QListWidget* listWidget_E_Radionuclide = Q_NULLPTR;
+    
+    // [참고] 만약 삭제 버튼 등을 관리하는 벡터가 필요하다면 여기에 추가
+    // std::vector<QPushButton*> m_listDeleteButtons;
 
 private slots:
     // --- Slot Functions ---
@@ -732,37 +871,52 @@ public:
 
     bool initialize() override;
 
+    void WriteSourceMacro(std::ofstream& ofp_source) override;
+    void WriteSourceInfo(std::ofstream& ofp_info) override;
+    void ReadSourceInfo(std::ifstream& ifp) override;
+    // [모델 접근]
+    ParallelBeamModel& getModel() { return m_model; }
+    void setModel(const ParallelBeamModel& data);
+
 private:
-    // --- UI Components: Main GroupBox ---
+    // [데이터 저장소]
+    ParallelBeamModel m_model;
+
+    // [동기화 함수]
+    void updateModelFromUI();
+
+    // ============================================================
+    // [UI Components]
+    // ============================================================
     QGroupBox* m_sourceGeometryParallelBeamGroupBox = Q_NULLPTR;
 
-    // --- Visualization ---
+    // Visualization
     QPushButton* m_ParallelBeamSourceVisualizationButton = Q_NULLPTR;
-    // [주의] 기존 코드에서 ConeBeam의 변수명을 그대로 복사해 쓴 것으로 보임.
-    // 에러 방지를 위해 변수명을 기존 코드와 동일하게 유지합니다.
-    QCheckBox* sourceCB_dirCheckBox = Q_NULLPTR; 
+    
+    // [오타 수정] sourceCB_dirCheckBox -> sourcePB_dirCheckBox (ConeBeam 복붙 흔적 수정)
+    QCheckBox* sourcePB_dirCheckBox = Q_NULLPTR; 
 
-    // --- Geometry: Center Position (XYZ) ---
+    // Geometry: Center Position
     QLineEdit* m_lineEditParallelBeamPointX = Q_NULLPTR;
     QLineEdit* m_lineEditParallelBeamPointY = Q_NULLPTR;
     QLineEdit* m_lineEditParallelBeamPointZ = Q_NULLPTR;
 
-    // --- Geometry: Dimensions ---
+    // Geometry: Dimensions
     QLineEdit* m_lineEditParallelBeamRadius = Q_NULLPTR;
 
-    // --- Geometry: Direction (Spherical Coordinates) ---
+    // Geometry: Direction
     QLineEdit* m_lineEditParallelBeamDirectionTheta = Q_NULLPTR;
     QLineEdit* m_lineEditParallelBeamDirectionPhi = Q_NULLPTR;
 
-    // --- Action Buttons ---
+    // Action Buttons
     QPushButton* pickParallelBeam3DButton = Q_NULLPTR;
     QPushButton* sourcePB_UpdateButton = Q_NULLPTR;
 
-    // --- Type Selection ---
+    // Type Selection
     QRadioButton* sourcePB_MonoEnergy_radioButton = Q_NULLPTR;
     QRadioButton* sourcePB_EnergySpectrum_radioButton = Q_NULLPTR;
 
-    // --- Mono Energy UI ---
+    // Mono Energy UI
     QLabel* labelParallelBeamParticleTypeTitle = Q_NULLPTR;
     QComboBox* m_comboBoxParallelBeamParticleType = Q_NULLPTR;
     QLabel* labelParallelBeamEnergyTitle = Q_NULLPTR;
@@ -770,48 +924,34 @@ private:
     QLabel* labelParallelBeamIntensityTitle = Q_NULLPTR;
     QLineEdit* m_lineEditParallelBeamIntensity_MonoEnergy = Q_NULLPTR;
 
-    // --- Energy Spectrum UI ---
+    // Energy Spectrum UI
     QLabel* labelParallelBeamEnergyspectrumTitle = Q_NULLPTR;
     QPushButton* ParallelBeamEnergyspectrumFileLoadButton = Q_NULLPTR;
     QLabel* labelParallelBeamEnergyspectrumFileName = Q_NULLPTR;
-    QTextEdit* sourcePB_EnergyspectrumFileNameText = Q_NULLPTR; // QTextEdit
+    QTextEdit* sourcePB_EnergyspectrumFileNameText = Q_NULLPTR;
     QLabel* labelParallelBeamEnergyspectrumIntensity = Q_NULLPTR;
     QLineEdit* m_lineEditParallelBeamIntensity_EnergySpectrum = Q_NULLPTR;
     QLabel* labelParallelBeamEnergyspectrumList = Q_NULLPTR;
     QPushButton* ParallelBeamEnergyspectrumAddButton = Q_NULLPTR;
     QListWidget* ES_List_sourcePB_QListWidget = Q_NULLPTR;
 
-    // --- Data Management ---
-    bool b_IsSourceLocationVisualized_sourcePB = false;
-
-    // Energy Spectrum List Management (기존 코드엔 구현이 비어있으나, 필요할 것으로 예상되어 추가)
-    std::vector<std::map<int, QString>> sourcePB_ES_info;
+    // ============================================================
+    // [View Data] 버튼 관리 리스트는 유지
+    // ============================================================
     std::vector<QPushButton*> m_sourcePB_ES_listDeleteButton;
     std::vector<QPushButton*> m_sourcePB_ES_listInfoButton;
-    int ESList_sourcePB_MakingIndex = 0;
+
+    // [삭제됨] 모델로 이동
+    // b_IsSourceLocationVisualized_sourcePB (모델의 isVisualized 사용 추천)
 
 private slots:
-    // --- Slot Functions ---
-
-    // [Existing] 기존에 있던 시각화 함수
     void slot_ParallelBeamSourceVisualization_ButtonClicked();
-    
-    // [Existing] 기존에 있던 3D Pick 및 Update 함수
     void slot_ParallelBeam_Pick3D_ButtonClicked();
     void slot_ParallelBeamUpdate_ButtonClicked();
-
-    // [NEW] 라디오 버튼 (UI 토글용)
-    // 원본 코드: connect(..., SLOT()); -> 슬롯이 비어 있었음 -> 새로 이름 부여함
     void slot_PB_MonoEnergy_RadioButtonClicked();
     void slot_PB_EnergySpectrum_RadioButtonClicked();
-
-    // [Existing] 파일 로드 및 추가 버튼
     void slot_ParallelBeamEnergyspectrumFileLoad_ButtonClicked();
     void slot_ParallelBeamEnergyspectrumAdd_ButtonClicked();
-    
-    // [NEW] 리스트 삭제 및 정보 버튼
-    // 원본 코드: connect(..., SLOT(slot_RIList_Delete_sourceEP...)); -> EP(External Point) 함수를 쓰고 있었음
-    // 수정: PB 전용 함수로 교체
     void slot_ParallelBeamEnergyspectrumDelete_ButtonClicked();
     void slot_ParallelBeamEnergyspectrumInfo_ButtonClicked();
 };

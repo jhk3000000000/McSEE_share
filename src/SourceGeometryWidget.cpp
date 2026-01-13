@@ -37,7 +37,17 @@ bool SourceGeometryWidget::initialize()
 	return true;
 }
 
+void SourceGeometryWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+}
+void SourceGeometryWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
 
+}
+void SourceGeometryWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+
+}
 ///////////////////////////////////////////////////////////////////////////
 // BroadBeamWidget Implementation
 ///////////////////////////////////////////////////////////////////////////
@@ -156,7 +166,7 @@ bool BroadBeamWidget::initialize()
 			sourceB_UpdatePositionButton->setFont(panel->font_D_BTN2);
 
 			connect(sourceB_UpdatePositionButton, SIGNAL(clicked()), panel, SLOT(slot_BUpdate_ButtonClicked()));
-			connect(sourceB_UpdatePositionButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+			connect(sourceB_UpdatePositionButton, SIGNAL(clicked()), this, SLOT(slot_BroadBeamUpdate_ButtonClicked()));
 
 			hLayout->addWidget(sourceB_UpdatePositionButton);
 
@@ -234,6 +244,94 @@ bool BroadBeamWidget::initialize()
 	return true;
 }
 
+
+void BroadBeamWidget::updateModelFromUI()
+{
+    // 1. 방향 인덱스 (콤보박스에서 현재 선택된 번호 가져오기)
+    m_model.BroadBeamDirectionIndex = m_comboBoxBeamdirection->currentText().toInt();
+
+    // 2. 입자 타입 (콤보박스 텍스트)
+    m_model.BroadBeamParticleType = m_comboBoxBroadBeamParticleType->currentText();
+
+    // 3. 에너지 (문자열 -> 숫자)
+    m_model.BroadBeamEnergy = m_lineBroadBeamEnergy->text().toDouble();
+
+    // 4. 각도 (입력창이 생성되어 있고 유효할 때만 가져옴)
+    if (m_lineEditAzimuthalAngle && m_lineEditAzimuthalAngle->isVisible()) {
+        m_model.AzimuthalAngle = m_lineEditAzimuthalAngle->text().toDouble();
+    } else {
+        m_model.AzimuthalAngle = 0.0; // 혹은 기존 값 유지
+    }
+
+    if (m_lineEditPolarAngle && m_lineEditPolarAngle->isVisible()) {
+        m_model.PolarAngle = m_lineEditPolarAngle->text().toDouble();
+    } else {
+        m_model.PolarAngle = 0.0;
+    }
+    
+    // 5. 시각화 상태
+    m_model.isVisualized = m_BroadBeamSourceVisualizationButton->isChecked();
+}
+
+void BroadBeamWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+	updateModelFromUI();
+	if (m_model.BroadBeamDirectionIndex = -1) // USER DEFINED, Currently NOT used.
+	{
+		ofp_source << "/external/AziPol 1 " << "USER_DEFINED"
+			<< " " << m_model.BroadBeamDirectionIndex << endl;
+		ofp_source << "/gun/particle ";
+		if (m_model.BroadBeamParticleType == "Photon") ofp_source << "gamma" << endl;
+		else if (m_model.BroadBeamParticleType == "Electron") ofp_source << "e-" << endl;
+		else if (m_model.BroadBeamParticleType == "Neutron") ofp_source << "neutron" << endl;
+		else if (m_model.BroadBeamParticleType == "Proton") ofp_source << "proton" << endl;
+		else if (m_model.BroadBeamParticleType == "Alpha") ofp_source << "alpha" << endl;
+		ofp_source << "/gun/energy " << m_model.BroadBeamEnergy << " MeV" << endl;
+	}
+	else // AP PA LLAT RLAT ROT ISO 
+	{
+		ofp_source << "/external/dir " << GetBeamDirectionString(m_model.BroadBeamDirectionIndex) << endl;
+		ofp_source << "/gun/particle ";
+		if (m_model.BroadBeamParticleType == "Photon") ofp_source << "gamma" << endl;
+		else if (m_model.BroadBeamParticleType == "Electron") ofp_source << "e-" << endl;
+		else if (m_model.BroadBeamParticleType == "Neutron") ofp_source << "neutron" << endl;
+		else if (m_model.BroadBeamParticleType == "Proton") ofp_source << "proton" << endl;
+		else if (m_model.BroadBeamParticleType == "Alpha") ofp_source << "alpha" << endl;
+		ofp_source << "/gun/energy " << m_model.BroadBeamEnergy << " MeV" << endl;
+	}
+}
+
+void BroadBeamWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
+	updateModelFromUI();
+	//BroadBeam
+	ofp_info << "Source_type: Broad_beam" << endl;
+	ofp_info << "\tBeam_direction: " << GetBeamDirectionString(m_model.BroadBeamDirectionIndex) << endl;
+	if (m_model.BroadBeamDirectionIndex == -1) {
+		ofp_info << "\t\tAzimuthal_angle(degree): " << m_model.AzimuthalAngle << endl; // approximately 57.2958 degrees = 1 radian
+		ofp_info << "\t\tPolar_angle(degree): " << m_model.PolarAngle << endl;
+	}
+	ofp_info << "\tParticle: " << m_model.BroadBeamParticleType.toStdString() << endl;
+	ofp_info << "\tEnergy(MeV): " << m_model.BroadBeamEnergy << endl;
+}
+
+void BroadBeamWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+
+}
+// int BroadBeamWidget::getBB_DirectionIndex()
+// {
+// 	return m_comboBoxBeamdirection->currentIndex();
+// }
+
+// double BroadBeamWidget::getBB_PolarAngle()
+// {
+// 	return m_lineEditPolarAngle->text().toDouble();
+// }
+// double BroadBeamWidget::getBB_AzimAngle()
+// {
+// 	return m_lineEditAzimuthalAngle->text().toDouble();
+// }
 void BroadBeamWidget::CreateAziPol(int idx, QVBoxLayout* layout)
 {
 	m_AziPolGroupBox = new QGroupBox();
@@ -314,6 +412,28 @@ void BroadBeamWidget::CreateAziPol(int idx, QVBoxLayout* layout)
 
 		SetBroadBeamAziPol(idx);
 	}
+}
+
+std::string BroadBeamWidget::GetBeamDirectionString(int index)
+{
+    switch (index)
+    {
+        case 0: return "AP";
+        case 1: return "PA";
+        case 2: return "LLAT";
+        case 3: return "RLAT";
+        case 4: return "ROT";
+        case 5: return "ISO";
+        // 6번이 User Defined라면 여기서는 처리하지 않거나 예외 처리
+        default: return "AP"; // 안전장치 (기본값)
+    }
+}
+
+void BroadBeamWidget::slot_BroadBeamUpdate_ButtonClicked()
+{
+	updateModelFromUI();
+
+	theApp.sourceObjects->GenerateSourceActor_sourceBB();
 }
 
 void BroadBeamWidget::slot_BroadBeamUserDefined(int user)
@@ -404,9 +524,10 @@ ExternalPointWidget::~ExternalPointWidget()
 
 bool ExternalPointWidget::initialize()
 {
+    // 부모 초기화 호출
     if (!ParentT::initialize()) return false;
 
-    // panel->Window_width 처럼 panel 포인터를 통해 부모의 자원에 접근합니다.
+    // 메인 레이아웃 (그룹박스 내부)
     QVBoxLayout* subLayout = new QVBoxLayout;
     subLayout->setContentsMargins(panel->Window_width * 0.003, panel->Window_height * 0.005, panel->Window_width * 0.003, panel->Window_height * 0.005);
     subLayout->setSpacing(panel->Window_width * 0.003);
@@ -418,7 +539,7 @@ bool ExternalPointWidget::initialize()
         vLayout->setSpacing(panel->Window_width * 0.003);
         vLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
-        // [Visualization Section]
+        // 1. Visualization Header (Title, Minus/Plus Buttons, On/Off Button)
         {
             QHBoxLayout* hLayout = new QHBoxLayout;
             hLayout->setSpacing(panel->Window_width * 0.005);
@@ -431,10 +552,10 @@ bool ExternalPointWidget::initialize()
             labelTitle->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
             labelTitle->setText(QString::fromLocal8Bit("Visualization"));
 
-            QSpacerItem *spacer1 = new QSpacerItem(panel->Window_width * 0.06, panel->Window_height * 0.028);
+            QSpacerItem *spacer1 = new QSpacerItem(panel->Window_width * 0.06, panel->Window_height * 0.028);      
 
             SourceEP_SphereSize_Minus_QPushButton = new QPushButton(QString::fromLocal8Bit("-"));
-            panel->Buttons_FunctionPanelRight.append(SourceEP_SphereSize_Minus_QPushButton); // 부모 패널의 버튼 관리 리스트에 추가
+            panel->Buttons_FunctionPanelRight.append(SourceEP_SphereSize_Minus_QPushButton);
             SourceEP_SphereSize_Minus_QPushButton->setFixedSize(panel->Window_width * 0.015, panel->Window_height * 0.028);
             SourceEP_SphereSize_Minus_QPushButton->setStyleSheet(DialogStyle::MENU_BTN3);
             SourceEP_SphereSize_Minus_QPushButton->setFont(panel->font_D_BTN3);
@@ -453,13 +574,13 @@ bool ExternalPointWidget::initialize()
             m_ExternalPointSourceVisualizationButton->setStyleSheet(DialogStyle::MENU_BTN3);
             m_ExternalPointSourceVisualizationButton->setFont(panel->font_D_BTN3);
 
-            // [중요] connect의 수신자를 this(현재 위젯)로 변경
+            // 슬롯 연결
             connect(SourceEP_SphereSize_Minus_QPushButton, SIGNAL(clicked()), this, SLOT(slot_SourceEP_SphereSize_Minus_ButtonClicked())); 
-            connect(SourceEP_SphereSize_Minus_QPushButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked())); // 공통 슬롯은 panel로
+            connect(SourceEP_SphereSize_Minus_QPushButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
             
             connect(SourceEP_SphereSize_Plus_QPushButton, SIGNAL(clicked()), this, SLOT(slot_SourceEP_SphereSize_Plus_ButtonClicked())); 
             connect(SourceEP_SphereSize_Plus_QPushButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
-
+            
             connect(m_ExternalPointSourceVisualizationButton, SIGNAL(clicked()), this, SLOT(slot_ExternalPointSourceVisualization_ButtonClicked())); 
             connect(m_ExternalPointSourceVisualizationButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
                         
@@ -473,25 +594,619 @@ bool ExternalPointWidget::initialize()
             vLayout->addLayout(hLayout);
         }
 
-        // ... (중략: Position XYZ, 3D Pick 등 나머지 UI 코드도 위와 같은 방식으로 를 붙여서 복사) ...
-        // ... Radionuclide, Activity, ListWidget 등 모든 UI 코드를 여기에 넣으세요.
-        // ... connect 문에서 this, SLOT(...) 부분만 주의하시면 됩니다.
-        
-        // [예시: Radionuclide Completer 부분]
-        // panel->RIsourceList가 panel에 있다고 가정합니다.
-        /*
-        QCompleter *completer = new QCompleter(panel->RIsourceList, this); 
-        completer->setCaseSensitivity(Qt::CaseInsensitive);
-        RI_Radionuclide_sourceEP_QLineEdit->setCompleter(completer);
-        */
+        // 2. Position XYZ Inputs
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.003);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
+            QLabel* label0 = new QLabel;
+            label0->setFixedSize(panel->Window_width * 0.058, panel->Window_height * 0.028);
+            label0->setStyleSheet(DialogStyle::DATA_LABEL);
+            label0->setFont(panel->font_D_LBL1);
+            label0->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            label0->setText(QString::fromLocal8Bit("Position XYZ:"));
+
+            PosX_sourceEP_QLineEdit = new QLineEdit;
+            PosX_sourceEP_QLineEdit->setFixedSize(panel->Window_width * 0.033, panel->Window_height * 0.028);
+            PosX_sourceEP_QLineEdit->setAlignment(Qt::AlignCenter);
+            PosX_sourceEP_QLineEdit->setStyleSheet(DialogStyle::LINEEDIT_NAME5);
+            PosX_sourceEP_QLineEdit->setFont(panel->font_D_LE5);
+            PosX_sourceEP_QLineEdit->setPlaceholderText(QString::fromLocal8Bit("(cm)"));
+
+            PosY_sourceEP_QLineEdit = new QLineEdit;
+            PosY_sourceEP_QLineEdit->setFixedSize(panel->Window_width * 0.033, panel->Window_height * 0.028);
+            PosY_sourceEP_QLineEdit->setAlignment(Qt::AlignCenter);
+            PosY_sourceEP_QLineEdit->setStyleSheet(DialogStyle::LINEEDIT_NAME5);
+            PosY_sourceEP_QLineEdit->setFont(panel->font_D_LE5);
+            PosY_sourceEP_QLineEdit->setPlaceholderText(QString::fromLocal8Bit("(cm)"));
+
+            PosZ_sourceEP_QLineEdit = new QLineEdit;
+            PosZ_sourceEP_QLineEdit->setFixedSize(panel->Window_width * 0.033, panel->Window_height * 0.028);
+            PosZ_sourceEP_QLineEdit->setAlignment(Qt::AlignCenter);
+            PosZ_sourceEP_QLineEdit->setStyleSheet(DialogStyle::LINEEDIT_NAME5);
+            PosZ_sourceEP_QLineEdit->setFont(panel->font_D_LE5);
+            PosZ_sourceEP_QLineEdit->setPlaceholderText(QString::fromLocal8Bit("(cm)"));
+
+            hLayout->addWidget(label0);
+            hLayout->addStretch();
+            hLayout->addWidget(PosX_sourceEP_QLineEdit);
+            hLayout->addWidget(PosY_sourceEP_QLineEdit);
+            hLayout->addWidget(PosZ_sourceEP_QLineEdit);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 3. Action Buttons (3D Pick, Update)
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.003);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+            pickExternal3DButton = new QPushButton(QString::fromLocal8Bit("3D Pick"));
+            panel->Buttons_FunctionPanelRight.append(pickExternal3DButton);
+            pickExternal3DButton->setFixedSize(panel->Window_width * 0.050, panel->Window_height * 0.036);
+            pickExternal3DButton->setCheckable(true);
+            pickExternal3DButton->setStyleSheet(DialogStyle::MENU_BTN2);
+            pickExternal3DButton->setFont(panel->font_D_BTN2);
+
+            sourceEP_UpdatePositionButton = new QPushButton(QString::fromLocal8Bit("Update"));
+            panel->Buttons_FunctionPanelRight.append(sourceEP_UpdatePositionButton);
+            sourceEP_UpdatePositionButton->setFixedSize(panel->Window_width * 0.050, panel->Window_height * 0.036);
+            sourceEP_UpdatePositionButton->setStyleSheet(DialogStyle::MENU_BTN2);
+            sourceEP_UpdatePositionButton->setFont(panel->font_D_BTN2);
+
+            connect(pickExternal3DButton, SIGNAL(clicked()), this, SLOT(slot_sourceEP_Pick3D_ButtonClicked())); 
+            connect(pickExternal3DButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+            
+            connect(sourceEP_UpdatePositionButton, SIGNAL(clicked()), this, SLOT(slot_sourceEP_UpdatePosition_ButtonClicked())); 
+            connect(sourceEP_UpdatePositionButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+
+            hLayout->addStretch();
+            hLayout->addWidget(pickExternal3DButton);
+            hLayout->addWidget(sourceEP_UpdatePositionButton);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 4. Mode Selection (Radionuclide vs Energy Spectrum)
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setSpacing(panel->Window_width * 0.010);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            hLayout->setContentsMargins(panel->Window_width * 0.005, panel->Window_height * 0.009, 0, 0);
+
+            RI_Select_sourceEP_QRadioButton = new QRadioButton(QString::fromLocal8Bit("Radionuclide"));
+            RI_Select_sourceEP_QRadioButton->setStyleSheet(DialogStyle::RADIOBUTTON_WIDGET);
+            RI_Select_sourceEP_QRadioButton->setFont(panel->font_D_RB2);
+            RI_Select_sourceEP_QRadioButton->setFixedSize(panel->Window_width * 0.081, panel->Window_height * 0.028);
+            RI_Select_sourceEP_QRadioButton->setChecked(true);
+
+            ES_Select_sourceEP_QRadioButton = new QRadioButton(QString::fromLocal8Bit("Energy spectrum"));
+            ES_Select_sourceEP_QRadioButton->setStyleSheet(DialogStyle::RADIOBUTTON_WIDGET);
+            ES_Select_sourceEP_QRadioButton->setFont(panel->font_D_RB2);
+            ES_Select_sourceEP_QRadioButton->setFixedSize(panel->Window_width * 0.081, panel->Window_height * 0.028);
+            ES_Select_sourceEP_QRadioButton->setChecked(false);
+
+            connect(RI_Select_sourceEP_QRadioButton, SIGNAL(clicked()), this, SLOT(slot_sourceEP_RadionuclideSelect_RadioButtonClicked())); 
+            connect(RI_Select_sourceEP_QRadioButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+            
+            connect(ES_Select_sourceEP_QRadioButton, SIGNAL(clicked()), this, SLOT(slot_sourceEP_EnergySpectrumSelect_RadioButtonClicked())); 
+            connect(ES_Select_sourceEP_QRadioButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+
+            hLayout->addWidget(RI_Select_sourceEP_QRadioButton);
+            hLayout->addWidget(ES_Select_sourceEP_QRadioButton);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 5. [Radionuclide] Name Input & Completer
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.003);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+            RI_Title_sourceEP_QLabel = new QLabel;
+            RI_Title_sourceEP_QLabel->setFixedSize(panel->Window_width * 0.068, panel->Window_height * 0.028);
+            RI_Title_sourceEP_QLabel->setStyleSheet(DialogStyle::DATA_LABEL);
+            RI_Title_sourceEP_QLabel->setFont(panel->font_D_LBL1);
+            RI_Title_sourceEP_QLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            RI_Title_sourceEP_QLabel->setText(QString::fromLocal8Bit("Radionuclide"));
+
+            RI_Radionuclide_sourceEP_QLineEdit = new QLineEdit;
+            RI_Radionuclide_sourceEP_QLineEdit->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.028);
+            RI_Radionuclide_sourceEP_QLineEdit->setAlignment(Qt::AlignCenter);
+            RI_Radionuclide_sourceEP_QLineEdit->setStyleSheet(DialogStyle::LINEEDIT_NAME);
+            RI_Radionuclide_sourceEP_QLineEdit->setFont(panel->font_D_LE1);
+            RI_Radionuclide_sourceEP_QLineEdit->setPlaceholderText(QString::fromLocal8Bit("Enter radionuclide"));
+
+            // RIsourceList가 panel에 있다고 가정합니다.
+            // 만약 ExternalPointWidget 내부 정적 멤버나 다른 곳에 있다면 그에 맞춰 수정하세요.
+            QCompleter *completer = new QCompleter(panel->RIsourceList, this);
+            completer->setCaseSensitivity(Qt::CaseInsensitive);
+            RI_Radionuclide_sourceEP_QLineEdit->setCompleter(completer);
+
+            hLayout->addWidget(RI_Title_sourceEP_QLabel);
+            hLayout->addStretch();
+            hLayout->addWidget(RI_Radionuclide_sourceEP_QLineEdit);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 6. [Radionuclide] Activity Input
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.003);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+            RI_Activity_sourceEP_QLabel = new QLabel;
+            RI_Activity_sourceEP_QLabel->setFixedSize(panel->Window_width * 0.068, panel->Window_height * 0.028);
+            RI_Activity_sourceEP_QLabel->setStyleSheet(DialogStyle::DATA_LABEL);
+            RI_Activity_sourceEP_QLabel->setFont(panel->font_D_LBL1);
+            RI_Activity_sourceEP_QLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            RI_Activity_sourceEP_QLabel->setText(QString::fromLocal8Bit("Activity"));
+
+            RI_Activity_sourceEP_QLineEdit = new QLineEdit;
+            RI_Activity_sourceEP_QLineEdit->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.028);
+            RI_Activity_sourceEP_QLineEdit->setAlignment(Qt::AlignCenter);
+            RI_Activity_sourceEP_QLineEdit->setStyleSheet(DialogStyle::LINEEDIT_NAME);
+            RI_Activity_sourceEP_QLineEdit->setFont(panel->font_D_LE1);
+            RI_Activity_sourceEP_QLineEdit->setPlaceholderText(QString::fromLocal8Bit("Bq"));
+
+            hLayout->addWidget(RI_Activity_sourceEP_QLabel);
+            hLayout->addStretch();
+            hLayout->addWidget(RI_Activity_sourceEP_QLineEdit);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 7. [Radionuclide] Add Button
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.003);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+            RI_List_sourceEP_QLabel = new QLabel;
+            RI_List_sourceEP_QLabel->setFixedSize(panel->Window_width * 0.088, panel->Window_height * 0.028);
+            RI_List_sourceEP_QLabel->setStyleSheet(DialogStyle::DATA_LABEL);
+            RI_List_sourceEP_QLabel->setFont(panel->font_D_LBL1);
+            RI_List_sourceEP_QLabel->setAlignment(Qt::AlignLeft | Qt::AlignBottom);
+            RI_List_sourceEP_QLabel->setText(QString::fromLocal8Bit("Entered sources"));
+
+            ExternalSingleRadionuclideAddButton = new QPushButton(QString::fromLocal8Bit("Add"));
+            panel->Buttons_FunctionPanelRight.append(ExternalSingleRadionuclideAddButton);
+            ExternalSingleRadionuclideAddButton->setFixedSize(panel->Window_width * 0.042, panel->Window_height * 0.037);
+            ExternalSingleRadionuclideAddButton->setCheckable(false);
+            ExternalSingleRadionuclideAddButton->setStyleSheet(DialogStyle::MENU_BTN2);
+            ExternalSingleRadionuclideAddButton->setFont(panel->font_D_BTN2);
+            ExternalSingleRadionuclideAddButton->setChecked(false);
+
+            connect(ExternalSingleRadionuclideAddButton, SIGNAL(clicked()), this, SLOT(slot_RIList_Add_sourceEP_ButtonClicked())); 
+            connect(ExternalSingleRadionuclideAddButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+
+            hLayout->addWidget(RI_List_sourceEP_QLabel);
+            hLayout->addStretch();
+            hLayout->addWidget(ExternalSingleRadionuclideAddButton);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 8. [Radionuclide] List Widget
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.003);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+            RI_List_sourceEP_QListWidget = new QListWidget;
+            RI_List_sourceEP_QListWidget->setStyleSheet("QListWidget { border-radius: 15px; background-color: white; }");
+            RI_List_sourceEP_QListWidget->setFixedSize(panel->Window_width * 0.175, panel->Window_height * 0.155); 
+            RI_List_sourceEP_QListWidget->setFont(panel->font_D_LW1);
+
+            hLayout->addWidget(RI_List_sourceEP_QListWidget);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 9. [Energy Spectrum] File Load Header
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, panel->Window_height * 0.010, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.003);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+            ES_Title_sourceEP_QLabel = new QLabel;
+            ES_Title_sourceEP_QLabel->setFixedSize(panel->Window_width * 0.095, panel->Window_height * 0.028);
+            ES_Title_sourceEP_QLabel->setStyleSheet(DialogStyle::DATA_LABEL);
+            ES_Title_sourceEP_QLabel->setFont(panel->font_D_LBL1);
+            ES_Title_sourceEP_QLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            ES_Title_sourceEP_QLabel->setText(QString::fromLocal8Bit("Energy spectrum file"));
+            ES_Title_sourceEP_QLabel->hide(); // 초기값 숨김
+
+            ExternalSingleEnergyspectrumFileLoadButton = new QPushButton(QString::fromLocal8Bit("Load file"));
+            panel->Buttons_FunctionPanelRight.append(ExternalSingleEnergyspectrumFileLoadButton);
+            ExternalSingleEnergyspectrumFileLoadButton->setFixedSize(panel->Window_width * 0.067, panel->Window_height * 0.028);
+            ExternalSingleEnergyspectrumFileLoadButton->setStyleSheet(DialogStyle::MENU_BTN11);
+            ExternalSingleEnergyspectrumFileLoadButton->setFont(panel->font_D_BTN11);
+            ExternalSingleEnergyspectrumFileLoadButton->hide(); // 초기값 숨김
+
+            connect(ExternalSingleEnergyspectrumFileLoadButton, SIGNAL(clicked()), this, SLOT(slot_EnergyspectrumFileLoad_sourceEP_ButtonClicked())); 
+            connect(ExternalSingleEnergyspectrumFileLoadButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+
+            hLayout->addWidget(ES_Title_sourceEP_QLabel);
+            hLayout->addWidget(ExternalSingleEnergyspectrumFileLoadButton);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 10. [Energy Spectrum] File Name TextEdit
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.005);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+            ES_FileName_sourceEP_QLabel = new QLabel;
+            ES_FileName_sourceEP_QLabel->setFixedSize(panel->Window_width * 0.068, panel->Window_height * 0.028);
+            ES_FileName_sourceEP_QLabel->setStyleSheet(DialogStyle::DATA_LABEL);
+            ES_FileName_sourceEP_QLabel->setFont(panel->font_D_LBL1);
+            ES_FileName_sourceEP_QLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            ES_FileName_sourceEP_QLabel->setText(QString::fromLocal8Bit("File name"));
+            ES_FileName_sourceEP_QLabel->hide(); // 초기값 숨김
+
+            sourceEP_EnergyspectrumFileNameText = new QTextEdit;
+            sourceEP_EnergyspectrumFileNameText->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.056);
+            sourceEP_EnergyspectrumFileNameText->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            sourceEP_EnergyspectrumFileNameText->setStyleSheet("QTextEdit { background-color: rgb(255, 255, 255) }");
+            sourceEP_EnergyspectrumFileNameText->setFont(panel->font_D_MAT);
+            sourceEP_EnergyspectrumFileNameText->setPlaceholderText(QString::fromLocal8Bit("empty"));
+            sourceEP_EnergyspectrumFileNameText->hide(); // 초기값 숨김
+
+            hLayout->addWidget(ES_FileName_sourceEP_QLabel);
+            hLayout->addStretch();
+            hLayout->addWidget(sourceEP_EnergyspectrumFileNameText);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 11. [Energy Spectrum] Intensity Input
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.003);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+            ES_Intensity_sourceEP_QLabel = new QLabel;
+            ES_Intensity_sourceEP_QLabel->setFixedSize(panel->Window_width * 0.068, panel->Window_height * 0.028);
+            ES_Intensity_sourceEP_QLabel->setStyleSheet(DialogStyle::DATA_LABEL);
+            ES_Intensity_sourceEP_QLabel->setFont(panel->font_D_LBL1);
+            ES_Intensity_sourceEP_QLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+            ES_Intensity_sourceEP_QLabel->setText(QString::fromLocal8Bit("Intensity"));
+            ES_Intensity_sourceEP_QLabel->hide(); // 초기값 숨김
+
+            ES_Intensity_sourceEP_QLineEdit = new QLineEdit;
+            ES_Intensity_sourceEP_QLineEdit->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.028);
+            ES_Intensity_sourceEP_QLineEdit->setAlignment(Qt::AlignCenter);
+            ES_Intensity_sourceEP_QLineEdit->setStyleSheet(DialogStyle::LINEEDIT_NAME);
+            ES_Intensity_sourceEP_QLineEdit->setFont(panel->font_D_LE1);
+            ES_Intensity_sourceEP_QLineEdit->setPlaceholderText(QString::fromLocal8Bit("particles/s"));
+            ES_Intensity_sourceEP_QLineEdit->hide(); // 초기값 숨김
+
+            hLayout->addWidget(ES_Intensity_sourceEP_QLabel);
+            hLayout->addStretch();
+            hLayout->addWidget(ES_Intensity_sourceEP_QLineEdit);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 12. [Energy Spectrum] Add Button
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.003);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+            ES_List_sourceEP_QLabel = new QLabel;
+            ES_List_sourceEP_QLabel->setFixedSize(panel->Window_width * 0.088, panel->Window_height * 0.028);
+            ES_List_sourceEP_QLabel->setStyleSheet(DialogStyle::DATA_LABEL);
+            ES_List_sourceEP_QLabel->setFont(panel->font_D_LBL1);
+            ES_List_sourceEP_QLabel->setAlignment(Qt::AlignLeft | Qt::AlignBottom);
+            ES_List_sourceEP_QLabel->setText(QString::fromLocal8Bit("Entered sources"));
+            ES_List_sourceEP_QLabel->hide(); // 초기값 숨김
+
+            ExternalSingleEnergySpectrumAddButton = new QPushButton(QString::fromLocal8Bit("Add"));
+            panel->Buttons_FunctionPanelRight.append(ExternalSingleEnergySpectrumAddButton);
+            ExternalSingleEnergySpectrumAddButton->setFixedSize(panel->Window_width * 0.042, panel->Window_height * 0.037);
+            ExternalSingleEnergySpectrumAddButton->setCheckable(false);
+            ExternalSingleEnergySpectrumAddButton->setStyleSheet(DialogStyle::MENU_BTN2);
+            ExternalSingleEnergySpectrumAddButton->setFont(panel->font_D_BTN2);
+            ExternalSingleEnergySpectrumAddButton->setChecked(false);
+            ExternalSingleEnergySpectrumAddButton->hide(); // 초기값 숨김
+
+            connect(ExternalSingleEnergySpectrumAddButton, SIGNAL(clicked()), this, SLOT(slot_ESList_Add_sourceEP_ButtonClicked())); 
+            connect(ExternalSingleEnergySpectrumAddButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+
+            hLayout->addWidget(ES_List_sourceEP_QLabel);
+            hLayout->addStretch();
+            hLayout->addWidget(ExternalSingleEnergySpectrumAddButton);
+
+            vLayout->addLayout(hLayout);
+        }
+
+        // 13. [Energy Spectrum] List Widget
+        {
+            QHBoxLayout* hLayout = new QHBoxLayout;
+            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+            hLayout->setSpacing(panel->Window_width * 0.003);
+            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+            ES_List_sourceEP_QListWidget = new QListWidget;
+
+            ES_List_sourceEP_QListWidget->setStyleSheet("QListWidget { border-radius: 15px; background-color: white; }");
+            ES_List_sourceEP_QListWidget->setFixedSize(panel->Window_width * 0.175, panel->Window_height * 0.155); 
+            ES_List_sourceEP_QListWidget->setFont(panel->font_D_LW1);
+            ES_List_sourceEP_QListWidget->hide(); // 초기값 숨김
+
+            hLayout->addWidget(ES_List_sourceEP_QListWidget);
+
+            vLayout->addLayout(hLayout);
+        }
+        
         subLayout->addLayout(vLayout);
     }
-
+    
+    // 최종 레이아웃 설정
     this->setLayout(subLayout);
+
     return true;
 }
 
+void ExternalPointWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+	updateModelFromUI();
+	//if (pRt->RI_Select_sourceEP_QRadioButton->isChecked())
+	if(m_model.isRadionuclideMode)
+	{
+		bool is_first_RI = true;
+		double first_RI_activity;
+		bool is_first_radiation = true;
+		double first_radiation_yield;
+		double conversion_factor_sum_of_activity_yieldsum = 0;
+		for (auto itr_info_RI : m_model.ListInfo_sourceEP) // 입력한 mulitple RI 마다 순환
+		{
+			std::string path = "./data/radioisotopes/" + itr_info_RI[4].toStdString() + ".txt";
+			std::pair<std::vector<std::map<int, std::string>>, double> temp_pair = theApp.sourceObjects->Read_RI_File(path);
+			std::vector<std::map<int, std::string>> radionulclide_radiation_info = temp_pair.first;
+			double this_RI_yieldsum = temp_pair.second;
+			double this_RI_activity = itr_info_RI[5].toDouble();
+			conversion_factor_sum_of_activity_yieldsum += this_RI_activity * this_RI_yieldsum; // activity concentration * area * yieldsum -> (NPS/s)
+			if (is_first_RI) // 첫번째 RI 일때
+			{
+				first_RI_activity = this_RI_activity;
+				for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
+				{
+					if (is_first_radiation) // 첫번째 RI, 첫번째 radiation 일때
+					{
+						ofp_source << "/gps/particle " << itr_radiation[2] << endl;
+						ofp_source << "/gps/pos/type Point" << endl;
+						if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
+						if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
+						if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
+						ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << itr_info_RI[1].toDouble() << " " << itr_info_RI[2].toDouble() << " " << itr_info_RI[3].toDouble() << " cm " << endl;
+						ofp_source << "/gps/ang/type iso" << endl;
+						ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
+						first_radiation_yield = std::stod(itr_radiation[0]);
+						is_first_radiation = false;
+					}
+					else // 첫번째 RI, 두번째 이상 radiation 일때
+					{
+						ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) << endl;
+						ofp_source << "/gps/particle " << itr_radiation[2] << endl;
+						ofp_source << "/gps/pos/type Point" << endl;
+						if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
+						if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
+						if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
+						ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << itr_info_RI[1].toDouble() << " " << itr_info_RI[2].toDouble() << " " << itr_info_RI[3].toDouble() << " cm " << endl;
+						ofp_source << "/gps/ang/type iso" << endl;
+						ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
+					}
+				}
+				is_first_RI = false;
+			}
+			else // 두번째 이상 RI
+			{
+				for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
+				{
+					ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) * (this_RI_activity / first_RI_activity) << endl;
+					ofp_source << "/gps/particle " << itr_radiation[2] << endl;
+					ofp_source << "/gps/pos/type Point" << endl;
+					if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
+					if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
+					if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
+					ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << itr_info_RI[1].toDouble() << " " << itr_info_RI[2].toDouble() << " " << itr_info_RI[3].toDouble() << " cm " << endl;
+					ofp_source << "/gps/ang/type iso" << endl;
+					ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
+				}
+			}
+		}
+		theApp.DoseConversionFactor_inUImodule = conversion_factor_sum_of_activity_yieldsum;
+	}
+	//else if (pRt->ES_Select_sourceEP_QRadioButton->isChecked())
+	else if (m_model.isEnergySpectrumMode)
+	{
+		// 전체 입자 중 첫 번째 입자인지를 판별하는 플래그
+		bool is_first_particle_overall = true;
+		// 기준이 될 첫 번째 입자의 절대적인 초당 방출량(#/s)을 저장할 변수
+		double reference_absolute_intensity;
+		// 모든 소스의 Intensity(#/s) 총합을 저장. 최종적으로 선량 변환 계수 계산에 사용됨.
+		theApp.DoseConversionFactor_inUImodule = 0.0;
+		
+		for (auto itr_info_RI : m_model.ListInfo_sourceEP)
+		{
+			// 1. 현재 소스(파일)의 정보 파싱
+			 // 위치 좌표 (비어있으면 "0"으로 처리)
+			if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
+			if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
+			if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
+			double posX = itr_info_RI[1].toDouble();
+			double posY = itr_info_RI[2].toDouble();
+			double posZ = itr_info_RI[3].toDouble();
+			// 파일 경로와 해당 파일의 전체 Intensity
+			QString filePath = itr_info_RI[4];
+			double file_total_intensity = itr_info_RI[5].toDouble();
+			// 총 방출량 계산
+			theApp.DoseConversionFactor_inUImodule += file_total_intensity;
+			// 2. 파일 파싱 준비: 파일 내용을 메모리에 저장하고 weight 총합 계산
+			QFile inputFile(filePath);
+			if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+				// 파일 열기 실패 시 이 파일은 건너뜀
+				continue;
+			}
+			// 파일 내용을 임시로 저장할 리스트
+			QList<QStringList> file_content;
+			double total_weight_in_file = 0.0;
+			QTextStream in(&inputFile);
+			while (!in.atEnd()) {
+				QString line = in.readLine();
+				QStringList parts = line.simplified().split(' ');					
+				if (parts.size() >= 3) {
+					file_content.append(parts);
+					// weight는 두 번째 열(parts[1])
+					total_weight_in_file += parts[1].toDouble();
+				}
+			}
+			inputFile.close();
+			// 3. Geant4 GPS 명령어 생성
+			// 메모리에 저장된 파일 내용을 한 줄씩 처리
+			for (const auto& line_parts : file_content)
+			{
+				std::string particle_type = line_parts[0].toStdString();
+				double weight = line_parts[1].toDouble();
+				double energy = line_parts[2].toDouble();
+				// 현재 입자의 절대적인 초당 방출량(#/s) 계산
+				// = (파일 전체 방출량) * (파일 내 현재 입자의 가중치 / 파일 내 가중치 총합)
+				double current_absolute_intensity = 0.0;
+				if (total_weight_in_file > 0) {
+					current_absolute_intensity = file_total_intensity * (weight / total_weight_in_file);
+				}
+				// 모든 소스를 통틀어 가장 첫 번째 입자인 경우
+				if (is_first_particle_overall)
+				{
+					// 기준 방출량으로 설정
+					reference_absolute_intensity = current_absolute_intensity;
+					// /gps/source/add 없이 기본 명령어만 출력
+					ofp_source << "/gps/particle " << particle_type << std::endl;
+					ofp_source << "/gps/pos/type Point" << std::endl;
+					ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << posX << " " << posY << " " << posZ << " cm" << std::endl;
+					ofp_source << "/gps/ang/type iso" << std::endl;
+					ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
+					// 첫 번째 입자 처리가 끝났으므로 플래그를 false로 변경
+					is_first_particle_overall = false;
+				}
+				// 두 번째 입자부터는 기준 입자 대비 상대적 비율을 계산하여 /gps/source/add 명령어 추가
+				else
+				{
+					double relative_intensity = 0.0;
+					// 기준 방출량이 0보다 클 때만 나누기 연산 수행 (오류 방지)
+					if (reference_absolute_intensity > 0) {
+						relative_intensity = current_absolute_intensity / reference_absolute_intensity;
+					}
+					ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << relative_intensity << std::endl;
+					ofp_source << "/gps/particle " << particle_type << std::endl;
+					ofp_source << "/gps/pos/type Point" << std::endl;
+					ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << posX << " " << posY << " " << posZ << " cm" << std::endl;
+					ofp_source << "/gps/ang/type iso" << std::endl;
+					ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
+				}
+			}
+		}
+	}		
+}
+void ExternalPointWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
+	updateModelFromUI();
+	//ExternalPoint
+	ofp_info << "Source_type: External_point" << endl;
+	if (m_model.isRadionuclideMode)
+	{
+		ofp_info << "\t" << std::setw(24) << "Position" << std::setw(18) << "Radionuclide" << std::setw(24) << "Activity(Bq)" << endl;
+		for (auto itr_RI_Info : m_model.ListInfo_sourceEP)
+		{
+			ofp_info << "\t" << std::setw(8) << itr_RI_Info[1].toStdString() << std::setw(8) << itr_RI_Info[2].toStdString() << std::setw(8) << itr_RI_Info[3].toStdString()
+				<< std::setw(18) << itr_RI_Info[4].toStdString() << std::right << ::setw(24) << itr_RI_Info[5].toStdString() << endl;
+		}
+	}
+	else if (m_model.isEnergySpectrumMode)
+	{
+		ofp_info << "\t" << std::setw(24) << "Position" << std::setw(18) << "Energy Spectrum" << std::setw(24) << "Activity(Bq)" << endl;
+		for (auto itr_RI_Info : m_model.ListInfo_sourceEP)
+		{
+			ofp_info << "\t" << std::setw(8) << itr_RI_Info[1].toStdString() << std::setw(8) << itr_RI_Info[2].toStdString() << std::setw(8) << itr_RI_Info[3].toStdString()
+				<< std::setw(18) << QFileInfo(itr_RI_Info[4]).fileName().toStdString() << std::right << ::setw(24) << itr_RI_Info[5].toStdString() << endl;
+		}
+	}		
+}
+void ExternalPointWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+	std::string dump;
+	ifp >> dump >> dump >> dump; //  Position      Radionuclide            Activity(Bq)
+	while (ifp >> dump) // posX or "====================="
+	{
+		if (dump == "=====================") break;
+		// status 입력
+		PosX_sourceEP_QLineEdit->setText(QString::fromStdString(dump));
+		ifp >> dump; PosY_sourceEP_QLineEdit->setText(QString::fromStdString(dump));
+		ifp >> dump; PosZ_sourceEP_QLineEdit->setText(QString::fromStdString(dump));
+		ifp >> dump; RI_Radionuclide_sourceEP_QLineEdit->setText(QString::fromStdString(dump));
+		ifp >> dump; RI_Activity_sourceEP_QLineEdit->setText(QString::fromStdString(dump));
+		// Add 버튼 누른 것처럼 실행
+		slot_RIList_Add_sourceEP_ButtonClicked(); 
+	}
+	updateModelFromUI();
+}
+void ExternalPointWidget::updateModelFromUI()
+{
+    // 1. Geometry (위치 좌표)
+    // 입력창에 있는 문자열을 숫자로 변환해서 모델에 저장
+    m_model.PosX = PosX_sourceEP_QLineEdit->text().toDouble();
+    m_model.PosY = PosY_sourceEP_QLineEdit->text().toDouble();
+    m_model.PosZ = PosZ_sourceEP_QLineEdit->text().toDouble();
+
+    // 2. 모드 선택 (Radionuclide vs Energy Spectrum)
+    // RI 버튼이 체크되어 있으면 true, 아니면 false
+    m_model.isRadionuclideMode = RI_Select_sourceEP_QRadioButton->isChecked();
+	m_model.isEnergySpectrumMode = ES_Select_sourceEP_QRadioButton->isChecked();
+
+    // 3. Radionuclide 모드 입력값 저장
+    // 현재 입력창에 적혀 있는 핵종 이름과 방사능 수치
+    m_model.currentRadionuclideName = RI_Radionuclide_sourceEP_QLineEdit->text();
+    m_model.currentActivity = RI_Activity_sourceEP_QLineEdit->text().toDouble();
+
+    // 4. Energy Spectrum 모드 입력값 저장
+    // [주의] QTextEdit는 text()가 아니라 toPlainText()를 씁니다.
+    // 만약 기존 코드가 placeholderText()에 경로를 저장하고 있었다면 로직 확인이 필요하지만,
+    // 데이터 저장 관점에서는 실제 텍스트 내용을 가져오는 것이 일반적입니다.
+    m_model.currentSpectrumFile = sourceEP_EnergyspectrumFileNameText->toPlainText();
+    
+    // 강도(Intensity) 저장
+    m_model.currentSpectrumIntensity = ES_Intensity_sourceEP_QLineEdit->text().toDouble();
+
+    // [참고] 리스트(m_model.ListInfo_sourceEP)는 여기서 저장하지 않습니다.
+    // 리스트는 'Add' 버튼을 누를 때마다 이미 m_model에 push_back 되고 있기 때문입니다.
+}
+
+void ExternalPointWidget::updateEP_Points(double x, double y, double z)
+{
+	PosX_sourceEP_QLineEdit->setText(QString::number(x, 'f', 6));
+	PosY_sourceEP_QLineEdit->setText(QString::number(y, 'f', 6));
+	PosZ_sourceEP_QLineEdit->setText(QString::number(z, 'f', 6));
+	updateModelFromUI();
+}
 void ExternalPointWidget::slot_SourceEP_SphereSize_Minus_ButtonClicked()
 {
     // theApp은 전역 변수(Singleton)라고 가정합니다.
@@ -527,6 +1242,9 @@ void ExternalPointWidget::slot_ExternalPointSourceVisualization_ButtonClicked()
 }
 void ExternalPointWidget::slot_sourceEP_Pick3D_ButtonClicked()
 {   
+	//업데이트
+	updateModelFromUI();
+
 	theApp.sourceObjects->Selecting3DShpere_Delete();
 	PosX_sourceEP_QLineEdit->clear();
 	PosY_sourceEP_QLineEdit->clear();
@@ -569,6 +1287,7 @@ void ExternalPointWidget::slot_sourceEP_Pick3D_ButtonClicked()
 }
 void ExternalPointWidget::slot_sourceEP_UpdatePosition_ButtonClicked()
 {
+	updateModelFromUI();
 	double center[3] = { 0.0, };
 	center[0] = PosX_sourceEP_QLineEdit->text().toFloat();
 	center[1] = PosY_sourceEP_QLineEdit->text().toFloat();
@@ -594,7 +1313,6 @@ void ExternalPointWidget::slot_sourceEP_UpdatePosition_ButtonClicked()
 		}
 		panel->TempDisabledButtons.clear();
 	}
-
 
 }
 void ExternalPointWidget::slot_sourceEP_RadionuclideSelect_RadioButtonClicked()
@@ -640,14 +1358,14 @@ void ExternalPointWidget::slot_sourceEP_RadionuclideSelect_RadioButtonClicked()
 
 	// 3. 관리하던 모든 vector의 내용 비우기
 	// 각 vector의 clear() 멤버 함수를 호출하여 모든 요소를 제거합니다.
-	ListInfo_sourceEP.clear();
+	m_model.ListInfo_sourceEP.clear();
 	ES_ListDelete_sourceEP_QButton.clear();
 	ES_ListInfo_sourceEP_QButton.clear();
 	theApp.SourcePanelActor_Position.clear();
 
 	// 4. 인덱스 카운터 초기화
 	// 리스트 아이템 개수를 추적하는 변수를 초기값(보통 0)으로 리셋합니다.
-	List_sourceEP_MakingIndex = 0;
+	m_model.List_sourceEP_MakingIndex = 0;
 }
 void ExternalPointWidget::slot_sourceEP_EnergySpectrumSelect_RadioButtonClicked()
 {
@@ -692,14 +1410,14 @@ void ExternalPointWidget::slot_sourceEP_EnergySpectrumSelect_RadioButtonClicked(
 
 	// 3. 관리하던 모든 vector의 내용 비우기
 	// 각 vector의 clear() 멤버 함수를 호출하여 모든 요소를 제거합니다.
-	ListInfo_sourceEP.clear();
+	m_model.ListInfo_sourceEP.clear();
 	RI_ListDelete_sourceEP_QButton.clear();
 	RI_ListInfo_sourceEP_QButton.clear();
 	theApp.SourcePanelActor_Position.clear();
 
 	// 4. 인덱스 카운터 초기화
 	// 리스트 아이템 개수를 추적하는 변수를 초기값(보통 0)으로 리셋합니다.
-	List_sourceEP_MakingIndex = 0;
+	m_model.List_sourceEP_MakingIndex = 0;
 }
 
 void ExternalPointWidget::slot_RIList_Add_sourceEP_ButtonClicked()
@@ -764,38 +1482,38 @@ void ExternalPointWidget::slot_RIList_Add_sourceEP_ButtonClicked()
 	labelPosZ->setFont(panel->font_D_LW2); // Set font for the label
 		
 	RI_ListDelete_sourceEP_QButton.push_back(new QPushButton());
-	if (List_sourceEP_MakingIndex >= RI_ListDelete_sourceEP_QButton.size()) theApp.SetMessageBox("m_sourceEP_listDeleteButton Vector index error");
-	RI_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setCheckable(false);
-	RI_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	RI_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setFont(panel->font_D_BTN13);
-	RI_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	RI_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
-	RI_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setObjectName(QString::number(List_sourceEP_MakingIndex));
+	if (m_model.List_sourceEP_MakingIndex >= RI_ListDelete_sourceEP_QButton.size()) theApp.SetMessageBox("m_sourceEP_listDeleteButton Vector index error");
+	RI_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setCheckable(false);
+	RI_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	RI_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setFont(panel->font_D_BTN13);
+	RI_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	RI_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
+	RI_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setObjectName(QString::number(m_model.List_sourceEP_MakingIndex));
 		
 	RI_ListInfo_sourceEP_QButton.push_back(new QPushButton());
-	if (List_sourceEP_MakingIndex >= RI_ListDelete_sourceEP_QButton.size()) theApp.SetMessageBox("m_sourceEP_listInfoButton Vector index error");
-	RI_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setCheckable(false);
-	RI_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	RI_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setFont(panel->font_D_BTN13);
-	RI_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	RI_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setIcon(QIcon("./data/image/info.png"));	
-	RI_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setObjectName(QString::number(List_sourceEP_MakingIndex));
+	if (m_model.List_sourceEP_MakingIndex >= RI_ListDelete_sourceEP_QButton.size()) theApp.SetMessageBox("m_sourceEP_listInfoButton Vector index error");
+	RI_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setCheckable(false);
+	RI_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	RI_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setFont(panel->font_D_BTN13);
+	RI_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	RI_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setIcon(QIcon("./data/image/info.png"));	
+	RI_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setObjectName(QString::number(m_model.List_sourceEP_MakingIndex));
 
 	hLayout->addWidget(label1);
 	hLayout->addWidget(label2);
 	hLayout->addWidget(labelPosX);
 	hLayout->addWidget(labelPosY);
 	hLayout->addWidget(labelPosZ);
-	hLayout->addWidget(RI_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]);
-	hLayout->addWidget(RI_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]);
+	hLayout->addWidget(RI_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]);
+	hLayout->addWidget(RI_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]);
 	widget->setLayout(hLayout);
 
 	RI_List_sourceEP_QListWidget->setItemWidget(item, widget);
 	item->setSizeHint(widget->sizeHint());
 
 	// Connect signals of the new buttons
-	connect(RI_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Delete_sourceEP_ButtonClicked())); connect(RI_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	connect(RI_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Info_sourceEP_ButtonClicked())); connect(RI_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(RI_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Delete_sourceEP_ButtonClicked())); connect(RI_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(RI_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Info_sourceEP_ButtonClicked())); connect(RI_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
 
 	// Generate actor
 	double center[3] = { 0.0, };
@@ -813,8 +1531,8 @@ void ExternalPointWidget::slot_RIList_Add_sourceEP_ButtonClicked()
 	tmp_map[3] = PosZ_sourceEP_QLineEdit->text(); if (tmp_map[3] == "") tmp_map[3] = "0";
 	tmp_map[4] = RI_Radionuclide_sourceEP_QLineEdit->text();
 	tmp_map[5] = RI_Activity_sourceEP_QLineEdit->text(); if (tmp_map[5] == "") tmp_map[5] = "0";
-	ListInfo_sourceEP.push_back(tmp_map);
-	List_sourceEP_MakingIndex++;
+	m_model.ListInfo_sourceEP.push_back(tmp_map);
+	m_model.List_sourceEP_MakingIndex++;
 
 	// Set panel info 
 	PosX_sourceEP_QLineEdit->clear();
@@ -837,9 +1555,9 @@ void ExternalPointWidget::slot_RIList_Delete_sourceEP_ButtonClicked()
 	QListWidgetItem* toRemove = RI_List_sourceEP_QListWidget->takeItem(row);
 	delete toRemove; // Delete the item to free memory
 	
-	if (RadonuclideIndex >= 0 && RadonuclideIndex < ListInfo_sourceEP.size()) 
+	if (RadonuclideIndex >= 0 && RadonuclideIndex < m_model.ListInfo_sourceEP.size()) 
 	{
-		ListInfo_sourceEP.erase(ListInfo_sourceEP.begin() + RadonuclideIndex);
+		m_model.ListInfo_sourceEP.erase(m_model.ListInfo_sourceEP.begin() + RadonuclideIndex);
 		RI_ListDelete_sourceEP_QButton.erase(RI_ListDelete_sourceEP_QButton.begin() + RadonuclideIndex);
 		RI_ListInfo_sourceEP_QButton.erase(RI_ListInfo_sourceEP_QButton.begin() + RadonuclideIndex);
 		// Actor delete
@@ -856,7 +1574,7 @@ void ExternalPointWidget::slot_RIList_Delete_sourceEP_ButtonClicked()
 		RI_ListDelete_sourceEP_QButton[index]->setObjectName(QString::number(index));
 		RI_ListInfo_sourceEP_QButton[index]->setObjectName(QString::number(index));
 	}
-	List_sourceEP_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
+	m_model.List_sourceEP_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
 }
 void ExternalPointWidget::slot_RIList_Info_sourceEP_ButtonClicked()
 {
@@ -1134,38 +1852,38 @@ void ExternalPointWidget::slot_ESList_Add_sourceEP_ButtonClicked()
 	labelPosZ->setFont(panel->font_D_LW2); // Set font for the label
 
 	ES_ListDelete_sourceEP_QButton.push_back(new QPushButton());
-	if (List_sourceEP_MakingIndex >= ES_ListDelete_sourceEP_QButton.size()) theApp.SetMessageBox("m_sourceEP_ES_listDeleteButton Vector index error");
-	ES_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setCheckable(false);
-	ES_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	ES_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setFont(panel->font_D_BTN13);
-	ES_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	ES_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
-	ES_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]->setObjectName(QString::number(List_sourceEP_MakingIndex));
+	if (m_model.List_sourceEP_MakingIndex >= ES_ListDelete_sourceEP_QButton.size()) theApp.SetMessageBox("m_sourceEP_ES_listDeleteButton Vector index error");
+	ES_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setCheckable(false);
+	ES_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	ES_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setFont(panel->font_D_BTN13);
+	ES_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	ES_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
+	ES_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setObjectName(QString::number(m_model.List_sourceEP_MakingIndex));
 
 	ES_ListInfo_sourceEP_QButton.push_back(new QPushButton());
-	if (List_sourceEP_MakingIndex >= ES_ListInfo_sourceEP_QButton.size()) theApp.SetMessageBox("m_sourceEP_ES_listInfoButton Vector index error");
-	ES_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setCheckable(false);
-	ES_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	ES_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setFont(panel->font_D_BTN13);
-	ES_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	ES_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
-	ES_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]->setObjectName(QString::number(List_sourceEP_MakingIndex));
+	if (m_model.List_sourceEP_MakingIndex >= ES_ListInfo_sourceEP_QButton.size()) theApp.SetMessageBox("m_sourceEP_ES_listInfoButton Vector index error");
+	ES_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setCheckable(false);
+	ES_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	ES_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setFont(panel->font_D_BTN13);
+	ES_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	ES_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
+	ES_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]->setObjectName(QString::number(m_model.List_sourceEP_MakingIndex));
 
 	hLayout->addWidget(label1);
 	hLayout->addWidget(label2);
 	hLayout->addWidget(labelPosX);
 	hLayout->addWidget(labelPosY);
 	hLayout->addWidget(labelPosZ);
-	hLayout->addWidget(ES_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex]);
-	hLayout->addWidget(ES_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex]);
+	hLayout->addWidget(ES_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]);
+	hLayout->addWidget(ES_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex]);
 	widget->setLayout(hLayout);
 
 	ES_List_sourceEP_QListWidget->setItemWidget(item, widget);
 	item->setSizeHint(widget->sizeHint());
 
 	// Connect signals of the new buttons
-	connect(ES_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Delete_sourceEP_ButtonClicked())); connect(ES_ListDelete_sourceEP_QButton[List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	connect(ES_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Info_sourceEP_ButtonClicked())); connect(ES_ListInfo_sourceEP_QButton[List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(ES_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Delete_sourceEP_ButtonClicked())); connect(ES_ListDelete_sourceEP_QButton[m_model.List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(ES_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Info_sourceEP_ButtonClicked())); connect(ES_ListInfo_sourceEP_QButton[m_model.List_sourceEP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
 
 	// Generate actor
 	double center[3] = { 0.0, };
@@ -1183,8 +1901,8 @@ void ExternalPointWidget::slot_ESList_Add_sourceEP_ButtonClicked()
 	tmp_map[3] = PosZ_sourceEP_QLineEdit->text(); if (tmp_map[3] == "") tmp_map[3] = "0";
 	tmp_map[4] = inputText;	
 	tmp_map[5] = ES_Intensity_sourceEP_QLineEdit->text(); if (tmp_map[5] == "") tmp_map[5] = "0";
-	ListInfo_sourceEP.push_back(tmp_map);
-	List_sourceEP_MakingIndex++;
+	m_model.ListInfo_sourceEP.push_back(tmp_map);
+	m_model.List_sourceEP_MakingIndex++;
 
 	// Set panel info 
 	PosX_sourceEP_QLineEdit->clear();
@@ -1205,9 +1923,9 @@ void ExternalPointWidget::slot_ESList_Delete_sourceEP_ButtonClicked()
 	QListWidgetItem* toRemove = ES_List_sourceEP_QListWidget->takeItem(row);
 	delete toRemove; // Delete the item to free memory
 
-	if (EnersySpectrumIndex >= 0 && EnersySpectrumIndex < ListInfo_sourceEP.size())
+	if (EnersySpectrumIndex >= 0 && EnersySpectrumIndex < m_model.ListInfo_sourceEP.size())
 	{
-		ListInfo_sourceEP.erase(ListInfo_sourceEP.begin() + EnersySpectrumIndex);
+		m_model.ListInfo_sourceEP.erase(m_model.ListInfo_sourceEP.begin() + EnersySpectrumIndex);
 		ES_ListDelete_sourceEP_QButton.erase(ES_ListDelete_sourceEP_QButton.begin() + EnersySpectrumIndex);
 		ES_ListInfo_sourceEP_QButton.erase(ES_ListInfo_sourceEP_QButton.begin() + EnersySpectrumIndex);
 		// Actor delete
@@ -1224,7 +1942,7 @@ void ExternalPointWidget::slot_ESList_Delete_sourceEP_ButtonClicked()
 		ES_ListDelete_sourceEP_QButton[index]->setObjectName(QString::number(index));
 		ES_ListInfo_sourceEP_QButton[index]->setObjectName(QString::number(index));
 	}
-	List_sourceEP_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
+	m_model.List_sourceEP_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
 }
 void ExternalPointWidget::slot_ESList_Info_sourceEP_ButtonClicked()
 {
@@ -1311,7 +2029,7 @@ void ExternalPointWidget::slot_ESList_Info_sourceEP_ButtonClicked()
 	cursor.insertText("\nRadiation Spectrum of the Entered File\n", boldFormat);
 	cursor.insertText("Radiation      Fraction       Energy (MeV)\n", boldSmallFormat);
 
-	QString ESFileName = ListInfo_sourceEP[EnergySpectrumIndex][4];
+	QString ESFileName = m_model.ListInfo_sourceEP[EnergySpectrumIndex][4];
 	QFile ESFile(ESFileName);
 	if (!ESFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 		// Handle error: Unable to open file
@@ -1811,6 +2529,263 @@ bool FloorDiskWidget::initialize()
 	return true;
 }
 
+void FloorDiskWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+	updateModelFromUI();
+	//if (pRt->RI_Select_sourceFD_QRadioButton->isChecked())
+	if (m_model.isRadionuclideMode)
+	{
+		double center_x = m_model.PosX;
+		double center_y = m_model.PosY;
+		double center_z = m_model.PosZ;
+		std::string center_x_str = std::to_string(center_x); //pRt->m_model.PosX.toStdString();
+		std::string center_y_str = std::to_string(center_y); //pRt->PosY_SourceFD_QLineEdit->text().toStdString();
+		std::string center_z_str = std::to_string(center_z); //pRt->PosZ_SourceFD_QLineEdit->text().toStdString();
+		if (center_x_str == "") center_x = 0;
+		if (center_y_str == "") center_y = 0;
+		if (center_z_str == "") center_z = 0;
+		double radius = m_model.Radius;
+		bool is_first_RI = true;
+		double first_RI_activity;
+		bool is_first_radiation = true;
+		double first_radiation_yield;
+		double conversion_factor_sum_of_activity_yieldsum = 0;
+		for (auto itr_info_RI : m_model.ListInfo_sourceFD) // 입력한 mulitple RI 마다 순환
+		{
+			std::string path = "./data/radioisotopes/" + itr_info_RI[1].toStdString() + ".txt";
+			std::pair<std::vector<std::map<int, std::string>>, double> temp_pair = theApp.sourceObjects->Read_RI_File(path);
+			std::vector<std::map<int, std::string>> radionulclide_radiation_info = temp_pair.first;
+			double this_RI_yieldsum = temp_pair.second;
+			double this_RI_activity = itr_info_RI[2].toDouble();
+			conversion_factor_sum_of_activity_yieldsum += this_RI_activity * radius * radius * M_PI * this_RI_yieldsum; // activity concentration * area * yieldsum -> (NPS/s)
+			if (is_first_RI) // 첫번째 RI 일때
+			{
+				first_RI_activity = this_RI_activity;
+				for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
+				{
+					if (is_first_radiation) // 첫번째 RI, 첫번째 radiation 일때
+					{
+						ofp_source << "/gps/particle " << itr_radiation[2] << endl;
+						ofp_source << "/gps/pos/type Plane" << endl;
+						ofp_source << "/gps/pos/shape Circle" << endl;
+						ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm " << endl;
+						ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << endl;
+						ofp_source << "/gps/ang/type iso" << endl;
+						ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
+						first_radiation_yield = std::stod(itr_radiation[0]);
+						is_first_radiation = false;
+					}
+					else // 첫번째 RI, 두번째 이상 radiation 일때
+					{
+						ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) << endl;
+						ofp_source << "/gps/particle " << itr_radiation[2] << endl;
+						ofp_source << "/gps/pos/type Plane" << endl;
+						ofp_source << "/gps/pos/shape Circle" << endl;
+						ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm " << endl;
+						ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << endl;
+						ofp_source << "/gps/ang/type iso" << endl;
+						ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
+					}
+				}
+				is_first_RI = false;
+			}
+			else // 두번째 이상 RI
+			{
+				for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
+				{
+					ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) * (this_RI_activity / first_RI_activity) << endl;
+					ofp_source << "/gps/particle " << itr_radiation[2] << endl;
+					ofp_source << "/gps/pos/type Plane" << endl;
+					ofp_source << "/gps/pos/shape Circle" << endl;
+					ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm " << endl;
+					ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << endl;
+					ofp_source << "/gps/ang/type iso" << endl;
+					ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
+				}
+			}
+		}
+		theApp.DoseConversionFactor_inUImodule = conversion_factor_sum_of_activity_yieldsum;
+	}
+	//else if (pRt->ES_Select_sourceFD_QRadioButton->isChecked())
+	else if (m_model.isEnergySpectrumMode)
+	{
+		// 1. 선원의 기하학적 정보 파싱 (UI로부터)
+		double center_x = m_model.PosX;
+		double center_y = m_model.PosY;
+		double center_z = m_model.PosZ;
+		// 입력값이 비어있을 경우 0으로 처리
+		std::string center_x_str = std::to_string(center_x); //pRt->m_model.PosX.toStdString();
+		std::string center_y_str = std::to_string(center_y); //pRt->PosY_SourceFD_QLineEdit->text().toStdString();
+		std::string center_z_str = std::to_string(center_z); //pRt->PosZ_SourceFD_QLineEdit->text().toStdString();
+		if (center_x_str == "") center_x = 0;
+		if (center_y_str == "") center_y = 0;
+		if (center_z_str == "") center_z = 0;
+		double radius = m_model.Radius;
+		// 2. Geant4 GPS 생성을 위한 변수 초기화
+		// 전체 입자 중 첫 번째 입자인지를 판별하는 플래그
+		bool is_first_particle_overall = true;
+		// 기준이 될 첫 번째 입자의 절대적인 초당 방출량(#/s)을 저장할 변수
+		double reference_absolute_intensity;
+		// 모든 소스의 총 방출량(#/s) 합계
+		theApp.DoseConversionFactor_inUImodule = 0.0;
+		// 3. 사용자가 추가한 각 소스 정보(파일)를 순회
+		for (auto itr_info_ES : m_model.ListInfo_sourceFD)
+		{
+			// itr_info_ES[1] : 파일 경로, itr_info_ES[2] : 면적당 Intensity (단위: #/s/cm2)
+			QString filePath = itr_info_ES[1];
+			double areal_intensity = itr_info_ES[2].toDouble();
+			// 현재 파일(소스)의 총 방출량(#/s) = 면적당 Intensity * 면적
+			double file_total_intensity = areal_intensity * radius * radius * M_PI;
+			theApp.DoseConversionFactor_inUImodule += file_total_intensity;
+			// 4. 파일 파싱 및 Geant4 명령어 생성 준비
+			QFile inputFile(filePath);
+			if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+				continue; // 파일 열기 실패 시 다음 소스로
+			}
+			// 파일 내용을 임시로 저장할 리스트
+			QList<QStringList> file_content;
+			double total_weight_in_file = 0.0;
+			QTextStream in(&inputFile);
+			while (!in.atEnd()) {
+				QString line = in.readLine();
+				QStringList parts = line.simplified().split(' ');
+				if (parts.size() >= 3) {
+					file_content.append(parts);
+					// weight는 두 번째 열(parts[1])
+					total_weight_in_file += parts[1].toDouble();
+				}
+			}
+			inputFile.close();
+			// 5. 메모리에 저장된 파일 내용을 기반으로 GPS 명령어 생성
+			for (const auto& line_parts : file_content)
+			{
+				std::string particle_type = line_parts[0].toStdString();
+				// 요청하신 대로 weight와 energy 순서 변경
+				double weight = line_parts[1].toDouble();
+				double energy = line_parts[2].toDouble();
+				// 현재 입자의 절대적인 초당 방출량(#/s) 계산
+				double current_absolute_intensity = 0.0;
+				if (total_weight_in_file > 0) {
+					current_absolute_intensity = file_total_intensity * (weight / total_weight_in_file);
+				}
+				// 모든 소스를 통틀어 가장 첫 번째 입자인 경우
+				if (is_first_particle_overall)
+				{
+					reference_absolute_intensity = current_absolute_intensity;
+					// 기본 명령어 출력 (원형 면선원 형태)
+					ofp_source << "/gps/particle " << particle_type << std::endl;
+					ofp_source << "/gps/pos/type Plane" << std::endl;
+					ofp_source << "/gps/pos/shape Circle" << std::endl;
+					ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm" << std::endl;
+					ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << std::endl;
+					ofp_source << "/gps/ang/type iso" << std::endl;
+					ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
+					is_first_particle_overall = false;
+				}
+				// 두 번째 입자부터는 /gps/source/add 명령어 추가
+				else
+				{
+					double relative_intensity = 0.0;
+					if (reference_absolute_intensity > 0) {
+						relative_intensity = current_absolute_intensity / reference_absolute_intensity;
+					}
+					ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << relative_intensity << std::endl;
+					ofp_source << "/gps/particle " << particle_type << std::endl;
+					ofp_source << "/gps/pos/type Plane" << std::endl;
+					ofp_source << "/gps/pos/shape Circle" << std::endl;
+					ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm" << std::endl;
+					ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << std::endl;
+					ofp_source << "/gps/ang/type iso" << std::endl;
+					ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
+				}
+			}
+		}
+	}
+}
+void FloorDiskWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
+	updateModelFromUI();
+	//FloorDisk
+	ofp_info << "Source_type: Floor_disk" << endl;
+
+	std::string posX_FD; std::string posY_FD; std::string posZ_FD; std::string radius_FD;
+	if (PosX_SourceFD_QLineEdit->text().toStdString() == "") posX_FD = "0";
+	else posX_FD = PosX_SourceFD_QLineEdit->text().toStdString();
+	if (PosY_SourceFD_QLineEdit->text().toStdString() == "") posY_FD = "0";
+	else posY_FD = PosY_SourceFD_QLineEdit->text().toStdString();
+	if (PosZ_SourceFD_QLineEdit->text().toStdString() == "") posZ_FD = "0";
+	else posZ_FD = PosZ_SourceFD_QLineEdit->text().toStdString();
+	if (Radius_sourceFD_QLineEdit->text().toStdString() == "") radius_FD = "0";
+	else radius_FD = Radius_sourceFD_QLineEdit->text().toStdString();
+	ofp_info << "\tCenter_PosX(cm): " << posX_FD << endl;
+	ofp_info << "\tCenter_PosY(cm): " << posY_FD << endl;
+	ofp_info << "\tCenter_PosZ(cm): " << posZ_FD << endl;
+	ofp_info << "\tRadius(cm): " << radius_FD << endl;
+	if (m_model.isRadionuclideMode)
+	{
+		ofp_info << "\t" << std::setw(18) << "Radionuclide" << std::setw(24) << "Activity(Bq/cm2)" << endl;
+		for (auto itr_RI_Info : m_model.ListInfo_sourceFD)
+		{
+			ofp_info << "\t" << std::setw(18) << itr_RI_Info[1].toStdString() << std::setw(24) << itr_RI_Info[2].toStdString() << endl;
+		}
+	}
+	else if (m_model.isEnergySpectrumMode)
+	{
+		ofp_info << "\t" << std::setw(18) << "Energy Spectrum" << std::setw(24) << "Activity(Bq/cm2)" << endl;
+		for (auto itr_RI_Info : m_model.ListInfo_sourceFD)
+		{
+			ofp_info << "\t" << std::setw(18) << QFileInfo(itr_RI_Info[1]).fileName().toStdString() << std::setw(24) << itr_RI_Info[2].toStdString() << endl;
+		}
+	}
+}
+void FloorDiskWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+	std::string dump;
+	ifp >> dump >> dump; //  Center_PosX(cm):      posX
+	PosX_SourceFD_QLineEdit->setText(QString::fromStdString(dump));
+	ifp >> dump >> dump; //  Center_PosY(cm):      posY
+	PosY_SourceFD_QLineEdit->setText(QString::fromStdString(dump));
+	ifp >> dump >> dump; //  Center_PosZ(cm):      posZ
+	PosZ_SourceFD_QLineEdit->setText(QString::fromStdString(dump));
+	ifp >> dump >> dump; //  Radius(cm):      radi
+	Radius_sourceFD_QLineEdit->setText(QString::fromStdString(dump));
+	ifp >> dump >> dump; //  Radionuclide        Activity(Bq/cm2)
+	slot_FloorUpdate_ButtonClicked(); // Source geometry 가시화를 위한 업데이트 버튼 누르기
+	while (ifp >> dump) // posX or "====================="
+	{
+		if (dump == "=====================") break;
+		if (dump != "=====================")
+		{
+			// status 입력
+			RI_Radionuclide_sourceFD_QLineEdit->setText(QString::fromStdString(dump));
+			ifp >> dump; RI_Activity_sourceFD_QLineEdit->setText(QString::fromStdString(dump));
+			// Add 버튼 누르기
+			slot_RIList_Add_sourceFD_ButtonClicked();
+		}
+	}
+
+	updateModelFromUI();
+}
+void FloorDiskWidget::updateModelFromUI()
+{
+    // 1. 기하 정보
+    m_model.PosX = PosX_SourceFD_QLineEdit->text().toDouble();
+    m_model.PosY = PosY_SourceFD_QLineEdit->text().toDouble();
+    m_model.PosZ = PosZ_SourceFD_QLineEdit->text().toDouble();
+    m_model.Radius = Radius_sourceFD_QLineEdit->text().toDouble();
+
+    // 2. 모드
+    m_model.isRadionuclideMode = RI_Select_sourceFD_QRadioButton->isChecked();
+
+    // 3. RI 입력값
+    m_model.currentRadionuclideName = RI_Radionuclide_sourceFD_QLineEdit->text();
+    m_model.currentActivity = RI_Activity_sourceFD_QLineEdit->text().toDouble();
+
+    // 4. ES 입력값
+    m_model.currentSpectrumFile = sourceFD_EnergyspectrumFileNameText->toPlainText();
+    m_model.currentSpectrumIntensity = ES_Intensity_sourceFD_QLineEdit->text().toDouble();
+}
+
 void FloorDiskWidget::slot_FloorSourceVisualization_ButtonClicked()
 {
 	if (m_FloorSourceVisualizationButton->isChecked())
@@ -1863,9 +2838,15 @@ void FloorDiskWidget::slot_FloorSetDefaultGeom_ButtonClicked()
 
 	double zLocation = phantombox_bounds[4] - 0.001; // 0.001 cm 만큼 밑으로 마진
 	PosZ_SourceFD_QLineEdit->setText(QString::number(zLocation));
+	
+	//업데이트
+	updateModelFromUI();
 }
 void FloorDiskWidget::slot_FloorUpdate_ButtonClicked()
 {
+	// 업데이트
+	updateModelFromUI();
+	
 	double center_radius[4] = { 0.0, };
 	center_radius[0] = PosX_SourceFD_QLineEdit->text().toFloat();
 	center_radius[1] = PosY_SourceFD_QLineEdit->text().toFloat();
@@ -1905,14 +2886,14 @@ void FloorDiskWidget::slot_sourceFD_RadionuclideSelect_RadioButtonClicked()
 
 	// 3. 관리하던 모든 vector의 내용 비우기
 	// 각 vector의 clear() 멤버 함수를 호출하여 모든 요소를 제거합니다.
-	ListInfo_sourceFD.clear();
+	m_model.ListInfo_sourceFD.clear();
 	ES_ListDelete_sourceFD_QButton.clear();
 	ES_ListInfo_sourceFD_QButton.clear();
 	theApp.SourcePanelActor_Position.clear();
 
 	// 4. 인덱스 카운터 초기화
 	// 리스트 아이템 개수를 추적하는 변수를 초기값(보통 0)으로 리셋합니다.
-	List_sourceFD_MakingIndex = 0;
+	m_model.List_sourceFD_MakingIndex = 0;
 
 }
 void FloorDiskWidget::slot_RIList_Add_sourceFD_ButtonClicked()
@@ -1974,46 +2955,46 @@ void FloorDiskWidget::slot_RIList_Add_sourceFD_ButtonClicked()
 	labelPosZ->setFont(panel->font_D_LW2); // Set font for the label
 
 	RI_ListDelete_sourceFD_QButton.push_back(new QPushButton());
-	if (List_sourceFD_MakingIndex >= RI_ListDelete_sourceFD_QButton.size()) theApp.SetMessageBox("RI_Delete_sourceFD_QButton Vector index error");
-	RI_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setCheckable(false);
-	RI_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	RI_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setFont(panel->font_D_BTN13);
-	RI_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	RI_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
-	RI_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setObjectName(QString::number(List_sourceFD_MakingIndex));
+	if (m_model.List_sourceFD_MakingIndex >= RI_ListDelete_sourceFD_QButton.size()) theApp.SetMessageBox("RI_Delete_sourceFD_QButton Vector index error");
+	RI_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setCheckable(false);
+	RI_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	RI_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setFont(panel->font_D_BTN13);
+	RI_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	RI_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
+	RI_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setObjectName(QString::number(m_model.List_sourceFD_MakingIndex));
 
 	RI_ListInfo_sourceFD_QButton.push_back(new QPushButton());
-	if (List_sourceFD_MakingIndex >= RI_ListDelete_sourceFD_QButton.size()) theApp.SetMessageBox("RI_Info_sourceFD_QButton Vector index error");
-	RI_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setCheckable(false);
-	RI_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	RI_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setFont(panel->font_D_BTN13);
-	RI_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	RI_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
-	RI_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setObjectName(QString::number(List_sourceFD_MakingIndex));
+	if (m_model.List_sourceFD_MakingIndex >= RI_ListDelete_sourceFD_QButton.size()) theApp.SetMessageBox("RI_Info_sourceFD_QButton Vector index error");
+	RI_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setCheckable(false);
+	RI_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	RI_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setFont(panel->font_D_BTN13);
+	RI_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	RI_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
+	RI_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setObjectName(QString::number(m_model.List_sourceFD_MakingIndex));
 
 	hLayout->addWidget(label1);
 	hLayout->addWidget(label2);
 	hLayout->addWidget(labelPosX);
 	hLayout->addWidget(labelPosY);
 	hLayout->addWidget(labelPosZ);
-	hLayout->addWidget(RI_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]);
-	hLayout->addWidget(RI_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]);
+	hLayout->addWidget(RI_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]);
+	hLayout->addWidget(RI_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]);
 	widget->setLayout(hLayout);
 
 	RI_List_sourceFD_QListWidget->setItemWidget(item, widget);
 	item->setSizeHint(widget->sizeHint());
 
 	// Connect signals of the new buttons
-	connect(RI_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Delete_sourceFD_ButtonClicked())); connect(RI_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	connect(RI_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Info_sourceFD_ButtonClicked())); connect(RI_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(RI_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Delete_sourceFD_ButtonClicked())); connect(RI_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(RI_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Info_sourceFD_ButtonClicked())); connect(RI_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
 
 	// Set Global Variables
 	std::map<int, QString> tmp_map;
 	tmp_map[0] = "True";
 	tmp_map[1] = RI_Radionuclide_sourceFD_QLineEdit->text();
 	tmp_map[2] = RI_Activity_sourceFD_QLineEdit->text(); if (tmp_map[2] == "") tmp_map[2] = "0";
-	ListInfo_sourceFD.push_back(tmp_map);
-	List_sourceFD_MakingIndex++;
+	m_model.ListInfo_sourceFD.push_back(tmp_map);
+	m_model.List_sourceFD_MakingIndex++;
 
 	theApp.SetMessageBox_RadionuclideWarning("The radionuclide data provided in this code are based on the data provided in the ICRP 107 publication.\nTHIS DATA DO NOT INCLUDE ANY DAUGHTER NUCLIDES!!!");
 }
@@ -2029,8 +3010,8 @@ void FloorDiskWidget::slot_RIList_Delete_sourceFD_ButtonClicked()
 	QListWidgetItem* toRemove = RI_List_sourceFD_QListWidget->takeItem(row);
 	delete toRemove; // Delete the item to free memory
 
-	if (RadonuclideIndex >= 0 && RadonuclideIndex < ListInfo_sourceFD.size()) {
-		ListInfo_sourceFD.erase(ListInfo_sourceFD.begin() + RadonuclideIndex);
+	if (RadonuclideIndex >= 0 && RadonuclideIndex < m_model.ListInfo_sourceFD.size()) {
+		m_model.ListInfo_sourceFD.erase(m_model.ListInfo_sourceFD.begin() + RadonuclideIndex);
 		RI_ListDelete_sourceFD_QButton.erase(RI_ListDelete_sourceFD_QButton.begin() + RadonuclideIndex);
 		RI_ListInfo_sourceFD_QButton.erase(RI_ListInfo_sourceFD_QButton.begin() + RadonuclideIndex);
 	}
@@ -2043,7 +3024,7 @@ void FloorDiskWidget::slot_RIList_Delete_sourceFD_ButtonClicked()
 		RI_ListDelete_sourceFD_QButton[index]->setObjectName(QString::number(index));
 		RI_ListInfo_sourceFD_QButton[index]->setObjectName(QString::number(index));
 	}
-	List_sourceFD_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
+	m_model.List_sourceFD_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
 }
 void FloorDiskWidget::slot_RIList_Info_sourceFD_ButtonClicked()
 {
@@ -2279,14 +3260,14 @@ void FloorDiskWidget::slot_sourceFD_EnergySpectrumSelect_RadioButtonClicked()
 
 	// 3. 관리하던 모든 vector의 내용 비우기
 	// 각 vector의 clear() 멤버 함수를 호출하여 모든 요소를 제거합니다.
-	ListInfo_sourceFD.clear();
+	m_model.ListInfo_sourceFD.clear();
 	RI_ListDelete_sourceFD_QButton.clear();
 	RI_ListInfo_sourceFD_QButton.clear();
 	theApp.SourcePanelActor_Position.clear();
 
 	// 4. 인덱스 카운터 초기화
 	// 리스트 아이템 개수를 추적하는 변수를 초기값(보통 0)으로 리셋합니다.
-	List_sourceFD_MakingIndex = 0;
+	m_model.List_sourceFD_MakingIndex = 0;
 }
 void FloorDiskWidget::slot_ESList_Add_sourceFD_ButtonClicked()
 {
@@ -2331,46 +3312,46 @@ void FloorDiskWidget::slot_ESList_Add_sourceFD_ButtonClicked()
 	labelPosZ->setFont(panel->font_D_LW2); // Set font for the label
 
 	ES_ListDelete_sourceFD_QButton.push_back(new QPushButton());
-	if (List_sourceFD_MakingIndex >= ES_ListDelete_sourceFD_QButton.size()) theApp.SetMessageBox("m_sourceFD_ES_listDeleteButton Vector index error");
-	ES_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setCheckable(false);
-	ES_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	ES_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setFont(panel->font_D_BTN13);
-	ES_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	ES_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
-	ES_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]->setObjectName(QString::number(List_sourceFD_MakingIndex));
+	if (m_model.List_sourceFD_MakingIndex >= ES_ListDelete_sourceFD_QButton.size()) theApp.SetMessageBox("m_sourceFD_ES_listDeleteButton Vector index error");
+	ES_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setCheckable(false);
+	ES_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	ES_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setFont(panel->font_D_BTN13);
+	ES_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	ES_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
+	ES_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setObjectName(QString::number(m_model.List_sourceFD_MakingIndex));
 
 	ES_ListInfo_sourceFD_QButton.push_back(new QPushButton());
-	if (List_sourceFD_MakingIndex >= ES_ListInfo_sourceFD_QButton.size()) theApp.SetMessageBox("m_sourceFD_ES_listInfoButton Vector index error");
-	ES_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setCheckable(false);
-	ES_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	ES_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setFont(panel->font_D_BTN13);
-	ES_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	ES_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
-	ES_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]->setObjectName(QString::number(List_sourceFD_MakingIndex));
+	if (m_model.List_sourceFD_MakingIndex >= ES_ListInfo_sourceFD_QButton.size()) theApp.SetMessageBox("m_sourceFD_ES_listInfoButton Vector index error");
+	ES_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setCheckable(false);
+	ES_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	ES_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setFont(panel->font_D_BTN13);
+	ES_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	ES_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
+	ES_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]->setObjectName(QString::number(m_model.List_sourceFD_MakingIndex));
 
 	hLayout->addWidget(label1);
 	hLayout->addWidget(label2);
 	hLayout->addWidget(labelPosX);
 	hLayout->addWidget(labelPosY);
 	hLayout->addWidget(labelPosZ);
-	hLayout->addWidget(ES_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex]);
-	hLayout->addWidget(ES_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex]);
+	hLayout->addWidget(ES_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]);
+	hLayout->addWidget(ES_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex]);
 	widget->setLayout(hLayout);
 
 	ES_List_sourceFD_QListWidget->setItemWidget(item, widget);
 	item->setSizeHint(widget->sizeHint());
 
 	// Connect signals of the new buttons
-	connect(ES_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Delete_sourceFD_ButtonClicked())); connect(ES_ListDelete_sourceFD_QButton[List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	connect(ES_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Info_sourceFD_ButtonClicked())); connect(ES_ListInfo_sourceFD_QButton[List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(ES_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Delete_sourceFD_ButtonClicked())); connect(ES_ListDelete_sourceFD_QButton[m_model.List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(ES_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Info_sourceFD_ButtonClicked())); connect(ES_ListInfo_sourceFD_QButton[m_model.List_sourceFD_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
 	
 	// Set Global Variables
 	std::map<int, QString> tmp_map;
 	tmp_map[0] = "True";
 	tmp_map[1] = inputText;
 	tmp_map[2] = ES_Intensity_sourceFD_QLineEdit->text(); if (tmp_map[2] == "") tmp_map[2] = "0";
-	ListInfo_sourceFD.push_back(tmp_map);
-	List_sourceFD_MakingIndex++;
+	m_model.ListInfo_sourceFD.push_back(tmp_map);
+	m_model.List_sourceFD_MakingIndex++;
 
 	// Set panel info 
 	ES_Intensity_sourceFD_QLineEdit->clear();
@@ -2388,9 +3369,9 @@ void FloorDiskWidget::slot_ESList_Delete_sourceFD_ButtonClicked()
 	QListWidgetItem* toRemove = ES_List_sourceFD_QListWidget->takeItem(row);
 	delete toRemove; // Delete the item to free memory
 
-	if (EnersySpectrumIndex >= 0 && EnersySpectrumIndex < ListInfo_sourceFD.size())
+	if (EnersySpectrumIndex >= 0 && EnersySpectrumIndex < m_model.ListInfo_sourceFD.size())
 	{
-		ListInfo_sourceFD.erase(ListInfo_sourceFD.begin() + EnersySpectrumIndex);
+		m_model.ListInfo_sourceFD.erase(m_model.ListInfo_sourceFD.begin() + EnersySpectrumIndex);
 		ES_ListDelete_sourceFD_QButton.erase(ES_ListDelete_sourceFD_QButton.begin() + EnersySpectrumIndex);
 		ES_ListInfo_sourceFD_QButton.erase(ES_ListInfo_sourceFD_QButton.begin() + EnersySpectrumIndex);
 		
@@ -2404,7 +3385,7 @@ void FloorDiskWidget::slot_ESList_Delete_sourceFD_ButtonClicked()
 		ES_ListDelete_sourceFD_QButton[index]->setObjectName(QString::number(index));
 		ES_ListInfo_sourceFD_QButton[index]->setObjectName(QString::number(index));
 	}
-	List_sourceFD_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
+	m_model.List_sourceFD_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
 }
 void FloorDiskWidget::slot_ESList_Info_sourceFD_ButtonClicked()
 {
@@ -2485,7 +3466,7 @@ void FloorDiskWidget::slot_ESList_Info_sourceFD_ButtonClicked()
 	cursor.insertText("\nRadiation Spectrum of the Entered File\n", boldFormat);
 	cursor.insertText("Radiation      Fraction       Energy (MeV)\n", boldSmallFormat);
 
-	QString ESFileName = ListInfo_sourceFD[EnergySpectrumIndex][1];
+	QString ESFileName = m_model.ListInfo_sourceFD[EnergySpectrumIndex][1];
 	QFile ESFile(ESFileName);
 	if (!ESFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 		// Handle error: Unable to open file
@@ -3005,39 +3986,159 @@ bool ObjectVolumeWidget::initialize()
     return true;
 }
 
+
+void ObjectVolumeWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+	updateModelFromUI();
+}
+void ObjectVolumeWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
+	updateModelFromUI();
+	//ObjectVolume
+	ofp_info << "Source_type: Object_volume" << endl;
+	for (auto itr_sourceOV_index : m_model.m_sourceOV_objectSequenceVector)
+	{
+		ofp_info << "\tObject:" << endl;
+		ofp_info << "\t[" << panel->m_Object_ButtonName[itr_sourceOV_index].toStdString() << "]" << endl; // panel 사용 중
+		ofp_info << "\t\tRadionuclide\tActivity(Bq/cm3) " << endl;
+		for (auto itr_RIvector : m_model.ListInfo_sourceOV[itr_sourceOV_index])
+		{
+			ofp_info << "\t\t" << itr_RIvector[1].toStdString() << "\t" << itr_RIvector[2].toStdString() << endl;
+		}
+		ofp_info << "\t^" << endl;
+	}
+
+}
+void ObjectVolumeWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+	std::string dump;
+	int sourceOV_object_index;
+	int sourceOV_making_index;
+	while (ifp >> dump) // [object_name] or "^"
+	{
+		if (dump == "^") break;					
+		// Source OV에서 버튼 만들기
+		QString targetValue = QString::fromStdString(theApp.ExtractInnerString(dump));
+		auto it = std::find_if(panel->m_Object_ButtonName.begin(), panel->m_Object_ButtonName.end(),
+			[&targetValue](const std::pair<int, QString>& pair) {
+				return pair.second == targetValue;
+			});
+		if (it != panel->m_Object_ButtonName.end()) sourceOV_object_index = it->first;  // QString 값을 찾으면 key 값을 반환
+		// 
+		theApp.ObjectPanelActors[sourceOV_object_index]->GetProperty()->SetColor(1.0, 0., 0.);
+		theApp.m_pVTKWidget->renderWindow()->Render();
+		double* bounds = theApp.ObjectPanelActors[sourceOV_object_index]->GetBounds();
+		m_model.sourceOV_objectBound[sourceOV_object_index][0] = bounds[0];
+		m_model.sourceOV_objectBound[sourceOV_object_index][1] = bounds[1];
+		m_model.sourceOV_objectBound[sourceOV_object_index][2] = bounds[2];
+		m_model.sourceOV_objectBound[sourceOV_object_index][3] = bounds[3];
+		m_model.sourceOV_objectBound[sourceOV_object_index][4] = bounds[4];
+		m_model.sourceOV_objectBound[sourceOV_object_index][5] = bounds[5];
+	}
+
+	updateModelFromUI();
+}
+void ObjectVolumeWidget::updateModelFromUI()
+{
+    // =========================================================
+    // 1. 상태 플래그 (기존 변수명 그대로 사용)
+    // =========================================================
+    
+    // 시각화 버튼 상태 저장
+    m_model.b_IsSourceLocationVisualized_sourceOV = m_ObjectVolumeSourceVisualizationButton->isChecked();
+
+
+    // =========================================================
+    // 2. 현재 입력창 값 저장 (임시 저장용 변수들)
+    // =========================================================
+
+    // 모드 선택 (Radio Button)
+    // RI 모드면 true, ES 모드면 false
+    m_model.isRadionuclideMode = sourceOV_Radionuclide_radioButton->isChecked();
+
+    // Radionuclide 모드 입력값
+    m_model.currentRadionuclideName = RI_Radionuclide_sourceOV_QLineEdit->text();
+    m_model.currentActivity = RI_Activity_sourceOV_QLineEdit->text().toDouble();
+
+    // Energy Spectrum 모드 입력값
+    // [주의] QTextEdit는 text()가 아니라 toPlainText()를 사용합니다.
+    m_model.currentSpectrumFile = sourceOV_EnergyspectrumFileNameText->toPlainText();
+    m_model.currentSpectrumIntensity = ES_Intensity_sourceOV_QLineEdit->text().toDouble();
+
+
+    // =========================================================
+    // [참고] 왜 리스트나 바운딩 박스는 여기서 저장 안 하나요?
+    // =========================================================
+    // m_model.m_sourceOV_objectSequenceVector (오브젝트 목록)
+    // m_model.sourceOV_objectBound (좌표 범위)
+    // m_model.ListInfo_sourceOV (소스 리스트)
+    //
+    // 위 데이터들은 'Add' 버튼이나 'Dialog OK' 버튼을 누를 때 
+    // 해당 슬롯 함수에서 m_model에 즉시 추가(push_back/insert)되기 때문입니다.
+    // 따라서 이 함수에서는 '현재 입력창에 떠 있는 값'만 챙기면 됩니다.
+}
+
+bool ObjectVolumeWidget::hasOV_Obejcts() const
+{
+	return m_model.m_sourceOV_objectSequenceVector.size() > 0;
+}
+// int ObjectVolumeWidget::getOV_SelectIndex()
+// {
+// 	return m_model.Object_sourceOV_SelectedIndex;
+// }
+
+// void ObjectVolumeWidget::setOV_ObjectBound(int idx, double Xmin, double Xmax, double Ymin, double Ymax, double Zmin, double Zmax)
+// {
+// 	m_model.sourceOV_objectBound[idx][0] = Xmin;
+// 	m_model.sourceOV_objectBound[idx][1] = Xmax;
+// 	m_model.sourceOV_objectBound[idx][2] = Ymin;
+// 	m_model.sourceOV_objectBound[idx][3] = Ymax;
+// 	m_model.sourceOV_objectBound[idx][4] = Zmin;
+// 	m_model.sourceOV_objectBound[idx][5] = Zmax;
+// }
+
+// bool ObjectVolumeWidget::isOV_AddingSettingOKClicked()
+// {
+// 	return m_model.b_IsSourceOV_AddingSettingOKClicked;
+// }
+
+// void ObjectVolumeWidget::setOV_AddingSettingClosed()
+// {
+// 	if(!m_model.b_IsSourceOV_AddingSettingClosed) m_model.b_IsSourceOV_AddingSettingClosed = true;
+// }
 void ObjectVolumeWidget::ExecuteSourceOVAddRoutines()
 {
-	if (b_IsSourceOV_AddingSettingClosed == true) // X버튼으로 나갔을때
+	if (m_model.b_IsSourceOV_AddingSettingClosed == true) // X버튼으로 나갔을때
 	{
-		b_IsSourceOV_AddingSettingClosed = false;
+		m_model.b_IsSourceOV_AddingSettingClosed = false;
 		return;
 	}
 
-	Object_sourceOV_SelectedIndex = m_Object_SequenceVector[m_comboBoxSetting_sourceOV_objectList->currentIndex()]; // 선택된 object index 설정
+	m_model.Object_sourceOV_SelectedIndex = panel->m_Object_SequenceVector[m_comboBoxSetting_sourceOV_objectList->currentIndex()]; // 선택된 object index 설정
 
 	// 이미 해당 object 선택되었을 때 종료
-	auto it = std::find(m_sourceOV_objectSequenceVector.begin(), m_sourceOV_objectSequenceVector.end(), Object_sourceOV_SelectedIndex);
-	if (it != m_sourceOV_objectSequenceVector.end()) 
+	auto it = std::find(m_model.m_sourceOV_objectSequenceVector.begin(), m_model.m_sourceOV_objectSequenceVector.end(), m_model.Object_sourceOV_SelectedIndex);
+	if (it != m_model.m_sourceOV_objectSequenceVector.end()) 
 	{
 		theApp.SetMessageBox("This object is already set to the volume source");
 		return;
 	}
 
 	// == Source Object버튼 생성 ==
-	sourceOV_ObjectButton[Object_sourceOV_SelectedIndex] = new QPushButton(m_Object_ButtonName[Object_sourceOV_SelectedIndex]); // 구조물 이름 
-	panel->Buttons_FunctionPanelRight.append(sourceOV_ObjectButton[Object_sourceOV_SelectedIndex]);
-	sourceOV_ObjectButton[Object_sourceOV_SelectedIndex]->setObjectName(QString::number(Object_sourceOV_SelectedIndex));
-	sourceOV_ObjectButton[Object_sourceOV_SelectedIndex]->setFixedSize(panel->Window_width * 0.05, panel->Window_height * 0.040);
-	sourceOV_ObjectButton[Object_sourceOV_SelectedIndex]->setStyleSheet(DialogStyle::MENU_BTN7);
-	sourceOV_ObjectButton[Object_sourceOV_SelectedIndex]->setFont(panel->font_D_BTN7);
-	sourceOV_ObjectButton[Object_sourceOV_SelectedIndex]->setCheckable(true);
-	sourceOV_ObjectButton[Object_sourceOV_SelectedIndex]->setChecked(true);
-	connect(sourceOV_ObjectButton[Object_sourceOV_SelectedIndex], SIGNAL(clicked()), this, SLOT(slot_sourceOV_ObjectSelect_ButtonClicked())); connect(sourceOV_ObjectButton[Object_sourceOV_SelectedIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	layout_sourceOV_ObjectList->addWidget(sourceOV_ObjectButton[Object_sourceOV_SelectedIndex]);
+	sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex] = new QPushButton(panel->m_Object_ButtonName[m_model.Object_sourceOV_SelectedIndex]); // 구조물 이름 
+	panel->Buttons_FunctionPanelRight.append(sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex]);
+	sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex]->setObjectName(QString::number(m_model.Object_sourceOV_SelectedIndex));
+	sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex]->setFixedSize(panel->Window_width * 0.05, panel->Window_height * 0.040);
+	sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex]->setStyleSheet(DialogStyle::MENU_BTN7);
+	sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex]->setFont(panel->font_D_BTN7);
+	sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex]->setCheckable(true);
+	sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex]->setChecked(true);
+	connect(sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex], SIGNAL(clicked()), this, SLOT(slot_sourceOV_ObjectSelect_ButtonClicked())); connect(sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	layout_sourceOV_ObjectList->addWidget(sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex]);
 
-	for (auto itr : m_sourceOV_objectSequenceVector)
+	for (auto itr : m_model.m_sourceOV_objectSequenceVector)
 	{
-		if (itr != Object_sourceOV_SelectedIndex)
+		if (itr != m_model.Object_sourceOV_SelectedIndex)
 		{
 			sourceOV_ObjectButton[itr]->setChecked(false);
 		}
@@ -3056,25 +4157,25 @@ void ObjectVolumeWidget::ExecuteSourceOVAddRoutines()
 	ES_ListDelete_sourceOV_QButton.clear();
 	ES_ListInfo_sourceOV_QButton.clear();
 	
-	List_sourceOV_MakingIndex = 0;	 // 하나의 object에서의 List 방사선원 makingindex
+	m_model.List_sourceOV_MakingIndex = 0;	 // 하나의 object에서의 List 방사선원 makingindex
 	
 	// Set global variables 
-	m_sourceOV_objectSequenceVector.push_back(Object_sourceOV_SelectedIndex);
+	m_model.m_sourceOV_objectSequenceVector.push_back(m_model.Object_sourceOV_SelectedIndex);
 
-	theApp.ObjectPanelActors[Object_sourceOV_SelectedIndex]->GetProperty()->SetColor(1.0, 0., 0.);
-	double* bounds = theApp.ObjectPanelActors[Object_sourceOV_SelectedIndex]->GetBounds();
-	sourceOV_objectBound[Object_sourceOV_SelectedIndex][0] = bounds[0];
-	sourceOV_objectBound[Object_sourceOV_SelectedIndex][1] = bounds[1];
-	sourceOV_objectBound[Object_sourceOV_SelectedIndex][2] = bounds[2];
-	sourceOV_objectBound[Object_sourceOV_SelectedIndex][3] = bounds[3];
-	sourceOV_objectBound[Object_sourceOV_SelectedIndex][4] = bounds[4];
-	sourceOV_objectBound[Object_sourceOV_SelectedIndex][5] = bounds[5];
+	theApp.ObjectPanelActors[m_model.Object_sourceOV_SelectedIndex]->GetProperty()->SetColor(1.0, 0., 0.);
+	double* bounds = theApp.ObjectPanelActors[m_model.Object_sourceOV_SelectedIndex]->GetBounds();
+	m_model.sourceOV_objectBound[m_model.Object_sourceOV_SelectedIndex][0] = bounds[0];
+	m_model.sourceOV_objectBound[m_model.Object_sourceOV_SelectedIndex][1] = bounds[1];
+	m_model.sourceOV_objectBound[m_model.Object_sourceOV_SelectedIndex][2] = bounds[2];
+	m_model.sourceOV_objectBound[m_model.Object_sourceOV_SelectedIndex][3] = bounds[3];
+	m_model.sourceOV_objectBound[m_model.Object_sourceOV_SelectedIndex][4] = bounds[4];
+	m_model.sourceOV_objectBound[m_model.Object_sourceOV_SelectedIndex][5] = bounds[5];
 
 	theApp.m_pVTKWidget->renderWindow()->Render();
 }
 void ObjectVolumeWidget::sourceOV_ObjectAddingSetting_Create()
 {
-	b_IsSourceOV_AddingSettingOKClicked = false;
+	m_model.b_IsSourceOV_AddingSettingOKClicked = false;
 	// Create a new dialog
 	sourceOV_ObjectAddingDialog = new MultipleUIDialog(this);
 	sourceOV_ObjectAddingDialog->setStyleSheet("background-color: rgb(250, 204, 207);");
@@ -3107,11 +4208,11 @@ void ObjectVolumeWidget::sourceOV_ObjectAddingSetting_Create()
 		m_comboBoxSetting_sourceOV_objectList->setStyleSheet(DialogStyle::COMBOBOX);
 		m_comboBoxSetting_sourceOV_objectList->setFont(panel->font_D_CB1);
 
-		if (m_Object_SequenceVector.size() != 0)
+		if (panel->m_Object_SequenceVector.size() != 0)
 		{
-			for (auto itr_objectList : m_Object_SequenceVector)
+			for (auto itr_objectList : panel->m_Object_SequenceVector)
 			{
-				m_comboBoxSetting_sourceOV_objectList->addItem(m_Object_ButtonName[itr_objectList]);
+				m_comboBoxSetting_sourceOV_objectList->addItem(panel->m_Object_ButtonName[itr_objectList]);
 			}
 			m_comboBoxSetting_sourceOV_objectList->setCurrentIndex(0);
 		}
@@ -3155,7 +4256,7 @@ void ObjectVolumeWidget::sourceOV_ObjectAddingSetting_Create()
 // --- Slot Functions ---
 void ObjectVolumeWidget::slot_ObjectVolumeSourceVisualization_ButtonClicked()
 {
-	b_IsSourceLocationVisualized_sourceOV = !b_IsSourceLocationVisualized_sourceOV;
+	m_model.b_IsSourceLocationVisualized_sourceOV = !m_model.b_IsSourceLocationVisualized_sourceOV;
 
 }
 
@@ -3178,9 +4279,9 @@ void ObjectVolumeWidget::slot_sourceOV_ObjectSelect_ButtonClicked()
 	QPushButton* buttonSender = qobject_cast<QPushButton*>(sender());
 	
 	// 원래 버튼 클릭 시 다시 check하고 돌아가기
-	if (buttonSender->objectName().toInt() == Object_sourceOV_SelectedIndex)
+	if (buttonSender->objectName().toInt() == m_model.Object_sourceOV_SelectedIndex)
 	{
-		sourceOV_ObjectButton[Object_sourceOV_SelectedIndex]->setChecked(true);
+		sourceOV_ObjectButton[m_model.Object_sourceOV_SelectedIndex]->setChecked(true);
 		return;
 	}
 	
@@ -3197,14 +4298,14 @@ void ObjectVolumeWidget::slot_sourceOV_ObjectSelect_ButtonClicked()
 	ES_ListDelete_sourceOV_QButton.clear();
 	ES_ListInfo_sourceOV_QButton.clear();
 	
-	List_sourceOV_MakingIndex = 0;	 // 하나의 object에서의 List 방사선원 makingindex
+	m_model.List_sourceOV_MakingIndex = 0;	 // 하나의 object에서의 List 방사선원 makingindex
 
 	////////////////// seleceted index 설정/////////////////////
-	Object_sourceOV_SelectedIndex = buttonSender->objectName().toInt();
-	int id = Object_sourceOV_SelectedIndex;
+	m_model.Object_sourceOV_SelectedIndex = buttonSender->objectName().toInt();
+	int id = m_model.Object_sourceOV_SelectedIndex;
 	
 	// 버튼 업데이트
-	for (auto itr : m_sourceOV_objectSequenceVector)
+	for (auto itr : m_model.m_sourceOV_objectSequenceVector)
 	{
 		if (itr != id)
 		{
@@ -3213,22 +4314,22 @@ void ObjectVolumeWidget::slot_sourceOV_ObjectSelect_ButtonClicked()
 	}
 		
 	// List 업데이트
-	for (auto itr : ListInfo_sourceOV[Object_sourceOV_SelectedIndex])
+	for (auto itr : m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex])
 	{
 		
 		if (itr[1].toStdString().find_first_of("/\\:") == std::string::npos)// ListInfo 각 요소에서 경로구분자가 없으면 RI
 		{
 			
-			b_sourceOV_InObjectSelect = true;
+			m_model.b_sourceOV_InObjectSelect = true;
 			slot_sourceOV_RadionuclideAdd_ButtonClicked();
-			b_sourceOV_InObjectSelect = false;
+			m_model.b_sourceOV_InObjectSelect = false;
 		}
 		else if (itr[1].toStdString().find_first_of("/\\:") != std::string::npos)// ListInfo 각 요소에서 경로구분자가 있으면 ES
 		{
 			
-			b_sourceOV_InObjectSelect = true;
+			m_model.b_sourceOV_InObjectSelect = true;
 			slot_ESList_Add_sourceOV_ButtonClicked();
-			b_sourceOV_InObjectSelect = false;
+			m_model.b_sourceOV_InObjectSelect = false;
 		}
 	}
 	
@@ -3265,12 +4366,12 @@ void ObjectVolumeWidget::slot_sourceOV_RadionuclideSelect_RadioButtonClicked()
 	ES_List_sourceOV_QListWidget->clear();
 
 	// 3. 관리하던 모든 vector의 내용 비우기
-	ListInfo_sourceOV[Object_sourceOV_SelectedIndex].clear();
+	m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex].clear();
 	ES_ListDelete_sourceOV_QButton.clear();
 	ES_ListInfo_sourceOV_QButton.clear();
 
 	// 4. 인덱스 카운터 초기화
-	List_sourceOV_MakingIndex = 0;
+	m_model.List_sourceOV_MakingIndex = 0;
 }
 void ObjectVolumeWidget::slot_sourceOV_EnergySpectrumSelect_RadioButtonClicked()
 {
@@ -3301,30 +4402,34 @@ void ObjectVolumeWidget::slot_sourceOV_EnergySpectrumSelect_RadioButtonClicked()
 	RI_List_sourceOV_QListWidget->clear();
 
 	// 3. 관리하던 모든 vector의 내용 비우기
-	ListInfo_sourceOV[Object_sourceOV_SelectedIndex].clear();
+	m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex].clear();
 	RI_ListDelete_sourceOV_QButton.clear();
 	RI_ListInfo_sourceOV_QButton.clear();
 
 	// 4. 인덱스 카운터 초기화
-	List_sourceOV_MakingIndex = 0;
+	m_model.List_sourceOV_MakingIndex = 0;
 }
 
 // Dialog Interaction
 void ObjectVolumeWidget::slot_sourceOV_ObjectSettingChangeCombo(int idx)
 {
+	updateModelFromUI();
 	m_comboBoxSetting_sourceOV_objectList->hide();	m_comboBoxSetting_sourceOV_objectList->show(); // This is for focusing (Do not show white blank)
 }
 void ObjectVolumeWidget::slot_sourceOV_SettingOK_ButtonClicked()
 {	
+	updateModelFromUI();
 	// AddingOK에 Setting widget 정상 종료를 위해 반드시 필요함
-	b_IsSourceOV_AddingSettingOKClicked = true;
+	m_model.b_IsSourceOV_AddingSettingOKClicked = true;
 	sourceOV_ObjectAddingDialog->close();
 }
 
 // Radionuclide Operations
 void ObjectVolumeWidget::slot_sourceOV_RadionuclideAdd_ButtonClicked()
 {
-	if (b_sourceOV_InObjectSelect == false) // 새롭게 추가한 상황에서만 판단
+	updateModelFromUI();
+
+	if (m_model.b_sourceOV_InObjectSelect == false) // 새롭게 추가한 상황에서만 판단
 	{
 		// 지원하는 RI 리스트에 있는지 판별
 		QString inputText = RI_Radionuclide_sourceOV_QLineEdit->text().trimmed();
@@ -3355,15 +4460,15 @@ void ObjectVolumeWidget::slot_sourceOV_RadionuclideAdd_ButtonClicked()
 	
 	QString str_RI; 
 	QString str_activity; 
-	if (b_sourceOV_InObjectSelect == false) // 새롭게 추가하는 상황
+	if (m_model.b_sourceOV_InObjectSelect == false) // 새롭게 추가하는 상황
 	{
 		str_RI = RI_Radionuclide_sourceOV_QLineEdit->text();
 		str_activity = RI_Activity_sourceOV_QLineEdit->text();
 	}
-	else if (b_sourceOV_InObjectSelect == true) // object select한 상황
+	else if (m_model.b_sourceOV_InObjectSelect == true) // object select한 상황
 	{
-		str_RI = ListInfo_sourceOV[Object_sourceOV_SelectedIndex][List_sourceOV_MakingIndex][1];
-		str_activity = ListInfo_sourceOV[Object_sourceOV_SelectedIndex][List_sourceOV_MakingIndex][2];
+		str_RI = m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex][m_model.List_sourceOV_MakingIndex][1];
+		str_activity = m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex][m_model.List_sourceOV_MakingIndex][2];
 	}		
 	
 	QListWidgetItem* item = new QListWidgetItem(RI_List_sourceOV_QListWidget);
@@ -3397,49 +4502,49 @@ void ObjectVolumeWidget::slot_sourceOV_RadionuclideAdd_ButtonClicked()
 	labelPosZ->setFont(panel->font_D_LW2); // Set font for the label
 
 	RI_ListDelete_sourceOV_QButton.push_back(new QPushButton());	
-	RI_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setCheckable(false);
-	RI_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	RI_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setFont(panel->font_D_BTN13);
-	RI_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	RI_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
-	RI_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setObjectName(QString::number(List_sourceOV_MakingIndex));
+	RI_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setCheckable(false);
+	RI_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	RI_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setFont(panel->font_D_BTN13);
+	RI_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	RI_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
+	RI_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setObjectName(QString::number(m_model.List_sourceOV_MakingIndex));
 
 	RI_ListInfo_sourceOV_QButton.push_back(new QPushButton());
-	RI_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setCheckable(false);
-	RI_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	RI_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setFont(panel->font_D_BTN13);
-	RI_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	RI_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
-	RI_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setObjectName(QString::number(List_sourceOV_MakingIndex));
+	RI_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setCheckable(false);
+	RI_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	RI_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setFont(panel->font_D_BTN13);
+	RI_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	RI_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
+	RI_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setObjectName(QString::number(m_model.List_sourceOV_MakingIndex));
 	
 	hLayout->addWidget(label1);
 	hLayout->addWidget(label2);
 	hLayout->addWidget(labelPosX);
 	hLayout->addWidget(labelPosY);
 	hLayout->addWidget(labelPosZ);
-	hLayout->addWidget(RI_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]);
-	hLayout->addWidget(RI_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]);
+	hLayout->addWidget(RI_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]);
+	hLayout->addWidget(RI_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]);
 	widget->setLayout(hLayout);
 
 	RI_List_sourceOV_QListWidget->setItemWidget(item, widget);
 	item->setSizeHint(widget->sizeHint());
 	
 	// Connect signals of the new buttons
-	connect(RI_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_sourceOV_RadionuclideDelete_ButtonClicked())); connect(RI_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	connect(RI_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_sourceOV_RadionuclideInfo_ButtonClicked())); connect(RI_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(RI_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_sourceOV_RadionuclideDelete_ButtonClicked())); connect(RI_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(RI_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_sourceOV_RadionuclideInfo_ButtonClicked())); connect(RI_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
 	
 	// Set Global Variables
-	if (b_sourceOV_InObjectSelect == false) // 새롭게 추가하는 상황
+	if (m_model.b_sourceOV_InObjectSelect == false) // 새롭게 추가하는 상황
 	{
 		std::map<int, QString> tmp_map;
 		tmp_map[0] = "True";
 		tmp_map[1] = str_RI;
 		tmp_map[2] = str_activity; if (tmp_map[2] == "") tmp_map[2] = "0";
-		ListInfo_sourceOV[Object_sourceOV_SelectedIndex].push_back(tmp_map);
+		m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex].push_back(tmp_map);
 
 		theApp.SetMessageBox_RadionuclideWarning("The radionuclide data provided in this code are based on the data provided in the ICRP 107 publication.\nTHIS DATA DO NOT INCLUDE ANY DAUGHTER NUCLIDES!!!");
 	}
-	List_sourceOV_MakingIndex++;	
+	m_model.List_sourceOV_MakingIndex++;	
 
 	// Set panel info 
 	RI_Radionuclide_sourceOV_QLineEdit->clear();
@@ -3447,6 +4552,7 @@ void ObjectVolumeWidget::slot_sourceOV_RadionuclideAdd_ButtonClicked()
 }
 void ObjectVolumeWidget::slot_sourceOV_RadionuclideDelete_ButtonClicked()
 {
+	updateModelFromUI();
 	// Button의 Index 찾기
 	QPushButton* buttonSender = qobject_cast<QPushButton*>(sender());
 	QString buttonText = buttonSender->objectName();
@@ -3457,8 +4563,8 @@ void ObjectVolumeWidget::slot_sourceOV_RadionuclideDelete_ButtonClicked()
 	QListWidgetItem* toRemove = RI_List_sourceOV_QListWidget->takeItem(row);
 	delete toRemove; // Delete the item to free memory
 
-	if (RadonuclideIndex >= 0 && RadonuclideIndex < ListInfo_sourceOV[Object_sourceOV_SelectedIndex].size()) {
-		ListInfo_sourceOV[Object_sourceOV_SelectedIndex].erase(ListInfo_sourceOV[Object_sourceOV_SelectedIndex].begin() + RadonuclideIndex);
+	if (RadonuclideIndex >= 0 && RadonuclideIndex < m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex].size()) {
+		m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex].erase(m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex].begin() + RadonuclideIndex);
 		RI_ListDelete_sourceOV_QButton.erase(RI_ListDelete_sourceOV_QButton.begin() + RadonuclideIndex);
 		RI_ListInfo_sourceOV_QButton.erase(RI_ListInfo_sourceOV_QButton.begin() + RadonuclideIndex);
 	}
@@ -3471,10 +4577,11 @@ void ObjectVolumeWidget::slot_sourceOV_RadionuclideDelete_ButtonClicked()
 		RI_ListDelete_sourceOV_QButton[index]->setObjectName(QString::number(index));
 		RI_ListInfo_sourceOV_QButton[index]->setObjectName(QString::number(index));
 	}
-	List_sourceOV_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
+	m_model.List_sourceOV_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
 }
 void ObjectVolumeWidget::slot_sourceOV_RadionuclideInfo_ButtonClicked()
 {
+	updateModelFromUI();
 	// Button의 Index 찾기
 	QPushButton* buttonSender = qobject_cast<QPushButton*>(sender());
 	QString buttonText = buttonSender->objectName();
@@ -3679,6 +4786,7 @@ void ObjectVolumeWidget::slot_sourceOV_RadionuclideInfo_ButtonClicked()
 // Energy Spectrum Operations
 void ObjectVolumeWidget::slot_sourceOV_EnergyspectrumFileLoad_ButtonClicked()
 {
+	updateModelFromUI();
 	QString filter;
 	filter = tr("(*.*)");
 	QString dir = QFileDialog::getOpenFileName(
@@ -3699,7 +4807,8 @@ void ObjectVolumeWidget::slot_sourceOV_EnergyspectrumFileLoad_ButtonClicked()
 }
 void ObjectVolumeWidget::slot_ESList_Add_sourceOV_ButtonClicked()
 {
-	if (b_sourceOV_InObjectSelect == false)
+	updateModelFromUI();
+	if (m_model.b_sourceOV_InObjectSelect == false)
 	{		
 		QString inputText = sourceOV_EnergyspectrumFileNameText->toPlainText();
 		if (inputText.isEmpty()) {
@@ -3710,15 +4819,15 @@ void ObjectVolumeWidget::slot_ESList_Add_sourceOV_ButtonClicked()
 	
 	QString str_ES;
 	QString str_intensity;
-	if (b_sourceOV_InObjectSelect == false) // 새롭게 추가하는 상황
+	if (m_model.b_sourceOV_InObjectSelect == false) // 새롭게 추가하는 상황
 	{
 		str_ES = sourceOV_EnergyspectrumFileNameText->toPlainText();
 		str_intensity = ES_Intensity_sourceOV_QLineEdit->text();
 	}
-	else if (b_sourceOV_InObjectSelect == true) // object select한 상황
+	else if (m_model.b_sourceOV_InObjectSelect == true) // object select한 상황
 	{
-		str_ES = ListInfo_sourceOV[Object_sourceOV_SelectedIndex][List_sourceOV_MakingIndex][1];
-		str_intensity = ListInfo_sourceOV[Object_sourceOV_SelectedIndex][List_sourceOV_MakingIndex][2];
+		str_ES = m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex][m_model.List_sourceOV_MakingIndex][1];
+		str_intensity = m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex][m_model.List_sourceOV_MakingIndex][2];
 	}
 
 	QListWidgetItem* item = new QListWidgetItem(ES_List_sourceOV_QListWidget);
@@ -3755,49 +4864,49 @@ void ObjectVolumeWidget::slot_ESList_Add_sourceOV_ButtonClicked()
 	labelPosZ->setFont(panel->font_D_LW2); // Set font for the label
 
 	ES_ListDelete_sourceOV_QButton.push_back(new QPushButton());
-	if (List_sourceOV_MakingIndex >= ES_ListDelete_sourceOV_QButton.size()) theApp.SetMessageBox("m_sourceOV_ES_listDeleteButton Vector index error");
-	ES_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setCheckable(false);
-	ES_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	ES_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setFont(panel->font_D_BTN13);
-	ES_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	ES_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
-	ES_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]->setObjectName(QString::number(List_sourceOV_MakingIndex));
+	if (m_model.List_sourceOV_MakingIndex >= ES_ListDelete_sourceOV_QButton.size()) theApp.SetMessageBox("m_sourceOV_ES_listDeleteButton Vector index error");
+	ES_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setCheckable(false);
+	ES_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	ES_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setFont(panel->font_D_BTN13);
+	ES_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	ES_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
+	ES_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setObjectName(QString::number(m_model.List_sourceOV_MakingIndex));
 
 	ES_ListInfo_sourceOV_QButton.push_back(new QPushButton());
-	if (List_sourceOV_MakingIndex >= ES_ListInfo_sourceOV_QButton.size()) theApp.SetMessageBox("m_sourceOV_ES_listInfoButton Vector index error");
-	ES_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setCheckable(false);
-	ES_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	ES_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setFont(panel->font_D_BTN13);
-	ES_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	ES_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
-	ES_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]->setObjectName(QString::number(List_sourceOV_MakingIndex));
+	if (m_model.List_sourceOV_MakingIndex >= ES_ListInfo_sourceOV_QButton.size()) theApp.SetMessageBox("m_sourceOV_ES_listInfoButton Vector index error");
+	ES_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setCheckable(false);
+	ES_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	ES_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setFont(panel->font_D_BTN13);
+	ES_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	ES_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
+	ES_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]->setObjectName(QString::number(m_model.List_sourceOV_MakingIndex));
 
 	hLayout->addWidget(label1);
 	hLayout->addWidget(label2);
 	hLayout->addWidget(labelPosX);
 	hLayout->addWidget(labelPosY);
 	hLayout->addWidget(labelPosZ);
-	hLayout->addWidget(ES_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex]);
-	hLayout->addWidget(ES_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex]);
+	hLayout->addWidget(ES_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]);
+	hLayout->addWidget(ES_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex]);
 	widget->setLayout(hLayout);
 
 	ES_List_sourceOV_QListWidget->setItemWidget(item, widget);
 	item->setSizeHint(widget->sizeHint());
 
 	// Connect signals of the new buttons
-	connect(ES_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Delete_sourceOV_ButtonClicked())); connect(ES_ListDelete_sourceOV_QButton[List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	connect(ES_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Info_sourceOV_ButtonClicked())); connect(ES_ListInfo_sourceOV_QButton[List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(ES_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Delete_sourceOV_ButtonClicked())); connect(ES_ListDelete_sourceOV_QButton[m_model.List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(ES_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Info_sourceOV_ButtonClicked())); connect(ES_ListInfo_sourceOV_QButton[m_model.List_sourceOV_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
 
 	// Set Global Variables
-	if (b_sourceOV_InObjectSelect == false) // 새롭게 추가하는 상황
+	if (m_model.b_sourceOV_InObjectSelect == false) // 새롭게 추가하는 상황
 	{
 		std::map<int, QString> tmp_map;
 		tmp_map[0] = "True";
 		tmp_map[1] = str_ES;
 		tmp_map[2] = str_intensity; if (tmp_map[2] == "") tmp_map[2] = "0";
-		ListInfo_sourceOV[Object_sourceOV_SelectedIndex].push_back(tmp_map);
+		m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex].push_back(tmp_map);
 	}
-	List_sourceOV_MakingIndex++;
+	m_model.List_sourceOV_MakingIndex++;
 
 	// Set panel info 
 	ES_Intensity_sourceOV_QLineEdit->clear();
@@ -3805,6 +4914,7 @@ void ObjectVolumeWidget::slot_ESList_Add_sourceOV_ButtonClicked()
 }
 void ObjectVolumeWidget::slot_ESList_Delete_sourceOV_ButtonClicked()
 {
+	updateModelFromUI();
 	// Button의 Index 찾기
 	QPushButton* buttonSender = qobject_cast<QPushButton*>(sender());
 	QString buttonText = buttonSender->objectName();
@@ -3815,9 +4925,9 @@ void ObjectVolumeWidget::slot_ESList_Delete_sourceOV_ButtonClicked()
 	QListWidgetItem* toRemove = ES_List_sourceOV_QListWidget->takeItem(row);
 	delete toRemove; // Delete the item to free memory
 
-	if (EnersySpectrumIndex >= 0 && EnersySpectrumIndex < ListInfo_sourceOV[Object_sourceOV_SelectedIndex].size())
+	if (EnersySpectrumIndex >= 0 && EnersySpectrumIndex < m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex].size())
 	{
-		ListInfo_sourceOV[Object_sourceOV_SelectedIndex].erase(ListInfo_sourceOV[Object_sourceOV_SelectedIndex].begin() + EnersySpectrumIndex);
+		m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex].erase(m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex].begin() + EnersySpectrumIndex);
 		ES_ListDelete_sourceOV_QButton.erase(ES_ListDelete_sourceOV_QButton.begin() + EnersySpectrumIndex);
 		ES_ListInfo_sourceOV_QButton.erase(ES_ListInfo_sourceOV_QButton.begin() + EnersySpectrumIndex);
 
@@ -3831,10 +4941,11 @@ void ObjectVolumeWidget::slot_ESList_Delete_sourceOV_ButtonClicked()
 		ES_ListDelete_sourceOV_QButton[index]->setObjectName(QString::number(index));
 		ES_ListInfo_sourceOV_QButton[index]->setObjectName(QString::number(index));
 	}
-	List_sourceOV_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
+	m_model.List_sourceOV_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
 }
 void ObjectVolumeWidget::slot_ESList_Info_sourceOV_ButtonClicked()
 {
+	updateModelFromUI();
 	// Button의 Index 찾기
 	QPushButton* buttonSender = qobject_cast<QPushButton*>(sender());
 	QString buttonText = buttonSender->objectName();
@@ -3912,7 +5023,7 @@ void ObjectVolumeWidget::slot_ESList_Info_sourceOV_ButtonClicked()
 	cursor.insertText("\nRadiation Spectrum of the Entered File\n", boldFormat);
 	cursor.insertText("Radiation      Fraction       Energy (MeV)\n", boldSmallFormat);
 
-	QString ESFileName = ListInfo_sourceOV[Object_sourceOV_SelectedIndex][EnergySpectrumIndex][1];
+	QString ESFileName = m_model.ListInfo_sourceOV[m_model.Object_sourceOV_SelectedIndex][EnergySpectrumIndex][1];
 	QFile ESFile(ESFileName);
 	if (!ESFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 		// Handle error: Unable to open file
@@ -4166,9 +5277,71 @@ bool PhaseSpaceWidget::initialize()
     return true;
 }
 
+void PhaseSpaceWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+	updateModelFromUI();
+}
+void PhaseSpaceWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
+	updateModelFromUI();
+	//PhaseSpace
+	ofp_info << "Source_type: Phase_space_file" << endl;
+	if (m_model.selectedMode == PSMode::USER) ofp_info << "\tType: USER_defined_file" << endl;
+	if (m_model.selectedMode == PSMode::MCNP) ofp_info << "\tType: MCNP_file" << endl;
+	if (m_model.selectedMode == PSMode::PHITS) ofp_info << "\tType: PHITS_file" << endl;
+	if (m_model.selectedMode == PSMode::FLUKA) ofp_info << "\tType: FLUKA_file" << endl;
+	if (m_model.selectedMode == PSMode::IAEA) ofp_info << "\tType: IAEA_file" << endl;
+	ofp_info << "\tFile_name: " << m_model.phaseSpaceFileName.toStdString() << endl;
+}
+void PhaseSpaceWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+
+}
+void PhaseSpaceWidget::updateModelFromUI()
+{
+    // 1. 모드 판별 (버튼 상태 확인)
+    if (sourcePS_MCNP_button->isChecked()) {
+        m_model.selectedMode = PSMode::MCNP;
+    }
+    else if (sourcePS_PHITS_button->isChecked()) {
+        m_model.selectedMode = PSMode::PHITS;
+    }
+    else if (sourcePS_FLUKA_button->isChecked()) {
+        m_model.selectedMode = PSMode::FLUKA;
+    }
+    else if (sourcePS_IAEA_button->isChecked()) {
+        m_model.selectedMode = PSMode::IAEA;
+    }
+    else if (sourcePS_USER_Button->isChecked()) {
+        m_model.selectedMode = PSMode::USER;
+    }
+    else {
+        m_model.selectedMode = PSMode::None;
+    }
+
+    // 2. 옵션 및 시각화
+    m_model.isVisualized = SourceVisualziation_sourePS_QButton->isChecked();
+    m_model.isDirectionChecked = DirectionCheck_sourcePS_QCheckBox->isChecked();
+
+    // 3. 파일 이름 (QTextEdit이므로 toPlainText 사용)
+    m_model.phaseSpaceFileName = sourcePS_PSFname->placeholderText();
+}
+
+// PSMode PhaseSpaceWidget::getPS_mode() const
+// {
+//     // 순서대로 체크해서 걸리는 거 반환
+//     if (sourcePS_MCNP_button->isChecked())   return PSMode::MCNP;
+//     if (sourcePS_PHITS_button->isChecked())   return PSMode::PHITS;
+//     if (sourcePS_FLUKA_button->isChecked())  return PSMode::FLUKA;
+//     if (sourcePS_IAEA_button->isChecked())  return PSMode::IAEA;
+//     if (sourcePS_USER_Button->isChecked()) return PSMode::USER;
+
+//     return PSMode::None; // 아무것도 선택 안 됨
+// }
 // === Slot Functions ===
 void PhaseSpaceWidget::slot_PhaseSpaceSourceVisualization_ButtonClicked()
 {
+	updateModelFromUI();
 	if (SourceVisualziation_sourePS_QButton->isChecked())
 	{
 		SourceVisualziation_sourePS_QButton->setText("On");
@@ -4209,6 +5382,7 @@ void PhaseSpaceWidget::slot_DirectionCheck_sourcePS_QCheckBox_ButtonClicked()
 // Format Selection (Radio behavior using PushButtons)
 void PhaseSpaceWidget::slot_SourcePS_MCNP_ButtonClicked()
 {
+	updateModelFromUI();
 	sourcePS_MCNP_button->setChecked(true);
 	sourcePS_PHITS_button->setChecked(false);
 	sourcePS_FLUKA_button->setChecked(false);
@@ -4216,6 +5390,7 @@ void PhaseSpaceWidget::slot_SourcePS_MCNP_ButtonClicked()
 }
 void PhaseSpaceWidget::slot_SourcePS_PHITS_ButtonClicked()
 {
+	updateModelFromUI();
 	sourcePS_MCNP_button->setChecked(false);
 	sourcePS_PHITS_button->setChecked(true);
 	sourcePS_FLUKA_button->setChecked(false);
@@ -4223,6 +5398,7 @@ void PhaseSpaceWidget::slot_SourcePS_PHITS_ButtonClicked()
 }
 void PhaseSpaceWidget::slot_SourcePS_FLUKA_ButtonClicked()
 {
+	updateModelFromUI();
 	sourcePS_MCNP_button->setChecked(false);
 	sourcePS_PHITS_button->setChecked(false);
 	sourcePS_FLUKA_button->setChecked(true);
@@ -4230,6 +5406,7 @@ void PhaseSpaceWidget::slot_SourcePS_FLUKA_ButtonClicked()
 }
 void PhaseSpaceWidget::slot_SourcePS_IAEA_ButtonClicked()
 {
+	updateModelFromUI();
 	sourcePS_MCNP_button->setChecked(false);
 	sourcePS_PHITS_button->setChecked(false);
 	sourcePS_FLUKA_button->setChecked(false);
@@ -4238,6 +5415,7 @@ void PhaseSpaceWidget::slot_SourcePS_IAEA_ButtonClicked()
 }
 void PhaseSpaceWidget::slot_SourcePS_USER_ButtonClicked()
 {
+	updateModelFromUI();
 	sourcePS_MCNP_button->setChecked(false);
 	sourcePS_PHITS_button->setChecked(false);
 	sourcePS_FLUKA_button->setChecked(false);
@@ -4247,6 +5425,7 @@ void PhaseSpaceWidget::slot_SourcePS_USER_ButtonClicked()
 // File Operation
 void PhaseSpaceWidget::slot_sourcePS_loadPSF_ButtonClicked()
 {	
+	updateModelFromUI();
 	QString filter;
 	if (sourcePS_IAEA_button->isChecked()) {  // 특정 조건
 		filter = tr("IAEA Files (*.IAEAphsp)");
@@ -4768,6 +5947,228 @@ bool HotParticleWidget::initialize()
     return true;
 }
 
+void HotParticleWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+	updateModelFromUI();
+	//if (pRt->RI_Select_sourceHP_QRadioButton->isChecked())
+	if (m_model.isRadionuclideMode)
+	{
+		bool is_first_RI = true;
+		double first_RI_activity;
+		bool is_first_radiation = true;
+		double first_radiation_yield;
+		double conversion_factor_sum_of_activity_yieldsum = 0;
+		for (auto itr_info_RI : m_model.ListInfo_sourceHP) // 입력한 mulitple RI 마다 순환
+		{
+			std::string path = "./data/radioisotopes/" + itr_info_RI[4].toStdString() + ".txt";
+			std::pair<std::vector<std::map<int, std::string>>, double> temp_pair = theApp.sourceObjects->Read_RI_File(path);
+			std::vector<std::map<int, std::string>> radionulclide_radiation_info = temp_pair.first;
+			double this_RI_yieldsum = temp_pair.second;
+			double this_RI_activity = itr_info_RI[5].toDouble();
+			conversion_factor_sum_of_activity_yieldsum += this_RI_activity * this_RI_yieldsum; // activity concentration * yieldsum -> (NPS/s)
+			if (is_first_RI) // 첫번째 RI 일때
+			{
+				first_RI_activity = this_RI_activity;
+				for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
+				{
+					if (is_first_radiation) // 첫번째 RI, 첫번째 radiation 일때
+					{
+						ofp_source << "/gps/particle " << itr_radiation[2] << endl;
+						ofp_source << "/gps/pos/type Point" << endl;
+						if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
+						if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
+						if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
+						ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << itr_info_RI[1].toDouble() << " " << itr_info_RI[2].toDouble() << " " << itr_info_RI[3].toDouble() << " cm " << endl;
+						ofp_source << "/gps/ang/type iso" << endl;
+						ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
+						first_radiation_yield = std::stod(itr_radiation[0]);
+						is_first_radiation = false;
+					}
+					else // 첫번째 RI, 두번째 이상 radiation 일때
+					{
+						ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) << endl;
+						ofp_source << "/gps/particle " << itr_radiation[2] << endl;
+						ofp_source << "/gps/pos/type Point" << endl;
+						if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
+						if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
+						if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
+						ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << itr_info_RI[1].toDouble() << " " << itr_info_RI[2].toDouble() << " " << itr_info_RI[3].toDouble() << " cm " << endl;
+						ofp_source << "/gps/ang/type iso" << endl;
+						ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
+					}
+				}
+				is_first_RI = false;
+			}
+			else // 두번째 이상 RI
+			{
+				for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
+				{
+					ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) * (this_RI_activity / first_RI_activity) << endl;
+					ofp_source << "/gps/particle " << itr_radiation[2] << endl;
+					ofp_source << "/gps/pos/type Point" << endl;
+					if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
+					if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
+					if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
+					ofp_source << "/gps/pos/centre " << itr_info_RI[1].toStdString() << " " << itr_info_RI[2].toStdString() << " " << itr_info_RI[3].toStdString() << " cm " << endl;
+					ofp_source << "/gps/ang/type iso" << endl;
+					ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
+				}
+			}
+		}
+		theApp.DoseConversionFactor_inUImodule = conversion_factor_sum_of_activity_yieldsum;
+	}
+	//else if (pRt->ES_Select_sourceHP_QRadioButton->isChecked())
+	else if (m_model.isEnergySpectrumMode)
+	{
+		// 전체 입자 중 첫 번째 입자인지를 판별하는 플래그
+		bool is_first_particle_overall = true;
+		// 기준이 될 첫 번째 입자의 절대적인 초당 방출량(#/s)을 저장할 변수
+		double reference_absolute_intensity;
+		// 모든 소스의 Intensity(#/s) 총합을 저장.
+		theApp.DoseConversionFactor_inUImodule = 0.0;
+		// 사용자가 UI에 추가한 각 소스 정보(파일)를 순회합니다.
+		for (auto itr_info_ES : m_model.ListInfo_sourceHP)
+		{
+			// 1. 현재 소스(파일)의 정보 파싱
+			// 위치 좌표 (비어있으면 "0"으로 처리)
+			if (itr_info_ES[1].toStdString() == "") itr_info_ES[1] = "0";
+			if (itr_info_ES[2].toStdString() == "") itr_info_ES[2] = "0";
+			if (itr_info_ES[3].toStdString() == "") itr_info_ES[3] = "0";
+			double posX = itr_info_ES[1].toDouble();
+			double posY = itr_info_ES[2].toDouble();
+			double posZ = itr_info_ES[3].toDouble();
+			// 파일 경로와 해당 파일의 전체 Intensity
+			QString filePath = itr_info_ES[4];
+			double file_total_intensity = itr_info_ES[5].toDouble();
+			// 총 방출량 계산
+			theApp.DoseConversionFactor_inUImodule += file_total_intensity;
+			// 2. 파일 파싱 준비
+			QFile inputFile(filePath);
+			if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+				// 파일 열기 실패 시 이 파일은 건너뜀
+				continue;
+			}
+			// 파일 내용을 임시로 저장할 리스트
+			QList<QStringList> file_content;
+			double total_weight_in_file = 0.0;
+			QTextStream in(&inputFile);
+			while (!in.atEnd()) {
+				QString line = in.readLine();
+				QStringList parts = line.simplified().split(' ');
+				if (parts.size() >= 3) {
+					file_content.append(parts);
+					// weight는 두 번째 열(parts[1])
+					total_weight_in_file += parts[1].toDouble();
+				}
+			}
+			inputFile.close();
+			// 3. Geant4 GPS 명령어 생성
+			// 메모리에 저장된 파일 내용을 한 줄씩 처리
+			for (const auto& line_parts : file_content)
+			{
+				std::string particle_type = line_parts[0].toStdString();
+				double weight = line_parts[1].toDouble();
+				double energy = line_parts[2].toDouble();
+				// 현재 입자의 절대적인 초당 방출량(#/s) 계산
+				double current_absolute_intensity = 0.0;
+				if (total_weight_in_file > 0) {
+					current_absolute_intensity = file_total_intensity * (weight / total_weight_in_file);
+				}
+				// 모든 소스를 통틀어 가장 첫 번째 입자인 경우
+				if (is_first_particle_overall)
+				{
+					reference_absolute_intensity = current_absolute_intensity;
+					// /gps/source/add 없이 기본 명령어만 출력
+					ofp_source << "/gps/particle " << particle_type << std::endl;
+					ofp_source << "/gps/pos/type Point" << std::endl;
+					ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << posX << " " << posY << " " << posZ << " cm" << std::endl;
+					ofp_source << "/gps/ang/type iso" << std::endl;
+					ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
+					is_first_particle_overall = false;
+				}
+				// 두 번째 입자부터는 기준 입자 대비 상대적 비율을 계산하여 /gps/source/add 명령어 추가
+				else
+				{
+					double relative_intensity = 0.0;
+					if (reference_absolute_intensity > 0) {
+						relative_intensity = current_absolute_intensity / reference_absolute_intensity;
+					}
+					ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << relative_intensity << std::endl;
+					ofp_source << "/gps/particle " << particle_type << std::endl;
+					ofp_source << "/gps/pos/type Point" << std::endl;
+					ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << posX << " " << posY << " " << posZ << " cm" << std::endl;
+					ofp_source << "/gps/ang/type iso" << std::endl;
+					ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
+				}
+			}
+		}
+	}
+}
+void HotParticleWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
+	updateModelFromUI();
+	//HotParticle
+	ofp_info << "Source_type: Hot_particle_point" << endl;
+	if (m_model.isRadionuclideMode)
+	{
+		ofp_info << "\t" << std::setw(24) << "Position" << std::setw(18) << "Radionuclide" << std::setw(24) << "Activity(Bq)" << endl;
+		for (auto itr_RI_Info : m_model.ListInfo_sourceHP)
+		{
+			ofp_info << "\t" << std::setw(8) << itr_RI_Info[1].toStdString() << std::setw(8) << itr_RI_Info[2].toStdString() << std::setw(8) << itr_RI_Info[3].toStdString()
+				<< std::setw(18) << itr_RI_Info[4].toStdString() << std::right << ::setw(24) << itr_RI_Info[5].toStdString() << endl;
+		}
+	}
+	else if (m_model.isEnergySpectrumMode)
+	{
+		ofp_info << "\t" << std::setw(24) << "Position" << std::setw(18) << "Energy Spectrum" << std::setw(24) << "Activity(Bq)" << endl;
+		for (auto itr_RI_Info : m_model.ListInfo_sourceHP)
+		{
+			ofp_info << "\t" << std::setw(8) << itr_RI_Info[1].toStdString() << std::setw(8) << itr_RI_Info[2].toStdString() << std::setw(8) << itr_RI_Info[3].toStdString()
+				<< std::setw(18) << QFileInfo(itr_RI_Info[4]).fileName().toStdString() << std::right << ::setw(24) << itr_RI_Info[5].toStdString() << endl;
+		}
+	}
+}
+void HotParticleWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+
+}
+void HotParticleWidget::updateModelFromUI()
+{
+    // 1. Geometry (Position & Separation)
+    m_model.PosX = PosX_SourceHP_QLineEdit->text().toDouble();
+    m_model.PosY = PosY_SourceHP_QLineEdit->text().toDouble();
+    m_model.PosZ = PosZ_SourceHP_QLineEdit->text().toDouble();
+    m_model.SeparationDist = SeparationDist_SourceHP_QLineEdit->text().toDouble();
+
+    // 2. Mode
+    m_model.isRadionuclideMode = RI_Select_sourceHP_QRadioButton->isChecked();
+
+    // 3. RI Inputs
+    m_model.currentRadionuclideName = RI_Radionuclide_sourceHP_QLineEdit->text();
+    m_model.currentActivity = RI_Activity_sourceHP_QLineEdit->text().toDouble();
+
+    // 4. ES Inputs
+    m_model.currentSpectrumFile = sourceHP_EnergyspectrumFileNameText->toPlainText();
+    m_model.currentSpectrumIntensity = ES_Intensity_sourceHP_QLineEdit->text().toDouble();
+
+    // 5. Visualization State
+    m_model.isVisualized = m_HotParticleSourceVisualizationButton->isChecked();
+}
+
+void HotParticleWidget::updateHP_Vector(double x, double y, double z)
+{
+	m_model.SelectedPointNormalVector_sourceHP[0] = x;
+	m_model.SelectedPointNormalVector_sourceHP[1] = y;
+	m_model.SelectedPointNormalVector_sourceHP[2] = z;
+	updateModelFromUI();
+}
+void HotParticleWidget::updateHP_Points(double x, double y, double z)
+{
+	PosX_SourceHP_QLineEdit->setText(QString::number(x, 'f', 6));
+	PosY_SourceHP_QLineEdit->setText(QString::number(y, 'f', 6));
+	PosZ_SourceHP_QLineEdit->setText(QString::number(z, 'f', 6));
+	updateModelFromUI();
+}
 void HotParticleWidget::slot_SourceHP_SphereSize_Minus_ButtonClicked()
 {
 	theApp.m_Point_Source_Scale--;
@@ -4788,6 +6189,7 @@ void HotParticleWidget::slot_SourceHP_SphereSize_Plus_ButtonClicked()
 }
 void HotParticleWidget::slot_HotParticleSourceVisualization_ButtonClicked()
 {
+	updateModelFromUI();
 	if (m_HotParticleSourceVisualizationButton->isChecked())
 	{
 		m_HotParticleSourceVisualizationButton->setText("On");
@@ -4802,6 +6204,7 @@ void HotParticleWidget::slot_HotParticleSourceVisualization_ButtonClicked()
 }
 void HotParticleWidget::slot_HotParticle_Pick3D_ButtonClicked()
 {
+	updateModelFromUI();
 	// Pick3D 끄거나 켤때 정보 초기화
 	theApp.sourceObjects->Selecting3DShpere_Delete();
 	PosX_SourceHP_QLineEdit->clear();
@@ -4843,10 +6246,11 @@ void HotParticleWidget::slot_HotParticle_Pick3D_ButtonClicked()
 }
 void HotParticleWidget::slot_Update_Position_HP_ButtonClicked()
 {
+	updateModelFromUI();
 	double center[3] = { 0.0, };
-	center[0] = PosX_SourceHP_QLineEdit->text().toFloat() + SelectedPointNormalVector_sourceHP[0] * SeparationDist_SourceHP_QLineEdit->text().toFloat();
-	center[1] = PosY_SourceHP_QLineEdit->text().toFloat() + SelectedPointNormalVector_sourceHP[1] * SeparationDist_SourceHP_QLineEdit->text().toFloat();
-	center[2] = PosZ_SourceHP_QLineEdit->text().toFloat() + SelectedPointNormalVector_sourceHP[2] * SeparationDist_SourceHP_QLineEdit->text().toFloat();
+	center[0] = PosX_SourceHP_QLineEdit->text().toFloat() + m_model.SelectedPointNormalVector_sourceHP[0] * SeparationDist_SourceHP_QLineEdit->text().toFloat();
+	center[1] = PosY_SourceHP_QLineEdit->text().toFloat() + m_model.SelectedPointNormalVector_sourceHP[1] * SeparationDist_SourceHP_QLineEdit->text().toFloat();
+	center[2] = PosZ_SourceHP_QLineEdit->text().toFloat() + m_model.SelectedPointNormalVector_sourceHP[2] * SeparationDist_SourceHP_QLineEdit->text().toFloat();
 
 	theApp.sourceObjects->Selecting3DShpere(center); // 임시 가리키는 임시 sphere 생성
 	
@@ -4917,17 +6321,18 @@ void HotParticleWidget::slot_RI_Select_sourceHP_RadioButtonClicked()
 
 	// 3. 관리하던 모든 vector의 내용 비우기
 	// 각 vector의 clear() 멤버 함수를 호출하여 모든 요소를 제거합니다.
-	ListInfo_sourceHP.clear();
+	m_model.ListInfo_sourceHP.clear();
 	ESList_Delete_sourceHP_QButton.clear();
 	ESList_Info_sourceHP_QButton.clear();
 	theApp.SourcePanelActor_Position.clear();
 
 	// 4. 인덱스 카운터 초기화
 	// 리스트 아이템 개수를 추적하는 변수를 초기값(보통 0)으로 리셋합니다.
-	RIList_sourceHP_MakingIndex = 0;
+	m_model.RIList_sourceHP_MakingIndex = 0;
 }
 void HotParticleWidget::slot_RIList_Add_sourceHP_ButtonClicked()
 {
+	updateModelFromUI();
 	// 지원하는 RI 리스트에 있는지 판별
 	QString inputText = RI_Radionuclide_sourceHP_QLineEdit->text().trimmed();
 	if (inputText.isEmpty()) {
@@ -4988,36 +6393,36 @@ void HotParticleWidget::slot_RIList_Add_sourceHP_ButtonClicked()
 	labelPosZ->setFont(panel->font_D_LW2); // Set font for the label
 
 	RIList_Delete_sourceHP_QButton.push_back(new QPushButton());
-	if (RIList_sourceHP_MakingIndex >= RIList_Delete_sourceHP_QButton.size()) theApp.SetMessageBox("RI_Delete_sourceHP_QButton Vector index error");
-	RIList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setCheckable(false);
-	RIList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	RIList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setFont(panel->font_D_BTN13);
-	RIList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	RIList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
-	RIList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setObjectName(QString::number(RIList_sourceHP_MakingIndex));
+	if (m_model.RIList_sourceHP_MakingIndex >= RIList_Delete_sourceHP_QButton.size()) theApp.SetMessageBox("RI_Delete_sourceHP_QButton Vector index error");
+	RIList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setCheckable(false);
+	RIList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	RIList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setFont(panel->font_D_BTN13);
+	RIList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	RIList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
+	RIList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setObjectName(QString::number(m_model.RIList_sourceHP_MakingIndex));
 
 	RIList_Info_sourceHP_QButton.push_back(new QPushButton());
-	if (RIList_sourceHP_MakingIndex >= RIList_Delete_sourceHP_QButton.size()) theApp.SetMessageBox("RI_Info_sourceHP_QButton Vector index error");
-	RIList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setCheckable(false);
-	RIList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	RIList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setFont(panel->font_D_BTN13);
-	RIList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	RIList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
-	RIList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setObjectName(QString::number(RIList_sourceHP_MakingIndex));
+	if (m_model.RIList_sourceHP_MakingIndex >= RIList_Delete_sourceHP_QButton.size()) theApp.SetMessageBox("RI_Info_sourceHP_QButton Vector index error");
+	RIList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setCheckable(false);
+	RIList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	RIList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setFont(panel->font_D_BTN13);
+	RIList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	RIList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
+	RIList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setObjectName(QString::number(m_model.RIList_sourceHP_MakingIndex));
 
 	hLayout->addWidget(label1);
 	hLayout->addWidget(label2);
 	hLayout->addWidget(labelPosX);
 	hLayout->addWidget(labelPosY);
 	hLayout->addWidget(labelPosZ);
-	hLayout->addWidget(RIList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]);
-	hLayout->addWidget(RIList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]);
+	hLayout->addWidget(RIList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]);
+	hLayout->addWidget(RIList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]);
 	widget->setLayout(hLayout);
 	RI_List_sourceHP_QListWidget->setItemWidget(item, widget);
 	item->setSizeHint(widget->sizeHint());
 	// Connect signals of the new buttons
-	connect(RIList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Delete_sourceHP_ButtonClicked())); connect(RIList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	connect(RIList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Info_sourceHP_ButtonClicked())); connect(RIList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(RIList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Delete_sourceHP_ButtonClicked())); connect(RIList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(RIList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Info_sourceHP_ButtonClicked())); connect(RIList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
 	// Set Global Variables
 	std::map<int, QString> tmp_map;
 	tmp_map[0] = "True";
@@ -5026,8 +6431,8 @@ void HotParticleWidget::slot_RIList_Add_sourceHP_ButtonClicked()
 	tmp_map[3] = PosZ_SourceHP_QLineEdit->text(); if (tmp_map[3] == "") tmp_map[3] = "0";
 	tmp_map[4] = RI_Radionuclide_sourceHP_QLineEdit->text();
 	tmp_map[5] = RI_Activity_sourceHP_QLineEdit->text(); if (tmp_map[5] == "") tmp_map[5] = "0";
-	ListInfo_sourceHP.push_back(tmp_map);
-	RIList_sourceHP_MakingIndex++;
+	m_model.ListInfo_sourceHP.push_back(tmp_map);
+	m_model.RIList_sourceHP_MakingIndex++;
 	// Generate actor
 	double center[3] = { 0.0, };
 	center[0] = PosX_SourceHP_QLineEdit->text().toFloat();
@@ -5045,6 +6450,7 @@ void HotParticleWidget::slot_RIList_Add_sourceHP_ButtonClicked()
 }
 void HotParticleWidget::slot_RIList_Delete_sourceHP_ButtonClicked()
 {
+	updateModelFromUI();
 	// Button의 Index 찾기
 	QPushButton* buttonSender = qobject_cast<QPushButton*>(sender());
 	QString buttonText = buttonSender->objectName();
@@ -5055,9 +6461,9 @@ void HotParticleWidget::slot_RIList_Delete_sourceHP_ButtonClicked()
 	QListWidgetItem* toRemove = RI_List_sourceHP_QListWidget->takeItem(row);
 	delete toRemove; // Delete the item to free memory
 
-	if (RadonuclideIndex >= 0 && RadonuclideIndex < ListInfo_sourceHP.size()) 
+	if (RadonuclideIndex >= 0 && RadonuclideIndex < m_model.ListInfo_sourceHP.size()) 
 	{
-		ListInfo_sourceHP.erase(ListInfo_sourceHP.begin() + RadonuclideIndex);
+		m_model.ListInfo_sourceHP.erase(m_model.ListInfo_sourceHP.begin() + RadonuclideIndex);
 		RIList_Delete_sourceHP_QButton.erase(RIList_Delete_sourceHP_QButton.begin() + RadonuclideIndex);
 		RIList_Info_sourceHP_QButton.erase(RIList_Info_sourceHP_QButton.begin() + RadonuclideIndex);
 		// Actor delete
@@ -5075,7 +6481,7 @@ void HotParticleWidget::slot_RIList_Delete_sourceHP_ButtonClicked()
 		RIList_Delete_sourceHP_QButton[index]->setObjectName(QString::number(index));
 		RIList_Info_sourceHP_QButton[index]->setObjectName(QString::number(index));
 	}
-	RIList_sourceHP_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
+	m_model.RIList_sourceHP_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
 }
 void HotParticleWidget::slot_RIList_Info_sourceHP_ButtonClicked()
 {
@@ -5323,17 +6729,18 @@ void HotParticleWidget::slot_ES_Select_sourceHP_RadioButtonClicked()
 
 	// 3. 관리하던 모든 vector의 내용 비우기
 	// 각 vector의 clear() 멤버 함수를 호출하여 모든 요소를 제거합니다.
-	ListInfo_sourceHP.clear();
+	m_model.ListInfo_sourceHP.clear();
 	RIList_Delete_sourceHP_QButton.clear();
 	RIList_Info_sourceHP_QButton.clear();
 	theApp.SourcePanelActor_Position.clear();
 
 	// 4. 인덱스 카운터 초기화
 	// 리스트 아이템 개수를 추적하는 변수를 초기값(보통 0)으로 리셋합니다.
-	RIList_sourceHP_MakingIndex = 0;
+	m_model.RIList_sourceHP_MakingIndex = 0;
 }
 void HotParticleWidget::slot_ESList_Add_sourceHP_ButtonClicked()
 {
+	updateModelFromUI();
 	// 지원하는 RI 리스트에 있는지 판별
 	QString inputText = sourceHP_EnergyspectrumFileNameText->toPlainText();
 	if (inputText.isEmpty()) {
@@ -5378,38 +6785,38 @@ void HotParticleWidget::slot_ESList_Add_sourceHP_ButtonClicked()
 	labelPosZ->setFont(panel->font_D_LW2); // Set font for the label
 
 	ESList_Delete_sourceHP_QButton.push_back(new QPushButton());
-	if (RIList_sourceHP_MakingIndex >= ESList_Delete_sourceHP_QButton.size()) theApp.SetMessageBox("ESList_Delete_sourceHP_QButton Vector index error");
-	ESList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setCheckable(false);
-	ESList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	ESList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setFont(panel->font_D_BTN13);
-	ESList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	ESList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
-	ESList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setObjectName(QString::number(RIList_sourceHP_MakingIndex));
+	if (m_model.RIList_sourceHP_MakingIndex >= ESList_Delete_sourceHP_QButton.size()) theApp.SetMessageBox("ESList_Delete_sourceHP_QButton Vector index error");
+	ESList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setCheckable(false);
+	ESList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	ESList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setFont(panel->font_D_BTN13);
+	ESList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	ESList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
+	ESList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setObjectName(QString::number(m_model.RIList_sourceHP_MakingIndex));
 
 	ESList_Info_sourceHP_QButton.push_back(new QPushButton());
-	if (RIList_sourceHP_MakingIndex >= ESList_Info_sourceHP_QButton.size()) theApp.SetMessageBox("ESList_Info_sourceHP_QButton Vector index error");
-	ESList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setCheckable(false);
-	ESList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	ESList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setFont(panel->font_D_BTN13);
-	ESList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	ESList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
-	ESList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]->setObjectName(QString::number(RIList_sourceHP_MakingIndex));
+	if (m_model.RIList_sourceHP_MakingIndex >= ESList_Info_sourceHP_QButton.size()) theApp.SetMessageBox("ESList_Info_sourceHP_QButton Vector index error");
+	ESList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setCheckable(false);
+	ESList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	ESList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setFont(panel->font_D_BTN13);
+	ESList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	ESList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
+	ESList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]->setObjectName(QString::number(m_model.RIList_sourceHP_MakingIndex));
 
 	hLayout->addWidget(label1);
 	hLayout->addWidget(label2);
 	hLayout->addWidget(labelPosX);
 	hLayout->addWidget(labelPosY);
 	hLayout->addWidget(labelPosZ);
-	hLayout->addWidget(ESList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex]);
-	hLayout->addWidget(ESList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex]);
+	hLayout->addWidget(ESList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]);
+	hLayout->addWidget(ESList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex]);
 	widget->setLayout(hLayout);
 
 	ES_List_sourceHP_QListWidget->setItemWidget(item, widget);
 	item->setSizeHint(widget->sizeHint());
 
 	// Connect signals of the new buttons
-	connect(ESList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Delete_sourceHP_ButtonClicked())); connect(ESList_Delete_sourceHP_QButton[RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	connect(ESList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Info_sourceHP_ButtonClicked())); connect(ESList_Info_sourceHP_QButton[RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(ESList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Delete_sourceHP_ButtonClicked())); connect(ESList_Delete_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(ESList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_ESList_Info_sourceHP_ButtonClicked())); connect(ESList_Info_sourceHP_QButton[m_model.RIList_sourceHP_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
 
 	// Generate actor
 	double center[3] = { 0.0, };
@@ -5427,8 +6834,8 @@ void HotParticleWidget::slot_ESList_Add_sourceHP_ButtonClicked()
 	tmp_map[3] = PosZ_SourceHP_QLineEdit->text(); if (tmp_map[3] == "") tmp_map[3] = "0";
 	tmp_map[4] = inputText;
 	tmp_map[5] = ES_Intensity_sourceHP_QLineEdit->text(); if (tmp_map[5] == "") tmp_map[5] = "0";
-	ListInfo_sourceHP.push_back(tmp_map);
-	RIList_sourceHP_MakingIndex++;
+	m_model.ListInfo_sourceHP.push_back(tmp_map);
+	m_model.RIList_sourceHP_MakingIndex++;
 
 	// Set panel info 
 	PosX_SourceHP_QLineEdit->clear();
@@ -5439,6 +6846,7 @@ void HotParticleWidget::slot_ESList_Add_sourceHP_ButtonClicked()
 }
 void HotParticleWidget::slot_ESList_Delete_sourceHP_ButtonClicked()
 {
+	updateModelFromUI();
 	// Button의 Index 찾기
 	QPushButton* buttonSender = qobject_cast<QPushButton*>(sender());
 	QString buttonText = buttonSender->objectName();
@@ -5449,9 +6857,9 @@ void HotParticleWidget::slot_ESList_Delete_sourceHP_ButtonClicked()
 	QListWidgetItem* toRemove = ES_List_sourceHP_QListWidget->takeItem(row);
 	delete toRemove; // Delete the item to free memory
 
-	if (EnersySpectrumIndex >= 0 && EnersySpectrumIndex < ListInfo_sourceHP.size())
+	if (EnersySpectrumIndex >= 0 && EnersySpectrumIndex < m_model.ListInfo_sourceHP.size())
 	{
-		ListInfo_sourceHP.erase(ListInfo_sourceHP.begin() + EnersySpectrumIndex);
+		m_model.ListInfo_sourceHP.erase(m_model.ListInfo_sourceHP.begin() + EnersySpectrumIndex);
 		ESList_Delete_sourceHP_QButton.erase(ESList_Delete_sourceHP_QButton.begin() + EnersySpectrumIndex);
 		ESList_Info_sourceHP_QButton.erase(ESList_Info_sourceHP_QButton.begin() + EnersySpectrumIndex);
 		// Actor delete
@@ -5468,7 +6876,7 @@ void HotParticleWidget::slot_ESList_Delete_sourceHP_ButtonClicked()
 		ESList_Delete_sourceHP_QButton[index]->setObjectName(QString::number(index));
 		ESList_Info_sourceHP_QButton[index]->setObjectName(QString::number(index));
 	}
-	RIList_sourceHP_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
+	m_model.RIList_sourceHP_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
 }
 void HotParticleWidget::slot_ESList_Info_sourceHP_ButtonClicked()
 {
@@ -5555,7 +6963,7 @@ void HotParticleWidget::slot_ESList_Info_sourceHP_ButtonClicked()
 	cursor.insertText("\nRadiation Spectrum of the Entered File\n", boldFormat);
 	cursor.insertText("Radiation      Fraction       Energy (MeV)\n", boldSmallFormat);
 
-	QString ESFileName = ListInfo_sourceHP[EnergySpectrumIndex][4];
+	QString ESFileName = m_model.ListInfo_sourceHP[EnergySpectrumIndex][4];
 	QFile ESFile(ESFileName);
 	if (!ESFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 		// Handle error: Unable to open file
@@ -6122,12 +7530,106 @@ bool ConeBeamWidget::initialize()
     return true;
 }
 
+void ConeBeamWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+	updateModelFromUI();
+}
+void ConeBeamWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
+	updateModelFromUI();
+	//ConeBeam
+	if (m_lineEditConeBeamDirectionX->text().toStdString() == ""
+		&& m_lineEditConeBeamDirectionY->text().toStdString() == ""
+		&& m_lineEditConeBeamDirectionZ->text().toStdString() == "")
+	{
+		ofp_info << "\tDirection (x, y, z): Isotropic" << endl;
+	}
+	else
+	{
+		std::string directionX; std::string directionY; std::string directionZ;
+		if (m_lineEditConeBeamDirectionX->text().toStdString() == "") directionX = "0";
+		else directionX = m_lineEditConeBeamDirectionX->text().toStdString();
+		if (m_lineEditConeBeamDirectionY->text().toStdString() == "") directionY = "0";
+		else directionY = m_lineEditConeBeamDirectionY->text().toStdString();
+		if (m_lineEditConeBeamDirectionZ->text().toStdString() == "") directionZ = "0";
+		else directionZ = m_lineEditConeBeamDirectionZ->text().toStdString();
+		ofp_info << "\tDirection (x, y, z): " << directionX << " " << directionY << " " << directionZ << endl;
+		std::string SolidAngle;
+		if (m_lineEditConeBeamDirectionSolidAngle->text().toStdString() == "") SolidAngle = "0";
+		else SolidAngle = m_lineEditConeBeamDirectionSolidAngle->text().toStdString();
+		ofp_info << "\tSolid angle (degree): " << SolidAngle << endl;
+	}
+}
+void ConeBeamWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+
+}
+void ConeBeamWidget::updateModelFromUI()
+{
+    // 1. Geometry (Point)
+    m_model.PointX = m_lineEditConeBeamPointX->text().toDouble();
+    m_model.PointY = m_lineEditConeBeamPointY->text().toDouble();
+    m_model.PointZ = m_lineEditConeBeamPointZ->text().toDouble();
+
+    // 2. Geometry (Direction)
+    m_model.DirectionX = m_lineEditConeBeamDirectionX->text().toDouble();
+    m_model.DirectionY = m_lineEditConeBeamDirectionY->text().toDouble();
+    m_model.DirectionZ = m_lineEditConeBeamDirectionZ->text().toDouble();
+
+    // 3. Geometry (Angle)
+    m_model.SolidAngle = m_lineEditConeBeamDirectionSolidAngle->text().toDouble();
+
+    // 4. Mode
+    m_model.isRadionuclideMode = sourceCB_Radionuclide_radioButton->isChecked();
+    m_model.isDirectionChecked = sourceCB_dirCheckBox->isChecked();
+
+    // 5. RI Inputs
+    m_model.currentRadionuclideName = m_lineEditConeBeamRadionuclide->text();
+    m_model.currentActivity = m_lineEditConeBeamActivity->text().toDouble();
+
+    // 6. ES Inputs
+    m_model.currentSpectrumFile = sourceCB_EnergyspectrumFileNameText->toPlainText();
+    m_model.currentSpectrumIntensity = m_lineEditConeBeamIntensity->text().toDouble();
+
+    // 7. Visualization
+    m_model.b_IsSourceLocationVisualized_sourceCB = m_ConeBeamSourceVisualizationButton->isChecked();
+}
+
+void ConeBeamWidget::updateCB_Points(double x, double y, double z)
+{
+	m_lineEditConeBeamPointX->setText(QString::number(x, 'f', 6));
+	m_lineEditConeBeamPointY->setText(QString::number(y, 'f', 6));
+	m_lineEditConeBeamPointZ->setText(QString::number(z, 'f', 6));
+
+	updateModelFromUI();
+}
+
+ConeBeamParams ConeBeamWidget::getCB_Params()
+{
+    // 최신 상태 동기화 (선택 사항이지만 안전을 위해)
+    updateModelFromUI(); 
+
+    ConeBeamParams params;
+    params.point[0] = m_model.PointX;
+    params.point[1] = m_model.PointY;
+    params.point[2] = m_model.PointZ;
+
+    params.direction[0] = m_model.DirectionX;
+    params.direction[1] = m_model.DirectionY;
+    params.direction[2] = m_model.DirectionZ;
+
+    params.maxAngle = m_model.SolidAngle;
+    // numPoints는 로직에 따라 계산해서 넣으시면 됩니다.
+    
+    return params;
+}
 // Visualization
 void ConeBeamWidget::slot_ConeBeamSourceVisualization_ButtonClicked()
 {
+	updateModelFromUI();
 	if (m_ConeBeamSourceVisualizationButton->isChecked() == true)
 	{
-		b_IsSourceLocationVisualized_sourceCB = true;
+		m_model.b_IsSourceLocationVisualized_sourceCB = true;
 		m_ConeBeamSourceVisualizationButton->setText("On");
 		for (auto itr_actor : theApp.SourcePanelActor_Position)
 		{
@@ -6139,7 +7641,7 @@ void ConeBeamWidget::slot_ConeBeamSourceVisualization_ButtonClicked()
 	}
 	else if (m_ConeBeamSourceVisualizationButton->isChecked() == false)
 	{
-		b_IsSourceLocationVisualized_sourceCB = false;
+		m_model.b_IsSourceLocationVisualized_sourceCB = false;
 		m_ConeBeamSourceVisualizationButton->setText("Off");
 		for (auto itr_actor : theApp.SourcePanelActor_Position)
 		{
@@ -6152,6 +7654,7 @@ void ConeBeamWidget::slot_ConeBeamSourceVisualization_ButtonClicked()
 // Geometry & Interaction
 void ConeBeamWidget::slot_ConeBeamUpdate_ButtonClicked()
 {
+	updateModelFromUI();
 	// 위치 
 	double center[3] = { 0.0, };
 	center[0] = m_lineEditConeBeamPointX->text().toFloat();
@@ -6162,6 +7665,7 @@ void ConeBeamWidget::slot_ConeBeamUpdate_ButtonClicked()
 }
 void ConeBeamWidget::slot_ConeBeam_Pick3D_ButtonClicked()
 {
+	updateModelFromUI();
 	if (theApp.st_Pick3D_sourceCB == true)
 	{
 		theApp.st_Pick3D_sourceCB = false;
@@ -6181,8 +7685,8 @@ void ConeBeamWidget::slot_CBreset_ButtonClicked()
 // Type Selection
 void ConeBeamWidget::slot_ConeBeamRadionuclide_ButtonClicked()
 {
-	ConeBeamRadionuclideButton->setChecked(true);
-	ConeBeamEnergyspectrumButton->setChecked(false);
+	panel->ConeBeamRadionuclideButton->setChecked(true);
+	panel->ConeBeamEnergyspectrumButton->setChecked(false);
 
 	labelConeBeamRadionuclideTitle->show();
 	m_lineEditConeBeamRadionuclide->show();
@@ -6204,8 +7708,8 @@ void ConeBeamWidget::slot_ConeBeamRadionuclide_ButtonClicked()
 }
 void ConeBeamWidget::slot_ConeBeamEnergyspectrum_ButtonClicked()
 {
-	ConeBeamRadionuclideButton->setChecked(false);
-	ConeBeamEnergyspectrumButton->setChecked(true);
+	panel->ConeBeamRadionuclideButton->setChecked(false);
+	panel->ConeBeamEnergyspectrumButton->setChecked(true);
 
 	labelConeBeamRadionuclideTitle->hide();
 	m_lineEditConeBeamRadionuclide->hide();
@@ -6228,6 +7732,7 @@ void ConeBeamWidget::slot_ConeBeamEnergyspectrum_ButtonClicked()
 // Radionuclide Operations
 void ConeBeamWidget::slot_ConeBeamRadionuclideAdd_ButtonClicked()
 {	
+	updateModelFromUI();
 	QListWidgetItem* item = new QListWidgetItem(RI_List_sourceCB_QListWidget);
 	QWidget* widget = new QWidget;
 	QHBoxLayout* hLayout = new QHBoxLayout;
@@ -6259,38 +7764,38 @@ void ConeBeamWidget::slot_ConeBeamRadionuclideAdd_ButtonClicked()
 	labelPosZ->setFont(panel->font_D_LW2); // Set font for the label
 
 	m_sourceCB_listDeleteButton.push_back(new QPushButton());
-	if (RIList_sourceCB_MakingIndex >= m_sourceCB_listDeleteButton.size()) theApp.SetMessageBox("m_sourceCB_listDeleteButton Vector index error");
-	m_sourceCB_listDeleteButton[RIList_sourceCB_MakingIndex]->setCheckable(false);
-	m_sourceCB_listDeleteButton[RIList_sourceCB_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	m_sourceCB_listDeleteButton[RIList_sourceCB_MakingIndex]->setFont(panel->font_D_BTN13);
-	m_sourceCB_listDeleteButton[RIList_sourceCB_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	m_sourceCB_listDeleteButton[RIList_sourceCB_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
-	m_sourceCB_listDeleteButton[RIList_sourceCB_MakingIndex]->setObjectName(QString::number(RIList_sourceCB_MakingIndex));
+	if (m_model.RIList_sourceCB_MakingIndex >= m_sourceCB_listDeleteButton.size()) theApp.SetMessageBox("m_sourceCB_listDeleteButton Vector index error");
+	m_sourceCB_listDeleteButton[m_model.RIList_sourceCB_MakingIndex]->setCheckable(false);
+	m_sourceCB_listDeleteButton[m_model.RIList_sourceCB_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	m_sourceCB_listDeleteButton[m_model.RIList_sourceCB_MakingIndex]->setFont(panel->font_D_BTN13);
+	m_sourceCB_listDeleteButton[m_model.RIList_sourceCB_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	m_sourceCB_listDeleteButton[m_model.RIList_sourceCB_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
+	m_sourceCB_listDeleteButton[m_model.RIList_sourceCB_MakingIndex]->setObjectName(QString::number(m_model.RIList_sourceCB_MakingIndex));
 
 	m_sourceCB_listInfoButton.push_back(new QPushButton());
-	if (RIList_sourceCB_MakingIndex >= m_sourceCB_listInfoButton.size()) theApp.SetMessageBox("m_sourceCB_listInfoButton Vector index error");
-	m_sourceCB_listInfoButton[RIList_sourceCB_MakingIndex]->setCheckable(false);
-	m_sourceCB_listInfoButton[RIList_sourceCB_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	m_sourceCB_listInfoButton[RIList_sourceCB_MakingIndex]->setFont(panel->font_D_BTN13);
-	m_sourceCB_listInfoButton[RIList_sourceCB_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	m_sourceCB_listInfoButton[RIList_sourceCB_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
-	m_sourceCB_listInfoButton[RIList_sourceCB_MakingIndex]->setObjectName(QString::number(RIList_sourceCB_MakingIndex));
+	if (m_model.RIList_sourceCB_MakingIndex >= m_sourceCB_listInfoButton.size()) theApp.SetMessageBox("m_sourceCB_listInfoButton Vector index error");
+	m_sourceCB_listInfoButton[m_model.RIList_sourceCB_MakingIndex]->setCheckable(false);
+	m_sourceCB_listInfoButton[m_model.RIList_sourceCB_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	m_sourceCB_listInfoButton[m_model.RIList_sourceCB_MakingIndex]->setFont(panel->font_D_BTN13);
+	m_sourceCB_listInfoButton[m_model.RIList_sourceCB_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	m_sourceCB_listInfoButton[m_model.RIList_sourceCB_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
+	m_sourceCB_listInfoButton[m_model.RIList_sourceCB_MakingIndex]->setObjectName(QString::number(m_model.RIList_sourceCB_MakingIndex));
 
 	hLayout->addWidget(label1);
 	hLayout->addWidget(label2);
 	hLayout->addWidget(labelPosX);
 	hLayout->addWidget(labelPosY);
 	hLayout->addWidget(labelPosZ);
-	hLayout->addWidget(m_sourceCB_listDeleteButton[RIList_sourceCB_MakingIndex]);
-	hLayout->addWidget(m_sourceCB_listInfoButton[RIList_sourceCB_MakingIndex]);
+	hLayout->addWidget(m_sourceCB_listDeleteButton[m_model.RIList_sourceCB_MakingIndex]);
+	hLayout->addWidget(m_sourceCB_listInfoButton[m_model.RIList_sourceCB_MakingIndex]);
 	widget->setLayout(hLayout);
 
 	RI_List_sourceCB_QListWidget->setItemWidget(item, widget);
 	item->setSizeHint(widget->sizeHint());
 
 	// Connect signals of the new buttons
-	connect(m_sourceCB_listDeleteButton[RIList_sourceCB_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Delete_sourceEP_ButtonClicked())); connect(m_sourceCB_listDeleteButton[RIList_sourceCB_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	connect(m_sourceCB_listInfoButton[RIList_sourceCB_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Info_sourceEP_ButtonClicked())); connect(m_sourceCB_listInfoButton[RIList_sourceCB_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(m_sourceCB_listDeleteButton[m_model.RIList_sourceCB_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Delete_sourceEP_ButtonClicked())); connect(m_sourceCB_listDeleteButton[m_model.RIList_sourceCB_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(m_sourceCB_listInfoButton[m_model.RIList_sourceCB_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Info_sourceEP_ButtonClicked())); connect(m_sourceCB_listInfoButton[m_model.RIList_sourceCB_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
 
 	// Generate actor only when first set	
 	double center[3] = { 0.0, };
@@ -6309,8 +7814,8 @@ void ConeBeamWidget::slot_ConeBeamRadionuclideAdd_ButtonClicked()
 	tmp_map[3] = m_lineEditConeBeamPointZ->text();
 	tmp_map[4] = m_lineEditConeBeamRadionuclide->text();
 	tmp_map[5] = m_lineEditConeBeamActivity->text();
-	sourceCB_info.push_back(tmp_map);
-	RIList_sourceCB_MakingIndex++;
+	m_model.sourceCB_info.push_back(tmp_map);
+	m_model.RIList_sourceCB_MakingIndex++;
 
 	theApp.SetMessageBox_RadionuclideWarning("The radionuclide data provided in this code are based on the data provided in the ICRP 107 publication.\nTHIS DATA DO NOT INCLUDE ANY DAUGHTER NUCLIDES!!!");
 
@@ -6342,7 +7847,8 @@ void ConeBeamWidget::slot_ConeBeamEnergyspectrumFileLoad_ButtonClicked()
 }
 void ConeBeamWidget::slot_ConeBeamEnergyspectrumAdd_ButtonClicked()
 {
-	EnergyspectrumListTotalCount_CB++;
+	updateModelFromUI();
+	m_model.EnergyspectrumListTotalCount_CB++;
 	QListWidgetItem* item = new QListWidgetItem(ES_List_sourceCB_QListWidget);
 	QWidget* widget = new QWidget;
 	QHBoxLayout* hLayout = new QHBoxLayout;
@@ -6382,7 +7888,7 @@ void ConeBeamWidget::slot_ConeBeamEnergyspectrumAdd_ButtonClicked()
 	deleteButton->setFont(panel->font_D_BTN13);
 	deleteButton->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
 	deleteButton->setIcon(QIcon("./data/image/delete.png"));
-	QString deleteButton_tmp = QString::number(EnergyspectrumListTotalCount_CB - 1) + "_Delete";
+	QString deleteButton_tmp = QString::number(m_model.EnergyspectrumListTotalCount_CB - 1) + "_Delete";
 	deleteButton->setObjectName(deleteButton_tmp);
 
 	QPushButton* infoButton = new QPushButton();
@@ -6391,7 +7897,7 @@ void ConeBeamWidget::slot_ConeBeamEnergyspectrumAdd_ButtonClicked()
 	infoButton->setFont(panel->font_D_BTN13);
 	infoButton->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
 	infoButton->setIcon(QIcon("./data/image/info.png"));
-	QString infoButton_tmp = QString::number(EnergyspectrumListTotalCount_CB - 1) + "_Info";
+	QString infoButton_tmp = QString::number(m_model.EnergyspectrumListTotalCount_CB - 1) + "_Info";
 	infoButton->setObjectName(infoButton_tmp);
 
 	hLayout->addWidget(label1);
@@ -6857,9 +8363,59 @@ bool RoomContaminationWidget::initialize()
     return true;
 }
 
+void RoomContaminationWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+	updateModelFromUI();
+}
+void RoomContaminationWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
+	updateModelFromUI();
+	//RoomContamination
+	ofp_info << "Source_type: Room_air_contamination" << endl;
+	ofp_info << "\tHalfLengthX(cm): " << m_model.Box_HalfLengthX << endl;
+	ofp_info << "\tHalfLengthY(cm): " << m_model.Box_HalfLengthY << endl;
+	ofp_info << "\tHalfLengthZ(cm): " << m_model.Box_HalfLengthZ << endl;
+	ofp_info << "\tCenter_PosX(cm): " << m_model.Box_CenterX << endl;
+	ofp_info << "\tCenter_PosY(cm): " << m_model.Box_CenterY << endl;
+	ofp_info << "\tCenter_PosZ(cm): " << m_model.Box_CenterZ << endl;
+
+	ofp_info << "\t" << std::setw(18) << "Radionuclide" << std::setw(24) << "Activity(Bq/cm3)" << endl;
+	for (auto itr_RI_Info : m_model.RI_Info_sourceRC)
+	{
+		ofp_info << "\t" << std::setw(18) << itr_RI_Info[1].toStdString() << std::setw(24) << itr_RI_Info[2].toStdString() << endl;
+	}
+}
+void RoomContaminationWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+
+}
+void RoomContaminationWidget::updateModelFromUI()
+{
+    // 1. Geometry (Half Length)
+    m_model.Box_HalfLengthX = Box_HalfLengthX_sourceRC_QLineEdit->text().toDouble();
+    m_model.Box_HalfLengthY = Box_HalfLengthY_sourceRC_QLineEdit->text().toDouble();
+    m_model.Box_HalfLengthZ = Box_HalfLengthZ_sourceRC_QLineEdit->text().toDouble();
+
+    // 2. Geometry (Center)
+    m_model.Box_CenterX = Box_CenterX_sourceRC_QLineEdit->text().toDouble();
+    m_model.Box_CenterY = Box_CenterY_sourceRC_QLineEdit->text().toDouble();
+    m_model.Box_CenterZ = Box_CenterZ_sourceRC_QLineEdit->text().toDouble();
+
+    // 3. Mode Selection
+    m_model.isRadionuclideMode = RI_Select_sourceRC_QRadioButton->isChecked();
+
+    // 4. RI Inputs
+    m_model.currentRadionuclideName = RI_sourceRC_QLineEdit->text();
+    m_model.currentActivity = Activity_sourceRC_QLineEdit->text().toDouble();
+
+    // 5. Visualization State
+    m_model.isVisualized = m_RoomContaminationSourceVisualizationButton->isChecked();
+}
+
 // Visualization
 void RoomContaminationWidget::slot_RoomContaminationSourceVisualization_ButtonClicked()
 {
+	updateModelFromUI();
 	if (m_RoomContaminationSourceVisualizationButton->isChecked()) // On으로 켤 때
 	{
 		m_RoomContaminationSourceVisualizationButton->setText("On");
@@ -6882,6 +8438,7 @@ void RoomContaminationWidget::slot_RoomContaminationSourceVisualization_ButtonCl
 // Geometry Update
 void RoomContaminationWidget::slot_UpdateRCpos_ButtonClicked()
 {
+	updateModelFromUI();
 	// Parameter 불러오기
 	double XHalfLength = Box_HalfLengthX_sourceRC_QLineEdit->text().toDouble();
 	double YHalfLength = Box_HalfLengthY_sourceRC_QLineEdit->text().toDouble();
@@ -6943,6 +8500,7 @@ void RoomContaminationWidget::slot_ES_Select_sourceRC_RadioButtonClicked()
 // Radionuclide Operations
 void RoomContaminationWidget::slot_RIList_Add_sourceRC_ButtonClicked()
 {
+	updateModelFromUI();
 	QListWidgetItem* item = new QListWidgetItem(RI_List_sourceRC_QListWidget);
 	QWidget* widget = new QWidget;
 	QHBoxLayout* hLayout = new QHBoxLayout;
@@ -6974,51 +8532,52 @@ void RoomContaminationWidget::slot_RIList_Add_sourceRC_ButtonClicked()
 	labelPosZ->setFont(panel->font_D_LW2); // Set font for the label
 
 	RIList_Delete_sourceRC_QButton.push_back(new QPushButton());
-	if (RIList_sourceRC_MakingIndex >= RIList_Delete_sourceRC_QButton.size()) theApp.SetMessageBox("RI_Delete_sourceRC_QButton Vector index error");
-	RIList_Delete_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setCheckable(false);
-	RIList_Delete_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	RIList_Delete_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setFont(panel->font_D_BTN13);
-	RIList_Delete_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	RIList_Delete_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
-	RIList_Delete_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setObjectName(QString::number(RIList_sourceRC_MakingIndex));
+	if (m_model.RIList_sourceRC_MakingIndex >= RIList_Delete_sourceRC_QButton.size()) theApp.SetMessageBox("RI_Delete_sourceRC_QButton Vector index error");
+	RIList_Delete_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setCheckable(false);
+	RIList_Delete_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	RIList_Delete_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setFont(panel->font_D_BTN13);
+	RIList_Delete_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	RIList_Delete_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setIcon(QIcon("./data/image/delete.png"));
+	RIList_Delete_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setObjectName(QString::number(m_model.RIList_sourceRC_MakingIndex));
 
 	RIList_Info_sourceRC_QButton.push_back(new QPushButton());
-	if (RIList_sourceRC_MakingIndex >= RIList_Delete_sourceRC_QButton.size()) theApp.SetMessageBox("RI_Info_sourceRC_QButton Vector index error");
-	RIList_Info_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setCheckable(false);
-	RIList_Info_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
-	RIList_Info_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setFont(panel->font_D_BTN13);
-	RIList_Info_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
-	RIList_Info_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
-	RIList_Info_sourceRC_QButton[RIList_sourceRC_MakingIndex]->setObjectName(QString::number(RIList_sourceRC_MakingIndex));
+	if (m_model.RIList_sourceRC_MakingIndex >= RIList_Delete_sourceRC_QButton.size()) theApp.SetMessageBox("RI_Info_sourceRC_QButton Vector index error");
+	RIList_Info_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setCheckable(false);
+	RIList_Info_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
+	RIList_Info_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setFont(panel->font_D_BTN13);
+	RIList_Info_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setFixedSize(panel->Window_width * 0.008, panel->Window_height * 0.012);
+	RIList_Info_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setIcon(QIcon("./data/image/info.png"));
+	RIList_Info_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]->setObjectName(QString::number(m_model.RIList_sourceRC_MakingIndex));
 
 	hLayout->addWidget(label1);
 	hLayout->addWidget(label2);
 	hLayout->addWidget(labelPosX);
 	hLayout->addWidget(labelPosY);
 	hLayout->addWidget(labelPosZ);
-	hLayout->addWidget(RIList_Delete_sourceRC_QButton[RIList_sourceRC_MakingIndex]);
-	hLayout->addWidget(RIList_Info_sourceRC_QButton[RIList_sourceRC_MakingIndex]);
+	hLayout->addWidget(RIList_Delete_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]);
+	hLayout->addWidget(RIList_Info_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex]);
 	widget->setLayout(hLayout);
 
 	RI_List_sourceRC_QListWidget->setItemWidget(item, widget);
 	item->setSizeHint(widget->sizeHint());
 
 	// Connect signals of the new buttons
-	connect(RIList_Delete_sourceRC_QButton[RIList_sourceRC_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Delete_sourceRC_ButtonClicked())); connect(RIList_Delete_sourceRC_QButton[RIList_sourceRC_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
-	connect(RIList_Info_sourceRC_QButton[RIList_sourceRC_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Info_sourceRC_ButtonClicked())); connect(RIList_Info_sourceRC_QButton[RIList_sourceRC_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(RIList_Delete_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Delete_sourceRC_ButtonClicked())); connect(RIList_Delete_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
+	connect(RIList_Info_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_RIList_Info_sourceRC_ButtonClicked())); connect(RIList_Info_sourceRC_QButton[m_model.RIList_sourceRC_MakingIndex], SIGNAL(clicked()), this, SLOT(slot_allButtonClicked()));
 	
 	// Set Global Variables
 	std::map<int, QString> tmp_map;
 	tmp_map[0] = "True";
 	tmp_map[1] = RI_sourceRC_QLineEdit->text();
 	tmp_map[2] = Activity_sourceRC_QLineEdit->text(); if (tmp_map[2] == "") tmp_map[2] = "0";
-	RI_Info_sourceRC.push_back(tmp_map);
-	RIList_sourceRC_MakingIndex++;
+	m_model.RI_Info_sourceRC.push_back(tmp_map);
+	m_model.RIList_sourceRC_MakingIndex++;
 
 	theApp.SetMessageBox_RadionuclideWarning("The radionuclide data provided in this code are based on the data provided in the ICRP 107 publication.\nTHIS DATA DO NOT INCLUDE ANY DAUGHTER NUCLIDES!!!");
 }
 void RoomContaminationWidget::slot_RIList_Delete_sourceRC_ButtonClicked()
 {
+	updateModelFromUI();
 	// Button의 Index 찾기
 	QPushButton* buttonSender = qobject_cast<QPushButton*>(sender());
 	QString buttonText = buttonSender->objectName();
@@ -7029,8 +8588,8 @@ void RoomContaminationWidget::slot_RIList_Delete_sourceRC_ButtonClicked()
 	QListWidgetItem* toRemove = RI_List_sourceRC_QListWidget->takeItem(row);
 	delete toRemove; // Delete the item to free memory
 
-	if (RadonuclideIndex >= 0 && RadonuclideIndex < RI_Info_sourceRC.size()) {
-		RI_Info_sourceRC.erase(RI_Info_sourceRC.begin() + RadonuclideIndex);
+	if (RadonuclideIndex >= 0 && RadonuclideIndex < m_model.RI_Info_sourceRC.size()) {
+		m_model.RI_Info_sourceRC.erase(m_model.RI_Info_sourceRC.begin() + RadonuclideIndex);
 		RIList_Delete_sourceRC_QButton.erase(RIList_Delete_sourceRC_QButton.begin() + RadonuclideIndex);
 		RIList_Info_sourceRC_QButton.erase(RIList_Info_sourceRC_QButton.begin() + RadonuclideIndex);	
 	}
@@ -7043,7 +8602,7 @@ void RoomContaminationWidget::slot_RIList_Delete_sourceRC_ButtonClicked()
 		RIList_Delete_sourceRC_QButton[index]->setObjectName(QString::number(index));
 		RIList_Info_sourceRC_QButton[index]->setObjectName(QString::number(index));
 	}
-	RIList_sourceRC_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
+	m_model.RIList_sourceRC_MakingIndex--; // listwidget은 vector 형태로 동작해야 함(row의 item이 실제 몇 행인지로 결정됨)	
 }
 void RoomContaminationWidget::slot_RIList_Info_sourceRC_ButtonClicked()
 {
@@ -7492,6 +9051,35 @@ bool EnvironmentalContaminationWidget::initialize()
     return true;
 }
 
+void EnvironmentalContaminationWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+	updateModelFromUI();
+}
+void EnvironmentalContaminationWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
+
+}
+void EnvironmentalContaminationWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+
+}
+void EnvironmentalContaminationWidget::updateModelFromUI()
+{
+    // 1. Source Type (ComboBox)
+    // 현재 선택된 인덱스를 저장 (0: Air, 1: Soil ...)
+    m_model.selectedTypeIndex = m_comboBoxEnvironmentalSourceType->currentIndex();
+
+    // 2. Soil Depth
+    // 화면에 안 보여도 값은 저장해두는 것이 안전합니다.
+    m_model.soilDepth = m_lineEditEnvironmentalSoilDepth->text().toDouble();
+
+    // 3. RI Inputs
+    m_model.currentRadionuclideName = m_lineEditEnvironmentalRadionuclide->text();
+    m_model.currentActivity = m_lineEditEnvironmentalActivity->text().toDouble();
+
+    // 4. Visualization State
+    m_model.isVisualized = m_EnvironmentalSourceVisualizationButton->isChecked();
+}
 // === Slot Functions ===
 
 void EnvironmentalContaminationWidget::slot_EnvironmentalSourceVisualization_ButtonClicked()
@@ -7540,159 +9128,631 @@ ParallelBeamWidget::~ParallelBeamWidget()
 
 bool ParallelBeamWidget::initialize()
 {
+    // 부모 클래스 초기화 확인
     if (!ParentT::initialize()) return false;
 
+    // 메인 서브 레이아웃 (기존 m_sourceGeometryParallelBeamGroupBox 내부 레이아웃)
     QVBoxLayout* subLayout = new QVBoxLayout;
     subLayout->setContentsMargins(panel->Window_width * 0.003, panel->Window_height * 0.005, panel->Window_width * 0.003, panel->Window_height * 0.005);
     subLayout->setSpacing(panel->Window_width * 0.003);
     subLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
+    // 내부 수직 레이아웃
+    QVBoxLayout* vLayout = new QVBoxLayout;
+    vLayout->setContentsMargins(panel->Window_width * 0.003, panel->Window_height * 0.005, panel->Window_width * 0.003, panel->Window_height * 0.005);
+    vLayout->setSpacing(panel->Window_width * 0.003);
+    vLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+    // 1. Visualization Header (On/Off Button, Direction Checkbox)
     {
-        QVBoxLayout* vLayout = new QVBoxLayout;
-        vLayout->setContentsMargins(panel->Window_width * 0.003, panel->Window_height * 0.005, panel->Window_width * 0.003, panel->Window_height * 0.005);
-        vLayout->setSpacing(panel->Window_width * 0.003);
-        vLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setSpacing(panel->Window_width * 0.005);
+        hLayout->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
-        // ... [Visualization, Position, Radius, Theta, Phi, Buttons 부분은 이전과 동일하여 생략] ...
-        // (필요하시면 이 부분도 다시 채워드립니다. 위쪽 코드와 동일합니다.)
+        QLabel* labelTitle = new QLabel;
+        labelTitle->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.028);
+        labelTitle->setStyleSheet(DialogStyle::DATA_LABEL);
+        labelTitle->setFont(panel->font_D_LBL1);
+        labelTitle->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        labelTitle->setText(QString::fromLocal8Bit("Visualization"));
+
+        m_ParallelBeamSourceVisualizationButton = new QPushButton(QString::fromLocal8Bit("On"));
+        panel->Buttons_FunctionPanelRight.append(m_ParallelBeamSourceVisualizationButton);
+        m_ParallelBeamSourceVisualizationButton->setFixedSize(panel->Window_width * 0.05, panel->Window_height * 0.028);
+        m_ParallelBeamSourceVisualizationButton->setCheckable(true);
+        m_ParallelBeamSourceVisualizationButton->setChecked(true);
+        m_ParallelBeamSourceVisualizationButton->setStyleSheet(DialogStyle::MENU_BTN3);
+        m_ParallelBeamSourceVisualizationButton->setFont(panel->font_D_BTN3);
+
+        QLabel* labelDir = new QLabel;
+        labelDir->setFixedSize(panel->Window_width * 0.03, panel->Window_height * 0.028);
+        labelDir->setStyleSheet(DialogStyle::DATA_LABEL);
+        labelDir->setFont(panel->font_D_LBL4);
+        labelDir->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        labelDir->setText(QString::fromLocal8Bit("Direction"));
+
+        sourcePB_dirCheckBox = new QCheckBox;
+        sourcePB_dirCheckBox->setChecked(true);
+        sourcePB_dirCheckBox->setFixedSize(panel->Window_width * 0.02, panel->Window_height * 0.02);
+        sourcePB_dirCheckBox->setStyleSheet("QCheckBox { background-color: transparent; }");
+
+        // 슬롯 연결: Widget 내부 슬롯과 Panel의 공통 슬롯 연결
+        connect(m_ParallelBeamSourceVisualizationButton, SIGNAL(clicked()), this, SLOT(slot_ParallelBeamSourceVisualization_ButtonClicked())); 
+        connect(m_ParallelBeamSourceVisualizationButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+
+        hLayout->addWidget(labelTitle);
+        hLayout->addWidget(m_ParallelBeamSourceVisualizationButton);
+        hLayout->addStretch();
+        hLayout->addWidget(labelDir);
+        hLayout->addWidget(sourcePB_dirCheckBox);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 2. Center Position (X, Y, Z)
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+        QLabel* label0 = new QLabel;
+        label0->setFixedSize(panel->Window_width * 0.058, panel->Window_height * 0.028);
+        label0->setStyleSheet(DialogStyle::DATA_LABEL);
+        label0->setFont(panel->font_D_LBL1);
+        label0->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        label0->setText(QString::fromLocal8Bit("Center XYZ:"));
+
+        m_lineEditParallelBeamPointX = new QLineEdit;
+        m_lineEditParallelBeamPointX->setFixedSize(panel->Window_width * 0.033, panel->Window_height * 0.028);
+        m_lineEditParallelBeamPointX->setAlignment(Qt::AlignCenter);
+        m_lineEditParallelBeamPointX->setStyleSheet(DialogStyle::LINEEDIT_NAME5);
+        m_lineEditParallelBeamPointX->setFont(panel->font_D_LE5);
+        m_lineEditParallelBeamPointX->setPlaceholderText(QString::fromLocal8Bit("(cm)"));
+
+        m_lineEditParallelBeamPointY = new QLineEdit;
+        m_lineEditParallelBeamPointY->setFixedSize(panel->Window_width * 0.033, panel->Window_height * 0.028);
+        m_lineEditParallelBeamPointY->setAlignment(Qt::AlignCenter);
+        m_lineEditParallelBeamPointY->setStyleSheet(DialogStyle::LINEEDIT_NAME5);
+        m_lineEditParallelBeamPointY->setFont(panel->font_D_LE5);
+        m_lineEditParallelBeamPointY->setPlaceholderText(QString::fromLocal8Bit("(cm)"));
+
+        m_lineEditParallelBeamPointZ = new QLineEdit;
+        m_lineEditParallelBeamPointZ->setFixedSize(panel->Window_width * 0.033, panel->Window_height * 0.028);
+        m_lineEditParallelBeamPointZ->setAlignment(Qt::AlignCenter);
+        m_lineEditParallelBeamPointZ->setStyleSheet(DialogStyle::LINEEDIT_NAME5);
+        m_lineEditParallelBeamPointZ->setFont(panel->font_D_LE5);
+        m_lineEditParallelBeamPointZ->setPlaceholderText(QString::fromLocal8Bit("(cm)"));
+
+        hLayout->addWidget(label0);
+        hLayout->addStretch();
+        hLayout->addWidget(m_lineEditParallelBeamPointX);
+        hLayout->addWidget(m_lineEditParallelBeamPointY);
+        hLayout->addWidget(m_lineEditParallelBeamPointZ);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 3. Radius
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+        QLabel* label0 = new QLabel;
+        label0->setFixedSize(panel->Window_width * 0.058, panel->Window_height * 0.028);
+        label0->setStyleSheet(DialogStyle::DATA_LABEL);
+        label0->setFont(panel->font_D_LBL1);
+        label0->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        label0->setText(QString::fromLocal8Bit("Radius: "));
+
+        m_lineEditParallelBeamRadius = new QLineEdit;
+        m_lineEditParallelBeamRadius->setFixedSize(panel->Window_width * 0.103, panel->Window_height * 0.028);
+        m_lineEditParallelBeamRadius->setAlignment(Qt::AlignCenter);
+        m_lineEditParallelBeamRadius->setStyleSheet(DialogStyle::LINEEDIT_NAME5);
+        m_lineEditParallelBeamRadius->setFont(panel->font_D_LE5);
+        m_lineEditParallelBeamRadius->setPlaceholderText(QString::fromLocal8Bit("(cm)"));
+
+        hLayout->addWidget(label0);
+        hLayout->addStretch();
+        hLayout->addWidget(m_lineEditParallelBeamRadius);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 4. Direction vector (Spherical - Theta)
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
         
-        // [Visualization]
-        {
-            QHBoxLayout* hLayout = new QHBoxLayout;
-            hLayout->setSpacing(panel->Window_width * 0.005);
-            hLayout->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        QLabel* label0 = new QLabel;
+        label0->setFixedSize(panel->Window_width * 0.058, panel->Window_height * 0.028);
+        label0->setStyleSheet(DialogStyle::DATA_LABEL);
+        label0->setFont(panel->font_D_LBL1);
+        label0->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        label0->setText(QString::fromLocal8Bit("Theta:"));
 
-            QLabel* labelTitle = new QLabel;
-            labelTitle->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.028);
-            labelTitle->setStyleSheet(DialogStyle::DATA_LABEL);
-            labelTitle->setFont(panel->font_D_LBL1);
-            labelTitle->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-            labelTitle->setText(QString::fromLocal8Bit("Visualization"));
-
-            m_ParallelBeamSourceVisualizationButton = new QPushButton(QString::fromLocal8Bit("On"));
-            panel->Buttons_FunctionPanelRight.append(m_ParallelBeamSourceVisualizationButton);
-            m_ParallelBeamSourceVisualizationButton->setFixedSize(panel->Window_width * 0.05, panel->Window_height * 0.028);
-            m_ParallelBeamSourceVisualizationButton->setCheckable(true);
-            m_ParallelBeamSourceVisualizationButton->setChecked(true);
-            m_ParallelBeamSourceVisualizationButton->setStyleSheet(DialogStyle::MENU_BTN3);
-            m_ParallelBeamSourceVisualizationButton->setFont(panel->font_D_BTN3);
-
-            QLabel* labelDir = new QLabel;
-            labelDir->setFixedSize(panel->Window_width * 0.03, panel->Window_height * 0.028);
-            labelDir->setStyleSheet(DialogStyle::DATA_LABEL);
-            labelDir->setFont(panel->font_D_LBL4);
-            labelDir->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-            labelDir->setText(QString::fromLocal8Bit("Direction"));
-
-            sourceCB_dirCheckBox = new QCheckBox;
-            sourceCB_dirCheckBox->setChecked(true);
-            sourceCB_dirCheckBox->setFixedSize(panel->Window_width * 0.02, panel->Window_height * 0.02);
-            sourceCB_dirCheckBox->setStyleSheet("QCheckBox { background-color: transparent; }");
-
-            connect(m_ParallelBeamSourceVisualizationButton, SIGNAL(clicked()), this, SLOT(slot_ParallelBeamSourceVisualization_ButtonClicked())); 
-            connect(m_ParallelBeamSourceVisualizationButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
-
-            hLayout->addWidget(labelTitle);
-            hLayout->addWidget(m_ParallelBeamSourceVisualizationButton);
-            hLayout->addStretch();
-            hLayout->addWidget(labelDir);
-            hLayout->addWidget(sourceCB_dirCheckBox);
-
-            vLayout->addLayout(hLayout);
-        }
+        m_lineEditParallelBeamDirectionTheta = new QLineEdit;
+        m_lineEditParallelBeamDirectionTheta->setFixedSize(panel->Window_width * 0.103, panel->Window_height * 0.028);
+        m_lineEditParallelBeamDirectionTheta->setAlignment(Qt::AlignCenter);
+        m_lineEditParallelBeamDirectionTheta->setStyleSheet(DialogStyle::LINEEDIT_NAME5);
+        m_lineEditParallelBeamDirectionTheta->setFont(panel->font_D_LE5);
+        m_lineEditParallelBeamDirectionTheta->setPlaceholderText(QString::fromLocal8Bit("(deg)"));
         
-        // ... (중간 생략: Position, Radius, Theta, Phi, Pick3D 버튼 등은 위와 동일) ...
-        // (코드 양을 줄이기 위해 생략했습니다. 전체 코드가 필요하면 말씀해주세요)
+        hLayout->addWidget(label0);
+        hLayout->addStretch();
+        hLayout->addWidget(m_lineEditParallelBeamDirectionTheta);
 
-        // [Radio Buttons: Mono vs Spectrum]
-        // [변경점] connect 부분에 새로운 슬롯 함수 이름 적용
-        {
-            QHBoxLayout* hLayout = new QHBoxLayout;
-            hLayout->setSpacing(panel->Window_width * 0.010);
-            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-            hLayout->setContentsMargins(panel->Window_width * 0.005, panel->Window_height * 0.009, 0, 0);
+        vLayout->addLayout(hLayout);
+    }
 
-            sourcePB_MonoEnergy_radioButton = new QRadioButton(QString::fromLocal8Bit("Mono energy"));
-            sourcePB_MonoEnergy_radioButton->setStyleSheet(DialogStyle::RADIOBUTTON_WIDGET);
-            sourcePB_MonoEnergy_radioButton->setFont(panel->font_D_RB2);
-            sourcePB_MonoEnergy_radioButton->setFixedSize(panel->Window_width * 0.081, panel->Window_height * 0.028);
-            sourcePB_MonoEnergy_radioButton->setChecked(true);
+    // 5. Direction vector (Directional Cosine - Phi)
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
-            sourcePB_EnergySpectrum_radioButton = new QRadioButton(QString::fromLocal8Bit("Energy spectrum"));
-            sourcePB_EnergySpectrum_radioButton->setStyleSheet(DialogStyle::RADIOBUTTON_WIDGET);
-            sourcePB_EnergySpectrum_radioButton->setFont(panel->font_D_RB2);
-            sourcePB_EnergySpectrum_radioButton->setFixedSize(panel->Window_width * 0.081, panel->Window_height * 0.028);
-            sourcePB_EnergySpectrum_radioButton->setChecked(false);
+        QLabel* label0 = new QLabel;
+        label0->setFixedSize(panel->Window_width * 0.058, panel->Window_height * 0.028);
+        label0->setStyleSheet(DialogStyle::DATA_LABEL);
+        label0->setFont(panel->font_D_LBL1);
+        label0->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        label0->setText(QString::fromLocal8Bit("Phi:"));
 
-            // [NEW] 새로 만든 슬롯 연결
-            connect(sourcePB_MonoEnergy_radioButton, SIGNAL(clicked()), this, SLOT(slot_PB_MonoEnergy_RadioButtonClicked())); 
-            connect(sourcePB_MonoEnergy_radioButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
-            
-            // [NEW] 새로 만든 슬롯 연결
-            connect(sourcePB_EnergySpectrum_radioButton, SIGNAL(clicked()), this, SLOT(slot_PB_EnergySpectrum_RadioButtonClicked())); 
-            connect(sourcePB_EnergySpectrum_radioButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+        m_lineEditParallelBeamDirectionPhi = new QLineEdit;
+        m_lineEditParallelBeamDirectionPhi->setFixedSize(panel->Window_width * 0.103, panel->Window_height * 0.028);
+        m_lineEditParallelBeamDirectionPhi->setAlignment(Qt::AlignCenter);
+        m_lineEditParallelBeamDirectionPhi->setStyleSheet(DialogStyle::LINEEDIT_NAME5);
+        m_lineEditParallelBeamDirectionPhi->setFont(panel->font_D_LE5);
+        m_lineEditParallelBeamDirectionPhi->setPlaceholderText(QString::fromLocal8Bit("(deg)"));
 
-            hLayout->addWidget(sourcePB_MonoEnergy_radioButton);
-            hLayout->addWidget(sourcePB_EnergySpectrum_radioButton);
+        hLayout->addWidget(label0);
+        hLayout->addStretch();
+        hLayout->addWidget(m_lineEditParallelBeamDirectionPhi);
 
-            vLayout->addLayout(hLayout);
-        }
+        vLayout->addLayout(hLayout);
+    }
 
-        // ... (Mono Energy 관련 UI 생략) ...
+    // 6. Action Buttons (3D Pick, Update)
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
-        // [ES: Add Button]
-        // [변경점] connect 부분에 새로운 슬롯 함수 이름 적용
-        {
-            QHBoxLayout* hLayout = new QHBoxLayout;
-            hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
-            hLayout->setSpacing(panel->Window_width * 0.003);
-            hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        pickParallelBeam3DButton = new QPushButton(QString::fromLocal8Bit("3D Pick"));
+        panel->Buttons_FunctionPanelRight.append(pickParallelBeam3DButton);
+        pickParallelBeam3DButton->setFixedSize(panel->Window_width * 0.050, panel->Window_height * 0.036);
+        pickParallelBeam3DButton->setCheckable(true);
+        pickParallelBeam3DButton->setStyleSheet(DialogStyle::MENU_BTN2);
+        pickParallelBeam3DButton->setFont(panel->font_D_BTN2);
 
-            labelParallelBeamEnergyspectrumList = new QLabel;
-            labelParallelBeamEnergyspectrumList->setFixedSize(panel->Window_width * 0.120, panel->Window_height * 0.028);
-            labelParallelBeamEnergyspectrumList->setStyleSheet(DialogStyle::DATA_LABEL);
-            labelParallelBeamEnergyspectrumList->setFont(panel->font_D_LBL1);
-            labelParallelBeamEnergyspectrumList->setAlignment(Qt::AlignLeft | Qt::AlignBottom);
-            labelParallelBeamEnergyspectrumList->setText(QString::fromLocal8Bit("Entered energy spectrum list"));
-            labelParallelBeamEnergyspectrumList->hide();
+        sourcePB_UpdateButton = new QPushButton(QString::fromLocal8Bit("Update"));
+        panel->Buttons_FunctionPanelRight.append(sourcePB_UpdateButton);
+        sourcePB_UpdateButton->setFixedSize(panel->Window_width * 0.050, panel->Window_height * 0.036);
+        sourcePB_UpdateButton->setStyleSheet(DialogStyle::MENU_BTN2);
+        sourcePB_UpdateButton->setFont(panel->font_D_BTN2);
 
-            ParallelBeamEnergyspectrumAddButton = new QPushButton(QString::fromLocal8Bit("Add"));
-            panel->Buttons_FunctionPanelRight.append(ParallelBeamEnergyspectrumAddButton);
-            ParallelBeamEnergyspectrumAddButton->setFixedSize(panel->Window_width * 0.042, panel->Window_height * 0.037);
-            ParallelBeamEnergyspectrumAddButton->setCheckable(false);
-            ParallelBeamEnergyspectrumAddButton->setStyleSheet(DialogStyle::MENU_BTN2);
-            ParallelBeamEnergyspectrumAddButton->setFont(panel->font_D_BTN2);
-            ParallelBeamEnergyspectrumAddButton->setChecked(false);
-            ParallelBeamEnergyspectrumAddButton->hide();
-
-            connect(ParallelBeamEnergyspectrumAddButton, SIGNAL(clicked()), this, SLOT(slot_ParallelBeamEnergyspectrumAdd_ButtonClicked())); 
-            connect(ParallelBeamEnergyspectrumAddButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
-
-            hLayout->addWidget(labelParallelBeamEnergyspectrumList);
-            hLayout->addStretch();
-            hLayout->addWidget(ParallelBeamEnergyspectrumAddButton);
-
-            vLayout->addLayout(hLayout);
-        }
-
-        // ... (나머지 리스트 위젯 등 생략) ...
-        // (이전 답변과 동일하게 마무리)
+        connect(pickParallelBeam3DButton, SIGNAL(clicked()), this, SLOT(slot_ParallelBeam_Pick3D_ButtonClicked())); 
+        connect(pickParallelBeam3DButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
         
-        subLayout->addLayout(vLayout);
+        connect(sourcePB_UpdateButton, SIGNAL(clicked()), this, SLOT(slot_ParallelBeamUpdate_ButtonClicked())); 
+        connect(sourcePB_UpdateButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+
+        hLayout->addStretch();
+        hLayout->addWidget(pickParallelBeam3DButton);
+        hLayout->addWidget(sourcePB_UpdateButton);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 7. Mode Selection (RadioButtons)
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setSpacing(panel->Window_width * 0.010);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        hLayout->setContentsMargins(panel->Window_width * 0.005, panel->Window_height * 0.009, 0, 0);
+
+        sourcePB_MonoEnergy_radioButton = new QRadioButton(QString::fromLocal8Bit("Mono energy"));
+        sourcePB_MonoEnergy_radioButton->setStyleSheet(DialogStyle::RADIOBUTTON_WIDGET);
+        sourcePB_MonoEnergy_radioButton->setFont(panel->font_D_RB2);
+        sourcePB_MonoEnergy_radioButton->setFixedSize(panel->Window_width * 0.081, panel->Window_height * 0.028);
+        sourcePB_MonoEnergy_radioButton->setChecked(true);
+
+        sourcePB_EnergySpectrum_radioButton = new QRadioButton(QString::fromLocal8Bit("Energy spectrum"));
+        sourcePB_EnergySpectrum_radioButton->setStyleSheet(DialogStyle::RADIOBUTTON_WIDGET);
+        sourcePB_EnergySpectrum_radioButton->setFont(panel->font_D_RB2);
+        sourcePB_EnergySpectrum_radioButton->setFixedSize(panel->Window_width * 0.081, panel->Window_height * 0.028);
+        sourcePB_EnergySpectrum_radioButton->setChecked(false);
+
+        // 라디오 버튼 전환 시 UI 변경 슬롯 연결 (ParallelBeamWidget 내부에 구현 필요)
+        connect(sourcePB_MonoEnergy_radioButton, SIGNAL(clicked()), this, SLOT(slot_PB_MonoEnergy_RadioButtonClicked())); 
+        connect(sourcePB_MonoEnergy_radioButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+        
+        connect(sourcePB_EnergySpectrum_radioButton, SIGNAL(clicked()), this, SLOT(slot_PB_EnergySpectrum_RadioButtonClicked())); 
+        connect(sourcePB_EnergySpectrum_radioButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+
+        hLayout->addWidget(sourcePB_MonoEnergy_radioButton);
+        hLayout->addWidget(sourcePB_EnergySpectrum_radioButton);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 8. [Mono Energy] Particle Type
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+        labelParallelBeamParticleTypeTitle = new QLabel;
+        labelParallelBeamParticleTypeTitle->setFixedSize(panel->Window_width * 0.068, panel->Window_height * 0.028);
+        labelParallelBeamParticleTypeTitle->setStyleSheet(DialogStyle::DATA_LABEL);
+        labelParallelBeamParticleTypeTitle->setFont(panel->font_D_LBL1);
+        labelParallelBeamParticleTypeTitle->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        labelParallelBeamParticleTypeTitle->setText(QString::fromLocal8Bit("Particle Type: "));
+
+        m_comboBoxParallelBeamParticleType = new QComboBox;
+        m_comboBoxParallelBeamParticleType->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.028);
+        m_comboBoxParallelBeamParticleType->setStyleSheet(DialogStyle::COMBOBOX);
+        m_comboBoxParallelBeamParticleType->setFont(panel->font_D_CB1);
+
+        m_comboBoxParallelBeamParticleType->setEditable(true);
+        m_comboBoxParallelBeamParticleType->lineEdit()->setReadOnly(true);
+        m_comboBoxParallelBeamParticleType->lineEdit()->setAlignment(Qt::AlignCenter);
+        m_comboBoxParallelBeamParticleType->lineEdit()->setFont(panel->font_D_CB1);
+
+        m_comboBoxParallelBeamParticleType->addItem("Photon");
+        m_comboBoxParallelBeamParticleType->addItem("Electron");
+        m_comboBoxParallelBeamParticleType->addItem("Neutron");
+        m_comboBoxParallelBeamParticleType->addItem("Proton");
+        m_comboBoxParallelBeamParticleType->addItem("Alpha");
+        m_comboBoxParallelBeamParticleType->setCurrentIndex(0);
+
+        hLayout->addWidget(labelParallelBeamParticleTypeTitle);
+        hLayout->addStretch();
+        hLayout->addWidget(m_comboBoxParallelBeamParticleType);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 9. [Mono Energy] Energy
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+        labelParallelBeamEnergyTitle = new QLabel;
+        labelParallelBeamEnergyTitle->setFixedSize(panel->Window_width * 0.068, panel->Window_height * 0.028);
+        labelParallelBeamEnergyTitle->setStyleSheet(DialogStyle::DATA_LABEL);
+        labelParallelBeamEnergyTitle->setFont(panel->font_D_LBL1);
+        labelParallelBeamEnergyTitle->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        labelParallelBeamEnergyTitle->setText(QString::fromLocal8Bit("Energy: "));
+
+        m_lineEditParallelBeamEnergy = new QLineEdit;
+        m_lineEditParallelBeamEnergy->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.028);
+        m_lineEditParallelBeamEnergy->setAlignment(Qt::AlignCenter);
+        m_lineEditParallelBeamEnergy->setStyleSheet(DialogStyle::LINEEDIT_NAME);
+        m_lineEditParallelBeamEnergy->setFont(panel->font_D_LE1);
+        m_lineEditParallelBeamEnergy->setPlaceholderText(QString::fromLocal8Bit("MeV"));
+
+        hLayout->addWidget(labelParallelBeamEnergyTitle);
+        hLayout->addStretch();
+        hLayout->addWidget(m_lineEditParallelBeamEnergy);
+
+        vLayout->addLayout(hLayout);
     }
     
+    // 10. [Mono Energy] Intensity
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+        labelParallelBeamIntensityTitle = new QLabel;
+        labelParallelBeamIntensityTitle->setFixedSize(panel->Window_width * 0.068, panel->Window_height * 0.028);
+        labelParallelBeamIntensityTitle->setStyleSheet(DialogStyle::DATA_LABEL);
+        labelParallelBeamIntensityTitle->setFont(panel->font_D_LBL1);
+        labelParallelBeamIntensityTitle->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        labelParallelBeamIntensityTitle->setText(QString::fromLocal8Bit("Intensity: "));
+
+        m_lineEditParallelBeamIntensity_MonoEnergy = new QLineEdit;
+        m_lineEditParallelBeamIntensity_MonoEnergy->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.028);
+        m_lineEditParallelBeamIntensity_MonoEnergy->setAlignment(Qt::AlignCenter);
+        m_lineEditParallelBeamIntensity_MonoEnergy->setStyleSheet(DialogStyle::LINEEDIT_NAME);
+        m_lineEditParallelBeamIntensity_MonoEnergy->setFont(panel->font_D_LE1);
+        m_lineEditParallelBeamIntensity_MonoEnergy->setPlaceholderText(QString::fromLocal8Bit("#/s"));
+
+        hLayout->addWidget(labelParallelBeamIntensityTitle);
+        hLayout->addStretch();
+        hLayout->addWidget(m_lineEditParallelBeamIntensity_MonoEnergy);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 11. [Energy Spectrum] File Load
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, panel->Window_height * 0.010, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+        labelParallelBeamEnergyspectrumTitle = new QLabel;
+        labelParallelBeamEnergyspectrumTitle->setFixedSize(panel->Window_width * 0.095, panel->Window_height * 0.028);
+        labelParallelBeamEnergyspectrumTitle->setStyleSheet(DialogStyle::DATA_LABEL);
+        labelParallelBeamEnergyspectrumTitle->setFont(panel->font_D_LBL1);
+        labelParallelBeamEnergyspectrumTitle->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        labelParallelBeamEnergyspectrumTitle->setText(QString::fromLocal8Bit("Energy spectrum file"));
+        labelParallelBeamEnergyspectrumTitle->hide(); // 초기값 숨김
+
+        ParallelBeamEnergyspectrumFileLoadButton = new QPushButton(QString::fromLocal8Bit("Load file"));
+        panel->Buttons_FunctionPanelRight.append(ParallelBeamEnergyspectrumFileLoadButton);
+        ParallelBeamEnergyspectrumFileLoadButton->setFixedSize(panel->Window_width * 0.067, panel->Window_height * 0.028);
+        ParallelBeamEnergyspectrumFileLoadButton->setStyleSheet(DialogStyle::MENU_BTN11);
+        ParallelBeamEnergyspectrumFileLoadButton->setFont(panel->font_D_BTN11);
+        ParallelBeamEnergyspectrumFileLoadButton->hide(); // 초기값 숨김
+
+        connect(ParallelBeamEnergyspectrumFileLoadButton, SIGNAL(clicked()), this, SLOT(slot_ParallelBeamEnergyspectrumFileLoad_ButtonClicked())); 
+        connect(ParallelBeamEnergyspectrumFileLoadButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+
+        hLayout->addWidget(labelParallelBeamEnergyspectrumTitle);
+        hLayout->addWidget(ParallelBeamEnergyspectrumFileLoadButton);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 12. [Energy Spectrum] File Name
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+        labelParallelBeamEnergyspectrumFileName = new QLabel;
+        labelParallelBeamEnergyspectrumFileName->setFixedSize(panel->Window_width * 0.068, panel->Window_height * 0.028);
+        labelParallelBeamEnergyspectrumFileName->setStyleSheet(DialogStyle::DATA_LABEL);
+        labelParallelBeamEnergyspectrumFileName->setFont(panel->font_D_LBL1);
+        labelParallelBeamEnergyspectrumFileName->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        labelParallelBeamEnergyspectrumFileName->setText(QString::fromLocal8Bit("File name"));
+        labelParallelBeamEnergyspectrumFileName->hide(); // 초기값 숨김
+
+        sourcePB_EnergyspectrumFileNameText = new QTextEdit;
+        sourcePB_EnergyspectrumFileNameText->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.056);
+        sourcePB_EnergyspectrumFileNameText->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        sourcePB_EnergyspectrumFileNameText->setStyleSheet("QTextEdit { background-color: rgb(255, 255, 255) }");
+        sourcePB_EnergyspectrumFileNameText->setFont(panel->font_D_MAT);
+        sourcePB_EnergyspectrumFileNameText->setPlaceholderText(QString::fromLocal8Bit("empty"));
+        sourcePB_EnergyspectrumFileNameText->hide(); // 초기값 숨김
+
+        hLayout->addWidget(labelParallelBeamEnergyspectrumFileName);
+        hLayout->addStretch();
+        hLayout->addWidget(sourcePB_EnergyspectrumFileNameText);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 13. [Energy Spectrum] Intensity
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+        labelParallelBeamEnergyspectrumIntensity = new QLabel;
+        labelParallelBeamEnergyspectrumIntensity->setFixedSize(panel->Window_width * 0.068, panel->Window_height * 0.028);
+        labelParallelBeamEnergyspectrumIntensity->setStyleSheet(DialogStyle::DATA_LABEL);
+        labelParallelBeamEnergyspectrumIntensity->setFont(panel->font_D_LBL1);
+        labelParallelBeamEnergyspectrumIntensity->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        labelParallelBeamEnergyspectrumIntensity->setText(QString::fromLocal8Bit("Intensity"));
+        labelParallelBeamEnergyspectrumIntensity->hide(); // 초기값 숨김
+
+        m_lineEditParallelBeamIntensity_EnergySpectrum = new QLineEdit;
+        m_lineEditParallelBeamIntensity_EnergySpectrum->setFixedSize(panel->Window_width * 0.104, panel->Window_height * 0.028);
+        m_lineEditParallelBeamIntensity_EnergySpectrum->setAlignment(Qt::AlignCenter);
+        m_lineEditParallelBeamIntensity_EnergySpectrum->setStyleSheet(DialogStyle::LINEEDIT_NAME);
+        m_lineEditParallelBeamIntensity_EnergySpectrum->setFont(panel->font_D_LE1);
+        m_lineEditParallelBeamIntensity_EnergySpectrum->setPlaceholderText(QString::fromLocal8Bit("#/s"));
+        m_lineEditParallelBeamIntensity_EnergySpectrum->hide(); // 초기값 숨김
+
+        hLayout->addWidget(labelParallelBeamEnergyspectrumIntensity);
+        hLayout->addStretch();
+        hLayout->addWidget(m_lineEditParallelBeamIntensity_EnergySpectrum);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 14. [Energy Spectrum] Entered List Header & Add Button
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+        labelParallelBeamEnergyspectrumList = new QLabel;
+        labelParallelBeamEnergyspectrumList->setFixedSize(panel->Window_width * 0.120, panel->Window_height * 0.028);
+        labelParallelBeamEnergyspectrumList->setStyleSheet(DialogStyle::DATA_LABEL);
+        labelParallelBeamEnergyspectrumList->setFont(panel->font_D_LBL1);
+        labelParallelBeamEnergyspectrumList->setAlignment(Qt::AlignLeft | Qt::AlignBottom);
+        labelParallelBeamEnergyspectrumList->setText(QString::fromLocal8Bit("Entered energy spectrum list"));
+        labelParallelBeamEnergyspectrumList->hide(); // 초기값 숨김
+
+        ParallelBeamEnergyspectrumAddButton = new QPushButton(QString::fromLocal8Bit("Add"));
+        panel->Buttons_FunctionPanelRight.append(ParallelBeamEnergyspectrumAddButton);
+        ParallelBeamEnergyspectrumAddButton->setFixedSize(panel->Window_width * 0.042, panel->Window_height * 0.037);
+        ParallelBeamEnergyspectrumAddButton->setCheckable(false);
+        ParallelBeamEnergyspectrumAddButton->setStyleSheet(DialogStyle::MENU_BTN2);
+        ParallelBeamEnergyspectrumAddButton->setFont(panel->font_D_BTN2);
+        ParallelBeamEnergyspectrumAddButton->setChecked(false);
+        ParallelBeamEnergyspectrumAddButton->hide(); // 초기값 숨김
+
+        connect(ParallelBeamEnergyspectrumAddButton, SIGNAL(clicked()), this, SLOT(slot_ParallelBeamEnergyspectrumAdd_ButtonClicked())); 
+        connect(ParallelBeamEnergyspectrumAddButton, SIGNAL(clicked()), panel, SLOT(slot_allButtonClicked()));
+
+        hLayout->addWidget(labelParallelBeamEnergyspectrumList);
+        hLayout->addStretch();
+        hLayout->addWidget(ParallelBeamEnergyspectrumAddButton);
+
+        vLayout->addLayout(hLayout);
+    }
+
+    // 15. [Energy Spectrum] List Widget
+    {
+        QHBoxLayout* hLayout = new QHBoxLayout;
+        hLayout->setContentsMargins(panel->Window_width * 0.003, 0, panel->Window_width * 0.003, 0);
+        hLayout->setSpacing(panel->Window_width * 0.003);
+        hLayout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+        ES_List_sourcePB_QListWidget = new QListWidget;
+
+        ES_List_sourcePB_QListWidget->setStyleSheet("QListWidget { border-radius: 15px; background-color: white; }");
+        ES_List_sourcePB_QListWidget->setFixedSize(panel->Window_width * 0.175, panel->Window_height * 0.155); 
+        ES_List_sourcePB_QListWidget->setFont(panel->font_D_LW1);
+        ES_List_sourcePB_QListWidget->hide(); // 초기값 숨김
+
+        hLayout->addWidget(ES_List_sourcePB_QListWidget);
+
+        vLayout->addLayout(hLayout);
+    }
+    
+    subLayout->addLayout(vLayout);
+    
+    // 최종적으로 이 Widget(ParallelBeamWidget)의 레이아웃으로 설정
     this->setLayout(subLayout);
+
     return true;
 }
 
+void ParallelBeamWidget::WriteSourceMacro(std::ofstream& ofp_source)
+{
+	updateModelFromUI();
+	double center_x = m_model.PointX;
+	double center_y = m_model.PointY;
+	double center_z = m_model.PointZ;
+	std::string center_x_str = std::to_string(center_x);//pRt->m_lineEditParallelBeamPointX->text().toStdString();
+	std::string center_y_str = std::to_string(center_y);//pRt->m_lineEditParallelBeamPointY->text().toStdString();
+	std::string center_z_str = std::to_string(center_z);//pRt->m_lineEditParallelBeamPointZ->text().toStdString();
+	if (center_x_str == "") center_x = 0;
+	if (center_y_str == "") center_y = 0;
+	if (center_z_str == "") center_z = 0;
+	double radius = m_model.Radius;//pRt->m_lineEditParallelBeamRadius->text().toDouble();
+	//double theta_rad = pRt->m_lineEditParallelBeamDirectionTheta->text().toDouble() * vtkMath::Pi() / 180.0;
+	double theta_rad = m_model.DirectionTheta * vtkMath::Pi() / 180.0;
+	//double phi_rad = pRt->m_lineEditParallelBeamDirectionPhi->text().toDouble() * vtkMath::Pi() / 180.0;
+	double phi_rad = m_model.DirectionPhi * vtkMath::Pi() / 180.0;
+	// 1) 빔 진행방향 n(정규화)
+	double nx = std::sin(theta_rad) * std::cos(phi_rad);
+	double ny = std::sin(theta_rad) * std::sin(phi_rad);
+	double nz = std::cos(theta_rad);
+	// 정규화(수치 안정)
+	{
+		double nlen = std::sqrt(nx*nx + ny * ny + nz * nz);
+		if (nlen < 1e-12) { nx = 0; ny = 0; nz = 1; }
+		else { nx /= nlen; ny /= nlen; nz /= nlen; }
+	}
+	// 2) 평행빔 원판 좌표축 u, v 구성  (u ⟂ n, v = n × u) -> GPS에서 필요
+	// n과 거의 평행하지 않은 보조벡터 a 선택
+	double ax = 0, ay = 0, az = 1;
+	if (std::fabs(nz) > 0.99) { ax = 1; ay = 0; az = 0; }
+	// u = normalize(a × n)
+	double ux = ay * nz - az * ny;
+	double uy = az * nx - ax * nz;
+	double uz = ax * ny - ay * nx;
+	double ulen = std::sqrt(ux*ux + uy * uy + uz * uz);
+	if (ulen < 1e-12) {
+		// 극단적 정렬일 때 대체 a로 재시도
+		ax = 0; ay = 1; az = 0;
+		ux = ay * nz - az * ny;
+		uy = az * nx - ax * nz;
+		uz = ax * ny - ay * nx;
+		ulen = std::sqrt(ux*ux + uy * uy + uz * uz);
+	}
+	ux /= ulen; uy /= ulen; uz /= ulen;
+	// v = normalize(n × u)  (이론상 이미 단위길이지만 안전상 정규화)
+	double vx = ny * uz - nz * uy;
+	double vy = nz * ux - nx * uz;
+	double vz = nx * uy - ny * ux;
+	double vlen = std::sqrt(vx*vx + vy * vy + vz * vz);
+	vx /= vlen; vy /= vlen; vz /= vlen;
+	
+	//if (pRt->sourcePB_MonoEnergy_radioButton->isChecked()) // Mono Energy 형태일 때
+	if (m_model.isMonoEnergyMode) // Mono Energy 형태일 때
+	{
+		ofp_source << "/gps/particle ";
+		if (m_model.particleTypeIndex == "Photon") ofp_source << "gamma" << endl;
+		else if (m_model.particleTypeIndex == "Electron") ofp_source << "e-" << endl;
+		else if (m_model.particleTypeIndex == "Neutron") ofp_source << "neutron" << endl;
+		else if (m_model.particleTypeIndex == "Proton") ofp_source << "proton" << endl;
+		else if (m_model.particleTypeIndex == "Alpha") ofp_source << "alpha" << endl;
+		ofp_source << "/gps/pos/type Plane" << endl;
+		ofp_source << "/gps/pos/shape Circle" << endl;
+		ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm " << endl;
+		ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << endl;
+		ofp_source << "/gps/pos/rot1 " << ux << " " << uy << " " << uz << std::endl; // u
+		ofp_source << "/gps/pos/rot2 " << vx << " " << vy << " " << vz << std::endl; // v
+		ofp_source << "/gps/ang/type beam2d" << endl;
+		ofp_source << "/gps/direction " << std::to_string(nx) << " " << std::to_string(ny) << " " << std::to_string(nz) << endl;
+		ofp_source << "/gps/ang/sigma_x 0 deg" << endl;
+		ofp_source << "/gps/ang/sigma_y 0 deg" << endl;
+		ofp_source << "/gps/energy " << m_model.monoEnergy << " MeV" << endl;
+	}
+	theApp.DoseConversionFactor_inUImodule = m_model.monoIntensity;
+}
+void ParallelBeamWidget::WriteSourceInfo(std::ofstream& ofp_info)
+{
+
+}
+void ParallelBeamWidget::ReadSourceInfo(std::ifstream& ifp)
+{
+
+}
 // === Slot Functions (새로 추가된 함수들만 표시) ===
+
+void ParallelBeamWidget::updateModelFromUI()
+{
+    // 1. Geometry (Position)
+    m_model.PointX = m_lineEditParallelBeamPointX->text().toDouble();
+    m_model.PointY = m_lineEditParallelBeamPointY->text().toDouble();
+    m_model.PointZ = m_lineEditParallelBeamPointZ->text().toDouble();
+
+    // 2. Geometry (Radius & Direction)
+    m_model.Radius = m_lineEditParallelBeamRadius->text().toDouble();
+    m_model.DirectionTheta = m_lineEditParallelBeamDirectionTheta->text().toDouble();
+    m_model.DirectionPhi = m_lineEditParallelBeamDirectionPhi->text().toDouble();
+
+    // 3. Mode Selection
+    // MonoEnergy 라디오 버튼이 켜져 있으면 true
+    m_model.isMonoEnergyMode = sourcePB_MonoEnergy_radioButton->isChecked();
+
+    // 4. Mono Energy Inputs
+    m_model.particleTypeIndex = m_comboBoxParallelBeamParticleType->currentText().toStdString();
+    m_model.monoEnergy = m_lineEditParallelBeamEnergy->text().toDouble();
+    m_model.monoIntensity = m_lineEditParallelBeamIntensity_MonoEnergy->text().toDouble();
+
+    // 5. Energy Spectrum Inputs
+    m_model.spectrumFileName = sourcePB_EnergyspectrumFileNameText->toPlainText();
+    m_model.spectrumIntensity = m_lineEditParallelBeamIntensity_EnergySpectrum->text().toDouble();
+
+    // 6. Visualization & Options
+    m_model.b_IsSourceLocationVisualized_sourcePB = m_ParallelBeamSourceVisualizationButton->isChecked();
+    // [수정] 오타 주의: sourcePB_dirCheckBox (헤더 수정 필요)
+    if (sourcePB_dirCheckBox) {
+        m_model.isDirectionChecked = sourcePB_dirCheckBox->isChecked();
+    }
+}
 
 // 1. Visualization (Existing)
 void ParallelBeamWidget::slot_ParallelBeamSourceVisualization_ButtonClicked()
 {
+	updateModelFromUI();
     if (m_ParallelBeamSourceVisualizationButton->isChecked())
     {
-        b_IsSourceLocationVisualized_sourcePB = true;
+        m_model.b_IsSourceLocationVisualized_sourcePB = true;
         m_ParallelBeamSourceVisualizationButton->setText("On");
         for (auto itr_actor : theApp.SourcePanelActor_Position)
         {
@@ -7701,7 +9761,7 @@ void ParallelBeamWidget::slot_ParallelBeamSourceVisualization_ButtonClicked()
     }
     else
     {
-        b_IsSourceLocationVisualized_sourcePB = false;
+        m_model.b_IsSourceLocationVisualized_sourcePB = false;
         m_ParallelBeamSourceVisualizationButton->setText("Off");
         for (auto itr_actor : theApp.SourcePanelActor_Position)
         {
@@ -7720,6 +9780,9 @@ void ParallelBeamWidget::slot_ParallelBeam_Pick3D_ButtonClicked()
 // 3. Update Geometry (Existing)
 void ParallelBeamWidget::slot_ParallelBeamUpdate_ButtonClicked()
 {
+	// UI 값을 Model로 옮기기
+	updateModelFromUI();
+
     // 위치 
     double center_radius[4] = { 0.0, };
     center_radius[0] = m_lineEditParallelBeamPointX->text().toFloat();
@@ -7731,6 +9794,8 @@ void ParallelBeamWidget::slot_ParallelBeamUpdate_ButtonClicked()
     double theta_phi[2] = { 0.0, };
     theta_phi[0] = m_lineEditParallelBeamDirectionTheta->text().toFloat();
     theta_phi[1] = m_lineEditParallelBeamDirectionPhi->text().toFloat();
+	// 아래
+
 
     theApp.sourceObjects->GenerateSourceActor_sourcePB(center_radius, theta_phi);
 }
@@ -7823,10 +9888,10 @@ void ParallelBeamWidget::slot_ParallelBeamEnergyspectrumAdd_ButtonClicked()
 
     // 버튼 생성 및 리스트 관리
     m_sourcePB_ES_listDeleteButton.push_back(new QPushButton());
-    if (ESList_sourcePB_MakingIndex >= m_sourcePB_ES_listDeleteButton.size()) 
+    if (m_model.ESList_sourcePB_MakingIndex >= m_sourcePB_ES_listDeleteButton.size()) 
         theApp.SetMessageBox("PB ES Delete Button Index Error");
     
-    int currentIndex = ESList_sourcePB_MakingIndex;
+    int currentIndex = m_model.ESList_sourcePB_MakingIndex;
     m_sourcePB_ES_listDeleteButton[currentIndex]->setCheckable(false);
     m_sourcePB_ES_listDeleteButton[currentIndex]->setStyleSheet(DialogStyle::MENU_BTN13);
     m_sourcePB_ES_listDeleteButton[currentIndex]->setFont(panel->font_D_BTN13);
@@ -7861,9 +9926,11 @@ void ParallelBeamWidget::slot_ParallelBeamEnergyspectrumAdd_ButtonClicked()
     std::map<int, QString> tmp_map;
     tmp_map[0] = sourcePB_EnergyspectrumFileNameText->placeholderText(); // Full path
     tmp_map[1] = m_lineEditParallelBeamIntensity_EnergySpectrum->text();
-    sourcePB_ES_info.push_back(tmp_map);
+    // sourcePB_ES_info.push_back(tmp_map);
+	m_model.sourcePB_ES_info.push_back(tmp_map);
     
-    ESList_sourcePB_MakingIndex++;
+    // ESList_sourcePB_MakingIndex++;
+	m_model.ESList_sourcePB_MakingIndex++;
 }
 
 // 8. List Delete (NEW - Replacing EP Logic)
@@ -7876,8 +9943,8 @@ void ParallelBeamWidget::slot_ParallelBeamEnergyspectrumDelete_ButtonClicked()
     QListWidgetItem* toRemove = ES_List_sourcePB_QListWidget->takeItem(row);
     delete toRemove;
 
-    if (index >= 0 && index < sourcePB_ES_info.size()) {
-        sourcePB_ES_info.erase(sourcePB_ES_info.begin() + index);
+    if (index >= 0 && index < m_model.sourcePB_ES_info.size()) {
+        m_model.sourcePB_ES_info.erase(m_model.sourcePB_ES_info.begin() + index);
         m_sourcePB_ES_listDeleteButton.erase(m_sourcePB_ES_listDeleteButton.begin() + index);
         m_sourcePB_ES_listInfoButton.erase(m_sourcePB_ES_listInfoButton.begin() + index);
     }
@@ -7887,7 +9954,7 @@ void ParallelBeamWidget::slot_ParallelBeamEnergyspectrumDelete_ButtonClicked()
         m_sourcePB_ES_listDeleteButton[i]->setObjectName(QString::number(i));
         m_sourcePB_ES_listInfoButton[i]->setObjectName(QString::number(i));
     }
-    ESList_sourcePB_MakingIndex--;
+    m_model.ESList_sourcePB_MakingIndex--;
 }
 
 // 9. List Info (NEW - Empty)

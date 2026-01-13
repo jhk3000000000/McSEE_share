@@ -234,8 +234,16 @@ void FunctionPanelTop::slot_ViewportTop_ButtonClicked()
 	// Viewport reset 전, object/phantom 있으면 축 제외하고 카메라뷰 클리핑하기 위해 축들은 잠깐 가시화 끄기
 	if (theApp.pRt) // pRt 생성 되었는지 확인 
 	{
+		bool has_ObjectSequenceVector = false;
+		auto* OVWidget = theApp.pRt->getSourceWidget<ObjectVolumeWidget>();
+		if(OVWidget)
+		{
+			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
+		}
+
+
 		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
-			theApp.pRt->m_sourceOV_objectSequenceVector.size() > 0) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
+			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}	
 
 	auto camera = theApp.m_pVTKWidget->GetSceneRenderer()->GetActiveCamera();
@@ -258,8 +266,14 @@ void FunctionPanelTop::slot_ViewportBottom_ButtonClicked()
 	// Viewport reset 전, object/phantom 있으면 축 제외하고 카메라뷰 클리핑하기 위해 축들은 잠깐 가시화 끄기
 	if (theApp.pRt) // pRt 생성 되었는지 확인 
 	{
+		bool has_ObjectSequenceVector = false;
+		auto* OVWidget = theApp.pRt->getSourceWidget<ObjectVolumeWidget>();
+		if(OVWidget)
+		{
+			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
+		}
 		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
-			theApp.pRt->m_sourceOV_objectSequenceVector.size() > 0) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
+			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}
 
 	auto camera = theApp.m_pVTKWidget->GetSceneRenderer()->GetActiveCamera();
@@ -282,8 +296,14 @@ void FunctionPanelTop::slot_ViewportLeft_ButtonClicked()
 	// Viewport reset 전, object/phantom 있으면 축 제외하고 카메라뷰 클리핑하기 위해 축들은 잠깐 가시화 끄기
 	if (theApp.pRt) // pRt 생성 되었는지 확인 
 	{
+		bool has_ObjectSequenceVector = false;
+		auto* OVWidget = theApp.pRt->getSourceWidget<ObjectVolumeWidget>();
+		if(OVWidget)
+		{
+			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
+		}
 		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
-			theApp.pRt->m_sourceOV_objectSequenceVector.size() > 0) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
+			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}
 
 	auto camera = theApp.m_pVTKWidget->GetSceneRenderer()->GetActiveCamera();
@@ -307,8 +327,14 @@ void FunctionPanelTop::slot_ViewportRight_ButtonClicked()
 	// Viewport reset 전, object/phantom 있으면 축 제외하고 카메라뷰 클리핑하기 위해 축들은 잠깐 가시화 끄기
 	if (theApp.pRt) // pRt 생성 되었는지 확인 
 	{
+		bool has_ObjectSequenceVector = false;
+		auto* OVWidget = theApp.pRt->getSourceWidget<ObjectVolumeWidget>();
+		if(OVWidget)
+		{
+			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
+		}
 		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
-			theApp.pRt->m_sourceOV_objectSequenceVector.size() > 0) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
+			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}
 
 	auto camera = theApp.m_pVTKWidget->GetSceneRenderer()->GetActiveCamera();
@@ -332,8 +358,14 @@ void FunctionPanelTop::slot_ViewportFront_ButtonClicked()
 	// Viewport reset 전, object/phantom 있으면 축 제외하고 카메라뷰 클리핑하기 위해 축들은 잠깐 가시화 끄기
 	if (theApp.pRt) // pRt 생성 되었는지 확인 
 	{
+		bool has_ObjectSequenceVector = false;
+		auto* OVWidget = theApp.pRt->getSourceWidget<ObjectVolumeWidget>();
+		if(OVWidget)
+		{
+			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
+		}
 		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
-			theApp.pRt->m_sourceOV_objectSequenceVector.size() > 0) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
+			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}
 
 	auto camera = theApp.m_pVTKWidget->GetSceneRenderer()->GetActiveCamera();
@@ -357,8 +389,14 @@ void FunctionPanelTop::slot_ViewportBack_ButtonClicked()
 	// Viewport reset 전, object/phantom 있으면 축 제외하고 카메라뷰 클리핑하기 위해 축들은 잠깐 가시화 끄기
 	if (theApp.pRt) // pRt 생성 되었는지 확인 
 	{
+		bool has_ObjectSequenceVector = false;
+		auto* OVWidget = theApp.pRt->getSourceWidget<ObjectVolumeWidget>();
+		if(OVWidget)
+		{
+			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
+		}
 		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
-			theApp.pRt->m_sourceOV_objectSequenceVector.size() > 0) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
+			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}
 
 	auto camera = theApp.m_pVTKWidget->GetSceneRenderer()->GetActiveCamera();

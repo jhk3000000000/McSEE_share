@@ -1412,11 +1412,16 @@ std::string ETHuman3DApp::SetComputerID()
 }
 void ETHuman3DApp::MultipleUICloseTrigger() // 닫을 때 Ok버튼으로 눌러서 정상종료하지 않았으면 Closed 플래그 업데이트
 {
+	auto* OVWidget = pRt->getSourceWidget<ObjectVolumeWidget>();
+	if(!OVWidget) return;
+
 	if (pRt->m_Is_PhantomSetting_OKbutton_Clicked == false) pRt->m_Is_PhantomSetting_Closed = true;
 	if (pRt->m_Is_ClothingSetting_OKbutton_Clicked == false) pRt->m_Is_ClothingSetting_Closed = true;
 	if (pRt->m_Is_ClothingLayer_Setting_OKbutton_Clicked == false) pRt->m_Is_ClothingLayer_Setting_Closed = true;
 	if (pRt->b_IsObjectSettingOKClicked == false) pRt->b_IsObjectSettingClosed = true;		
-	if (pRt->b_IsSourceOV_AddingSettingOKClicked == false) pRt->b_IsSourceOV_AddingSettingClosed = true;
+	//if (pRt->b_IsSourceOV_AddingSettingOKClicked == false) pRt->b_IsSourceOV_AddingSettingClosed = true;
+	//if(OVWidget->isOV_AddingSettingOKClicked() == false) OVWidget->setOV_AddingSettingClosed();
+	if(OVWidget->getModel().b_IsSourceOV_AddingSettingOKClicked == false) OVWidget->getModel().b_IsSourceOV_AddingSettingClosed = true;
 }
 std::string ETHuman3DApp::ExtractInnerString(std::string& input)
 {
@@ -1995,649 +2000,17 @@ void ETHuman3DApp::MakeFile_SourceMacro()
 	ofp_source << "/hadron/phys/thermalScattering true" << endl;
 	ofp_source << "/run/initialize" << endl << endl;
 
-	// Broad beam
-	if (pRt->m_comboBoxSourceGeometry->currentIndex() == 0) 
-	{
-		if (pRt->m_comboBoxBeamdirection->currentText() == "User defined")
-		{
-			ofp_source << "/external/AziPol 1 " << QString::number(pRt->m_lineEditAzimuthalAngle->text().toDouble()).toStdString()
-				<< " " << QString::number(pRt->m_lineEditPolarAngle->text().toDouble()).toStdString() << endl;
-			ofp_source << "/gun/particle ";
-			if (pRt->m_comboBoxBroadBeamParticleType->currentText() == "Photon") ofp_source << "gamma" << endl;
-			else if (pRt->m_comboBoxBroadBeamParticleType->currentText() == "Electron") ofp_source << "e-" << endl;
-			else if (pRt->m_comboBoxBroadBeamParticleType->currentText() == "Neutron") ofp_source << "neutron" << endl;
-			else if (pRt->m_comboBoxBroadBeamParticleType->currentText() == "Proton") ofp_source << "proton" << endl;
-			else if (pRt->m_comboBoxBroadBeamParticleType->currentText() == "Alpha") ofp_source << "alpha" << endl;
-			ofp_source << "/gun/energy " << pRt->m_lineBroadBeamEnergy->text().toStdString() << " MeV" << endl;
-		}
-		else // AP PA LLAT RLAT ROT ISO 
-		{
-			ofp_source << "/external/dir " << pRt->m_comboBoxBeamdirection->currentText().toStdString() << endl;
-			ofp_source << "/gun/particle ";
-			if (pRt->m_comboBoxBroadBeamParticleType->currentText() == "Photon") ofp_source << "gamma" << endl;
-			else if (pRt->m_comboBoxBroadBeamParticleType->currentText() == "Electron") ofp_source << "e-" << endl;
-			else if (pRt->m_comboBoxBroadBeamParticleType->currentText() == "Neutron") ofp_source << "neutron" << endl;
-			else if (pRt->m_comboBoxBroadBeamParticleType->currentText() == "Proton") ofp_source << "proton" << endl;
-			else if (pRt->m_comboBoxBroadBeamParticleType->currentText() == "Alpha") ofp_source << "alpha" << endl;
-			ofp_source << "/gun/energy " << pRt->m_lineBroadBeamEnergy->text().toStdString() << " MeV" << endl;
-		}
-	}
-
-	// External point (EP)
-	if (pRt->m_comboBoxSourceGeometry->currentIndex() == 1)
-	{
-		if (pRt->RI_Select_sourceEP_QRadioButton->isChecked())
-		{
-			bool is_first_RI = true;
-			double first_RI_activity;
-			bool is_first_radiation = true;
-			double first_radiation_yield;
-			double conversion_factor_sum_of_activity_yieldsum = 0;
-			for (auto itr_info_RI : pRt->ListInfo_sourceEP) // 입력한 mulitple RI 마다 순환
-			{
-				std::string path = "./data/radioisotopes/" + itr_info_RI[4].toStdString() + ".txt";
-				std::pair<std::vector<std::map<int, std::string>>, double> temp_pair = Read_RI_File(path);
-				std::vector<std::map<int, std::string>> radionulclide_radiation_info = temp_pair.first;
-				double this_RI_yieldsum = temp_pair.second;
-				double this_RI_activity = itr_info_RI[5].toDouble();
-				conversion_factor_sum_of_activity_yieldsum += this_RI_activity * this_RI_yieldsum; // activity concentration * area * yieldsum -> (NPS/s)
-				if (is_first_RI) // 첫번째 RI 일때
-				{
-					first_RI_activity = this_RI_activity;
-					for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
-					{
-						if (is_first_radiation) // 첫번째 RI, 첫번째 radiation 일때
-						{
-							ofp_source << "/gps/particle " << itr_radiation[2] << endl;
-							ofp_source << "/gps/pos/type Point" << endl;
-							if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
-							if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
-							if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
-							ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << itr_info_RI[1].toDouble() << " " << itr_info_RI[2].toDouble() << " " << itr_info_RI[3].toDouble() << " cm " << endl;
-							ofp_source << "/gps/ang/type iso" << endl;
-							ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
-							first_radiation_yield = std::stod(itr_radiation[0]);
-							is_first_radiation = false;
-						}
-						else // 첫번째 RI, 두번째 이상 radiation 일때
-						{
-							ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) << endl;
-							ofp_source << "/gps/particle " << itr_radiation[2] << endl;
-							ofp_source << "/gps/pos/type Point" << endl;
-							if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
-							if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
-							if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
-							ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << itr_info_RI[1].toDouble() << " " << itr_info_RI[2].toDouble() << " " << itr_info_RI[3].toDouble() << " cm " << endl;
-							ofp_source << "/gps/ang/type iso" << endl;
-							ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
-						}
-					}
-					is_first_RI = false;
-				}
-				else // 두번째 이상 RI
-				{
-					for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
-					{
-						ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) * (this_RI_activity / first_RI_activity) << endl;
-						ofp_source << "/gps/particle " << itr_radiation[2] << endl;
-						ofp_source << "/gps/pos/type Point" << endl;
-						if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
-						if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
-						if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
-						ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << itr_info_RI[1].toDouble() << " " << itr_info_RI[2].toDouble() << " " << itr_info_RI[3].toDouble() << " cm " << endl;
-						ofp_source << "/gps/ang/type iso" << endl;
-						ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
-					}
-				}
-			}
-			DoseConversionFactor_inUImodule = conversion_factor_sum_of_activity_yieldsum;
-		}
-		else if (pRt->ES_Select_sourceEP_QRadioButton->isChecked())
-		{
-			// 전체 입자 중 첫 번째 입자인지를 판별하는 플래그
-			bool is_first_particle_overall = true;
-			// 기준이 될 첫 번째 입자의 절대적인 초당 방출량(#/s)을 저장할 변수
-			double reference_absolute_intensity;
-			// 모든 소스의 Intensity(#/s) 총합을 저장. 최종적으로 선량 변환 계수 계산에 사용됨.
-			DoseConversionFactor_inUImodule = 0.0;
-			
-			for (auto itr_info_RI : pRt->ListInfo_sourceEP)
-			{
-				// 1. 현재 소스(파일)의 정보 파싱
-				 // 위치 좌표 (비어있으면 "0"으로 처리)
-				if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
-				if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
-				if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
-				double posX = itr_info_RI[1].toDouble();
-				double posY = itr_info_RI[2].toDouble();
-				double posZ = itr_info_RI[3].toDouble();
-
-				// 파일 경로와 해당 파일의 전체 Intensity
-				QString filePath = itr_info_RI[4];
-				double file_total_intensity = itr_info_RI[5].toDouble();
-
-				// 총 방출량 계산
-				DoseConversionFactor_inUImodule += file_total_intensity;
-
-				// 2. 파일 파싱 준비: 파일 내용을 메모리에 저장하고 weight 총합 계산
-				QFile inputFile(filePath);
-				if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-					// 파일 열기 실패 시 이 파일은 건너뜀
-					continue;
-				}
-
-				// 파일 내용을 임시로 저장할 리스트
-				QList<QStringList> file_content;
-				double total_weight_in_file = 0.0;
-
-				QTextStream in(&inputFile);
-				while (!in.atEnd()) {
-					QString line = in.readLine();
-
-					QStringList parts = line.simplified().split(' ');					
-
-					if (parts.size() >= 3) {
-						file_content.append(parts);
-						// weight는 두 번째 열(parts[1])
-						total_weight_in_file += parts[1].toDouble();
-					}
-				}
-				inputFile.close();
-
-				// 3. Geant4 GPS 명령어 생성
-				// 메모리에 저장된 파일 내용을 한 줄씩 처리
-				for (const auto& line_parts : file_content)
-				{
-					std::string particle_type = line_parts[0].toStdString();
-					double weight = line_parts[1].toDouble();
-					double energy = line_parts[2].toDouble();
-
-					// 현재 입자의 절대적인 초당 방출량(#/s) 계산
-					// = (파일 전체 방출량) * (파일 내 현재 입자의 가중치 / 파일 내 가중치 총합)
-					double current_absolute_intensity = 0.0;
-					if (total_weight_in_file > 0) {
-						current_absolute_intensity = file_total_intensity * (weight / total_weight_in_file);
-					}
-					// 모든 소스를 통틀어 가장 첫 번째 입자인 경우
-					if (is_first_particle_overall)
-					{
-						// 기준 방출량으로 설정
-						reference_absolute_intensity = current_absolute_intensity;
-
-						// /gps/source/add 없이 기본 명령어만 출력
-						ofp_source << "/gps/particle " << particle_type << std::endl;
-						ofp_source << "/gps/pos/type Point" << std::endl;
-						ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << posX << " " << posY << " " << posZ << " cm" << std::endl;
-						ofp_source << "/gps/ang/type iso" << std::endl;
-						ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
-
-						// 첫 번째 입자 처리가 끝났으므로 플래그를 false로 변경
-						is_first_particle_overall = false;
-					}
-					// 두 번째 입자부터는 기준 입자 대비 상대적 비율을 계산하여 /gps/source/add 명령어 추가
-					else
-					{
-						double relative_intensity = 0.0;
-						// 기준 방출량이 0보다 클 때만 나누기 연산 수행 (오류 방지)
-						if (reference_absolute_intensity > 0) {
-							relative_intensity = current_absolute_intensity / reference_absolute_intensity;
-						}
-
-						ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << relative_intensity << std::endl;
-						ofp_source << "/gps/particle " << particle_type << std::endl;
-						ofp_source << "/gps/pos/type Point" << std::endl;
-						ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << posX << " " << posY << " " << posZ << " cm" << std::endl;
-						ofp_source << "/gps/ang/type iso" << std::endl;
-						ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
-					}
-				}
-			}
-		}		
-	}
-
-	// Floor disk (FD)
-	if (pRt->m_comboBoxSourceGeometry->currentIndex() == 2)
-	{
-		if (pRt->RI_Select_sourceFD_QRadioButton->isChecked())
-		{
-			double center_x = pRt->PosX_SourceFD_QLineEdit->text().toDouble();
-			double center_y = pRt->PosY_SourceFD_QLineEdit->text().toDouble();
-			double center_z = pRt->PosZ_SourceFD_QLineEdit->text().toDouble();
-			std::string center_x_str = pRt->PosX_SourceFD_QLineEdit->text().toStdString();
-			std::string center_y_str = pRt->PosY_SourceFD_QLineEdit->text().toStdString();
-			std::string center_z_str = pRt->PosZ_SourceFD_QLineEdit->text().toStdString();
-			if (center_x_str == "") center_x = 0;
-			if (center_y_str == "") center_y = 0;
-			if (center_z_str == "") center_z = 0;
-			double radius = pRt->Radius_sourceFD_QLineEdit->text().toDouble();
-
-			bool is_first_RI = true;
-			double first_RI_activity;
-			bool is_first_radiation = true;
-			double first_radiation_yield;
-			double conversion_factor_sum_of_activity_yieldsum = 0;
-			for (auto itr_info_RI : pRt->ListInfo_sourceFD) // 입력한 mulitple RI 마다 순환
-			{
-				std::string path = "./data/radioisotopes/" + itr_info_RI[1].toStdString() + ".txt";
-				std::pair<std::vector<std::map<int, std::string>>, double> temp_pair = Read_RI_File(path);
-				std::vector<std::map<int, std::string>> radionulclide_radiation_info = temp_pair.first;
-				double this_RI_yieldsum = temp_pair.second;
-				double this_RI_activity = itr_info_RI[2].toDouble();
-				conversion_factor_sum_of_activity_yieldsum += this_RI_activity * radius * radius * M_PI * this_RI_yieldsum; // activity concentration * area * yieldsum -> (NPS/s)
-				if (is_first_RI) // 첫번째 RI 일때
-				{
-					first_RI_activity = this_RI_activity;
-					for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
-					{
-						if (is_first_radiation) // 첫번째 RI, 첫번째 radiation 일때
-						{
-							ofp_source << "/gps/particle " << itr_radiation[2] << endl;
-							ofp_source << "/gps/pos/type Plane" << endl;
-							ofp_source << "/gps/pos/shape Circle" << endl;
-							ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm " << endl;
-							ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << endl;
-							ofp_source << "/gps/ang/type iso" << endl;
-							ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
-							first_radiation_yield = std::stod(itr_radiation[0]);
-							is_first_radiation = false;
-						}
-						else // 첫번째 RI, 두번째 이상 radiation 일때
-						{
-							ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) << endl;
-							ofp_source << "/gps/particle " << itr_radiation[2] << endl;
-							ofp_source << "/gps/pos/type Plane" << endl;
-							ofp_source << "/gps/pos/shape Circle" << endl;
-							ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm " << endl;
-							ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << endl;
-							ofp_source << "/gps/ang/type iso" << endl;
-							ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
-						}
-					}
-					is_first_RI = false;
-				}
-				else // 두번째 이상 RI
-				{
-					for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
-					{
-						ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) * (this_RI_activity / first_RI_activity) << endl;
-						ofp_source << "/gps/particle " << itr_radiation[2] << endl;
-						ofp_source << "/gps/pos/type Plane" << endl;
-						ofp_source << "/gps/pos/shape Circle" << endl;
-						ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm " << endl;
-						ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << endl;
-						ofp_source << "/gps/ang/type iso" << endl;
-						ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
-					}
-				}
-			}
-			DoseConversionFactor_inUImodule = conversion_factor_sum_of_activity_yieldsum;
-		}
-
-		else if (pRt->ES_Select_sourceFD_QRadioButton->isChecked())
-		{
-			// 1. 선원의 기하학적 정보 파싱 (UI로부터)
-			double center_x = pRt->PosX_SourceFD_QLineEdit->text().toDouble();
-			double center_y = pRt->PosY_SourceFD_QLineEdit->text().toDouble();
-			double center_z = pRt->PosZ_SourceFD_QLineEdit->text().toDouble();
-			// 입력값이 비어있을 경우 0으로 처리
-			if (pRt->PosX_SourceFD_QLineEdit->text().isEmpty()) center_x = 0;
-			if (pRt->PosY_SourceFD_QLineEdit->text().isEmpty()) center_y = 0;
-			if (pRt->PosZ_SourceFD_QLineEdit->text().isEmpty()) center_z = 0;
-			double radius = pRt->Radius_sourceFD_QLineEdit->text().toDouble();
-
-			// 2. Geant4 GPS 생성을 위한 변수 초기화
-			// 전체 입자 중 첫 번째 입자인지를 판별하는 플래그
-			bool is_first_particle_overall = true;
-			// 기준이 될 첫 번째 입자의 절대적인 초당 방출량(#/s)을 저장할 변수
-			double reference_absolute_intensity;
-			// 모든 소스의 총 방출량(#/s) 합계
-			DoseConversionFactor_inUImodule = 0.0;
-
-			// 3. 사용자가 추가한 각 소스 정보(파일)를 순회
-			for (auto itr_info_ES : pRt->ListInfo_sourceFD)
-			{
-				// itr_info_ES[1] : 파일 경로, itr_info_ES[2] : 면적당 Intensity (단위: #/s/cm2)
-				QString filePath = itr_info_ES[1];
-				double areal_intensity = itr_info_ES[2].toDouble();
-
-				// 현재 파일(소스)의 총 방출량(#/s) = 면적당 Intensity * 면적
-				double file_total_intensity = areal_intensity * radius * radius * M_PI;
-				DoseConversionFactor_inUImodule += file_total_intensity;
-
-				// 4. 파일 파싱 및 Geant4 명령어 생성 준비
-				QFile inputFile(filePath);
-				if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-					continue; // 파일 열기 실패 시 다음 소스로
-				}
-
-				// 파일 내용을 임시로 저장할 리스트
-				QList<QStringList> file_content;
-				double total_weight_in_file = 0.0;
-
-				QTextStream in(&inputFile);
-				while (!in.atEnd()) {
-					QString line = in.readLine();
-
-					QStringList parts = line.simplified().split(' ');
-
-					if (parts.size() >= 3) {
-						file_content.append(parts);
-						// weight는 두 번째 열(parts[1])
-						total_weight_in_file += parts[1].toDouble();
-					}
-				}
-				inputFile.close();
-
-				// 5. 메모리에 저장된 파일 내용을 기반으로 GPS 명령어 생성
-				for (const auto& line_parts : file_content)
-				{
-					std::string particle_type = line_parts[0].toStdString();
-					// 요청하신 대로 weight와 energy 순서 변경
-					double weight = line_parts[1].toDouble();
-					double energy = line_parts[2].toDouble();
-
-					// 현재 입자의 절대적인 초당 방출량(#/s) 계산
-					double current_absolute_intensity = 0.0;
-					if (total_weight_in_file > 0) {
-						current_absolute_intensity = file_total_intensity * (weight / total_weight_in_file);
-					}
-
-					// 모든 소스를 통틀어 가장 첫 번째 입자인 경우
-					if (is_first_particle_overall)
-					{
-						reference_absolute_intensity = current_absolute_intensity;
-
-						// 기본 명령어 출력 (원형 면선원 형태)
-						ofp_source << "/gps/particle " << particle_type << std::endl;
-						ofp_source << "/gps/pos/type Plane" << std::endl;
-						ofp_source << "/gps/pos/shape Circle" << std::endl;
-						ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm" << std::endl;
-						ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << std::endl;
-						ofp_source << "/gps/ang/type iso" << std::endl;
-						ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
-
-						is_first_particle_overall = false;
-					}
-					// 두 번째 입자부터는 /gps/source/add 명령어 추가
-					else
-					{
-						double relative_intensity = 0.0;
-						if (reference_absolute_intensity > 0) {
-							relative_intensity = current_absolute_intensity / reference_absolute_intensity;
-						}
-
-						ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << relative_intensity << std::endl;
-						ofp_source << "/gps/particle " << particle_type << std::endl;
-						ofp_source << "/gps/pos/type Plane" << std::endl;
-						ofp_source << "/gps/pos/shape Circle" << std::endl;
-						ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm" << std::endl;
-						ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << std::endl;
-						ofp_source << "/gps/ang/type iso" << std::endl;
-						ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
-					}
-				}
-			}
-		}
-
-		
-	}
-
-	// Hot particle (HP)
-	if (pRt->m_comboBoxSourceGeometry->currentIndex() == 5)
-	{
-		if (pRt->RI_Select_sourceHP_QRadioButton->isChecked())
-		{
-			bool is_first_RI = true;
-			double first_RI_activity;
-			bool is_first_radiation = true;
-			double first_radiation_yield;
-			double conversion_factor_sum_of_activity_yieldsum = 0;
-			for (auto itr_info_RI : pRt->ListInfo_sourceHP) // 입력한 mulitple RI 마다 순환
-			{
-				std::string path = "./data/radioisotopes/" + itr_info_RI[4].toStdString() + ".txt";
-				std::pair<std::vector<std::map<int, std::string>>, double> temp_pair = Read_RI_File(path);
-				std::vector<std::map<int, std::string>> radionulclide_radiation_info = temp_pair.first;
-				double this_RI_yieldsum = temp_pair.second;
-				double this_RI_activity = itr_info_RI[5].toDouble();
-				conversion_factor_sum_of_activity_yieldsum += this_RI_activity * this_RI_yieldsum; // activity concentration * yieldsum -> (NPS/s)
-				if (is_first_RI) // 첫번째 RI 일때
-				{
-					first_RI_activity = this_RI_activity;
-					for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
-					{
-						if (is_first_radiation) // 첫번째 RI, 첫번째 radiation 일때
-						{
-							ofp_source << "/gps/particle " << itr_radiation[2] << endl;
-							ofp_source << "/gps/pos/type Point" << endl;
-							if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
-							if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
-							if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
-							ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << itr_info_RI[1].toDouble() << " " << itr_info_RI[2].toDouble() << " " << itr_info_RI[3].toDouble() << " cm " << endl;
-							ofp_source << "/gps/ang/type iso" << endl;
-							ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
-							first_radiation_yield = std::stod(itr_radiation[0]);
-							is_first_radiation = false;
-						}
-						else // 첫번째 RI, 두번째 이상 radiation 일때
-						{
-							ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) << endl;
-							ofp_source << "/gps/particle " << itr_radiation[2] << endl;
-							ofp_source << "/gps/pos/type Point" << endl;
-							if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
-							if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
-							if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
-							ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << itr_info_RI[1].toDouble() << " " << itr_info_RI[2].toDouble() << " " << itr_info_RI[3].toDouble() << " cm " << endl;
-							ofp_source << "/gps/ang/type iso" << endl;
-							ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
-						}
-					}
-					is_first_RI = false;
-				}
-				else // 두번째 이상 RI
-				{
-					for (auto itr_radiation : radionulclide_radiation_info) // 각 RI의 radiation 마다 순환
-					{
-						ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << (std::stod(itr_radiation[0]) / first_radiation_yield) * (this_RI_activity / first_RI_activity) << endl;
-						ofp_source << "/gps/particle " << itr_radiation[2] << endl;
-						ofp_source << "/gps/pos/type Point" << endl;
-						if (itr_info_RI[1].toStdString() == "") itr_info_RI[1] = "0";
-						if (itr_info_RI[2].toStdString() == "") itr_info_RI[2] = "0";
-						if (itr_info_RI[3].toStdString() == "") itr_info_RI[3] = "0";
-						ofp_source << "/gps/pos/centre " << itr_info_RI[1].toStdString() << " " << itr_info_RI[2].toStdString() << " " << itr_info_RI[3].toStdString() << " cm " << endl;
-						ofp_source << "/gps/ang/type iso" << endl;
-						ofp_source << "/gps/energy " << itr_radiation[1] << " MeV" << endl << endl;
-					}
-				}
-			}
-			DoseConversionFactor_inUImodule = conversion_factor_sum_of_activity_yieldsum;
-		}
-		else if (pRt->ES_Select_sourceHP_QRadioButton->isChecked())
-		{
-			// 전체 입자 중 첫 번째 입자인지를 판별하는 플래그
-			bool is_first_particle_overall = true;
-			// 기준이 될 첫 번째 입자의 절대적인 초당 방출량(#/s)을 저장할 변수
-			double reference_absolute_intensity;
-			// 모든 소스의 Intensity(#/s) 총합을 저장.
-			DoseConversionFactor_inUImodule = 0.0;
-
-			// 사용자가 UI에 추가한 각 소스 정보(파일)를 순회합니다.
-			for (auto itr_info_ES : pRt->ListInfo_sourceHP)
-			{
-				// 1. 현재 소스(파일)의 정보 파싱
-				// 위치 좌표 (비어있으면 "0"으로 처리)
-				if (itr_info_ES[1].toStdString() == "") itr_info_ES[1] = "0";
-				if (itr_info_ES[2].toStdString() == "") itr_info_ES[2] = "0";
-				if (itr_info_ES[3].toStdString() == "") itr_info_ES[3] = "0";
-				double posX = itr_info_ES[1].toDouble();
-				double posY = itr_info_ES[2].toDouble();
-				double posZ = itr_info_ES[3].toDouble();
-
-				// 파일 경로와 해당 파일의 전체 Intensity
-				QString filePath = itr_info_ES[4];
-				double file_total_intensity = itr_info_ES[5].toDouble();
-
-				// 총 방출량 계산
-				DoseConversionFactor_inUImodule += file_total_intensity;
-
-				// 2. 파일 파싱 준비
-				QFile inputFile(filePath);
-				if (!inputFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-					// 파일 열기 실패 시 이 파일은 건너뜀
-					continue;
-				}
-
-				// 파일 내용을 임시로 저장할 리스트
-				QList<QStringList> file_content;
-				double total_weight_in_file = 0.0;
-
-				QTextStream in(&inputFile);
-				while (!in.atEnd()) {
-					QString line = in.readLine();
-
-					QStringList parts = line.simplified().split(' ');
-
-					if (parts.size() >= 3) {
-						file_content.append(parts);
-						// weight는 두 번째 열(parts[1])
-						total_weight_in_file += parts[1].toDouble();
-					}
-				}
-				inputFile.close();
-
-				// 3. Geant4 GPS 명령어 생성
-				// 메모리에 저장된 파일 내용을 한 줄씩 처리
-				for (const auto& line_parts : file_content)
-				{
-					std::string particle_type = line_parts[0].toStdString();
-					double weight = line_parts[1].toDouble();
-					double energy = line_parts[2].toDouble();
-
-					// 현재 입자의 절대적인 초당 방출량(#/s) 계산
-					double current_absolute_intensity = 0.0;
-					if (total_weight_in_file > 0) {
-						current_absolute_intensity = file_total_intensity * (weight / total_weight_in_file);
-					}
-
-					// 모든 소스를 통틀어 가장 첫 번째 입자인 경우
-					if (is_first_particle_overall)
-					{
-						reference_absolute_intensity = current_absolute_intensity;
-
-						// /gps/source/add 없이 기본 명령어만 출력
-						ofp_source << "/gps/particle " << particle_type << std::endl;
-						ofp_source << "/gps/pos/type Point" << std::endl;
-						ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << posX << " " << posY << " " << posZ << " cm" << std::endl;
-						ofp_source << "/gps/ang/type iso" << std::endl;
-						ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
-
-						is_first_particle_overall = false;
-					}
-					// 두 번째 입자부터는 기준 입자 대비 상대적 비율을 계산하여 /gps/source/add 명령어 추가
-					else
-					{
-						double relative_intensity = 0.0;
-						if (reference_absolute_intensity > 0) {
-							relative_intensity = current_absolute_intensity / reference_absolute_intensity;
-						}
-
-						ofp_source << "/gps/source/add " << std::scientific << std::setprecision(6) << relative_intensity << std::endl;
-						ofp_source << "/gps/particle " << particle_type << std::endl;
-						ofp_source << "/gps/pos/type Point" << std::endl;
-						ofp_source << std::scientific << std::setprecision(4) << "/gps/pos/centre " << posX << " " << posY << " " << posZ << " cm" << std::endl;
-						ofp_source << "/gps/ang/type iso" << std::endl;
-						ofp_source << "/gps/energy " << energy << " MeV" << std::endl << std::endl;
-					}
-				}
-			}
-		}
-	}
-
-	// Parallel beam (PB)
-	if (pRt->m_comboBoxSourceGeometry->currentIndex() == 9)
-	{
-		double center_x = pRt->m_lineEditParallelBeamPointX->text().toDouble();
-		double center_y = pRt->m_lineEditParallelBeamPointY->text().toDouble();
-		double center_z = pRt->m_lineEditParallelBeamPointZ->text().toDouble();
-		std::string center_x_str = pRt->m_lineEditParallelBeamPointX->text().toStdString();
-		std::string center_y_str = pRt->m_lineEditParallelBeamPointY->text().toStdString();
-		std::string center_z_str = pRt->m_lineEditParallelBeamPointZ->text().toStdString();
-		if (center_x_str == "") center_x = 0;
-		if (center_y_str == "") center_y = 0;
-		if (center_z_str == "") center_z = 0;
-		double radius = pRt->m_lineEditParallelBeamRadius->text().toDouble();
-
-		double theta_rad = pRt->m_lineEditParallelBeamDirectionTheta->text().toDouble() * vtkMath::Pi() / 180.0;
-		double phi_rad = pRt->m_lineEditParallelBeamDirectionPhi->text().toDouble() * vtkMath::Pi() / 180.0;
-
-		// 1) 빔 진행방향 n(정규화)
-		double nx = std::sin(theta_rad) * std::cos(phi_rad);
-		double ny = std::sin(theta_rad) * std::sin(phi_rad);
-		double nz = std::cos(theta_rad);
-		// 정규화(수치 안정)
-		{
-			double nlen = std::sqrt(nx*nx + ny * ny + nz * nz);
-			if (nlen < 1e-12) { nx = 0; ny = 0; nz = 1; }
-			else { nx /= nlen; ny /= nlen; nz /= nlen; }
-		}
-
-		// 2) 평행빔 원판 좌표축 u, v 구성  (u ⟂ n, v = n × u) -> GPS에서 필요
-		// n과 거의 평행하지 않은 보조벡터 a 선택
-		double ax = 0, ay = 0, az = 1;
-		if (std::fabs(nz) > 0.99) { ax = 1; ay = 0; az = 0; }
-
-		// u = normalize(a × n)
-		double ux = ay * nz - az * ny;
-		double uy = az * nx - ax * nz;
-		double uz = ax * ny - ay * nx;
-		double ulen = std::sqrt(ux*ux + uy * uy + uz * uz);
-		if (ulen < 1e-12) {
-			// 극단적 정렬일 때 대체 a로 재시도
-			ax = 0; ay = 1; az = 0;
-			ux = ay * nz - az * ny;
-			uy = az * nx - ax * nz;
-			uz = ax * ny - ay * nx;
-			ulen = std::sqrt(ux*ux + uy * uy + uz * uz);
-		}
-		ux /= ulen; uy /= ulen; uz /= ulen;
-
-		// v = normalize(n × u)  (이론상 이미 단위길이지만 안전상 정규화)
-		double vx = ny * uz - nz * uy;
-		double vy = nz * ux - nx * uz;
-		double vz = nx * uy - ny * ux;
-		double vlen = std::sqrt(vx*vx + vy * vy + vz * vz);
-		vx /= vlen; vy /= vlen; vz /= vlen;
-		
-		if (pRt->sourcePB_MonoEnergy_radioButton->isChecked()) // Mono Energy 형태일 때
-		{
-			ofp_source << "/gps/particle ";
-			if (pRt->m_comboBoxParallelBeamParticleType->currentText() == "Photon") ofp_source << "gamma" << endl;
-			else if (pRt->m_comboBoxParallelBeamParticleType->currentText() == "Electron") ofp_source << "e-" << endl;
-			else if (pRt->m_comboBoxParallelBeamParticleType->currentText() == "Neutron") ofp_source << "neutron" << endl;
-			else if (pRt->m_comboBoxParallelBeamParticleType->currentText() == "Proton") ofp_source << "proton" << endl;
-			else if (pRt->m_comboBoxParallelBeamParticleType->currentText() == "Alpha") ofp_source << "alpha" << endl;
-			ofp_source << "/gps/pos/type Plane" << endl;
-			ofp_source << "/gps/pos/shape Circle" << endl;
-			ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm " << endl;
-			ofp_source << "/gps/pos/radius " << std::scientific << std::setprecision(4) << radius << " cm" << endl;
-
-			ofp_source << "/gps/pos/rot1 " << ux << " " << uy << " " << uz << std::endl; // u
-			ofp_source << "/gps/pos/rot2 " << vx << " " << vy << " " << vz << std::endl; // v
-			ofp_source << "/gps/ang/type beam2d" << endl;
-			ofp_source << "/gps/direction " << std::to_string(nx) << " " << std::to_string(ny) << " " << std::to_string(nz) << endl;
-			ofp_source << "/gps/ang/sigma_x 0 deg" << endl;
-			ofp_source << "/gps/ang/sigma_y 0 deg" << endl;
-			ofp_source << "/gps/energy " << pRt->m_lineEditParallelBeamEnergy->text().toStdString() << " MeV" << endl;
-		}
-		DoseConversionFactor_inUImodule = pRt->m_lineEditParallelBeamIntensity_MonoEnergy->text().toDouble();
-	}
-
+	auto* sourceWidget = pRt->getCurrentSourceWidget();
+	sourceWidget->WriteSourceMacro(ofp_source);
+	
 	// Object volume, phase-space file, room air contamination (OV, PS, RC) -> 별도 generator	   		
-	if (pRt->m_comboBoxSourceGeometry->currentIndex() == 3 || pRt->m_comboBoxSourceGeometry->currentIndex() == 4 || pRt->m_comboBoxSourceGeometry->currentIndex() == 7)
-	{
-		// Nothing happend in source macro ...
-	}
+	// if (pRt->m_comboBoxSourceGeometry->currentIndex() == 3 || pRt->m_comboBoxSourceGeometry->currentIndex() == 4 || pRt->m_comboBoxSourceGeometry->currentIndex() == 7)
+	// {
+	// 	// Nothing happend in source macro ...
+	// }
 	ofp_source.close();
 }
+
 void ETHuman3DApp::MakeFile_ListCollection()
 {
 	//List_collection 파일 생성 (부가 정보들 -> Wearables/Glasses/Dosimeter layer 존재 여부, Geometry object 정보, etc(외부환경 정보, 선량당량 위치)..)
@@ -2721,32 +2094,47 @@ void ETHuman3DApp::MakeFile_ListCollection()
 
 	// OV 정보
 	ofpList << endl << "v" << endl;
-	for (auto itr_sourceOV_index : pRt->m_sourceOV_objectSequenceVector)
+	int sourceIdx = pRt->m_comboBoxSourceGeometry->currentIndex();
+
+	if(sourceIdx == 3) // Object Voume Source OV 
 	{
-		auto it = std::find(pRt->m_Object_SequenceVector.begin(), pRt->m_Object_SequenceVector.end(), itr_sourceOV_index);
-		int index = std::distance(pRt->m_Object_SequenceVector.begin(), it);
-		ofpList << index << " ";
-		ofpList << pRt->sourceOV_objectBound[itr_sourceOV_index][0] << " " << pRt->sourceOV_objectBound[itr_sourceOV_index][1] << " "
-			<< pRt->sourceOV_objectBound[itr_sourceOV_index][2] << " " << pRt->sourceOV_objectBound[itr_sourceOV_index][3] << " "
-			<< pRt->sourceOV_objectBound[itr_sourceOV_index][4] << " " << pRt->sourceOV_objectBound[itr_sourceOV_index][5] << endl;
-		for (auto itr_ListInfoVector : pRt->ListInfo_sourceOV[itr_sourceOV_index])
+		auto* OVWidget = pRt->getSourceWidget<ObjectVolumeWidget>();
+		if(OVWidget)
 		{
-			ofpList << itr_ListInfoVector[1].toStdString() << " " << itr_ListInfoVector[2].toStdString() << endl;
+			auto& model = OVWidget->getModel();
+			for(auto itr_sourceOV_index : model.m_sourceOV_objectSequenceVector)
+			{
+				auto it = std::find(pRt->m_Object_SequenceVector.begin(), pRt->m_Object_SequenceVector.end(), itr_sourceOV_index);
+				int index = std::distance(pRt->m_Object_SequenceVector.begin(), it);
+				ofpList << index << " ";
+				ofpList << model.sourceOV_objectBound[itr_sourceOV_index][0] << " " << model.sourceOV_objectBound[itr_sourceOV_index][1] << " "
+					    << model.sourceOV_objectBound[itr_sourceOV_index][2] << " " << model.sourceOV_objectBound[itr_sourceOV_index][3] << " "
+					    << model.sourceOV_objectBound[itr_sourceOV_index][4] << " " << model.sourceOV_objectBound[itr_sourceOV_index][5] << endl;
+				for (auto itr_ListInfoVector : model.ListInfo_sourceOV[itr_sourceOV_index])
+				{
+					ofpList << itr_ListInfoVector[1].toStdString() << " " << itr_ListInfoVector[2].toStdString() << endl;
+				}
+				ofpList << "^" << endl;
+			}
 		}
-		ofpList << "^" << endl;
 	}
 	ofpList << "END" << endl;
-
 	// RC 정보
 	ofpList << endl << "r" << endl;
-	if (pRt->m_comboBoxSourceGeometry->currentIndex() == 7) // sourceRC 일때
+	if(sourceIdx == 7)// sourceRC 일때
 	{
-		double* bounds = SourcePanelActor_Position[0]->GetBounds();
-		ofpList << bounds[0] << " " << bounds[1] << " " << bounds[2] << " " << bounds[3] << " " << bounds[4] << " " << bounds[5] << endl;
-		for (auto itr_RIvector : pRt->RI_Info_sourceRC)
+		auto* RCWidget = pRt->getSourceWidget<RoomContaminationWidget>();
+		if(RCWidget)
 		{
-			ofpList << itr_RIvector[1].toStdString() << " " << itr_RIvector[2].toStdString() << endl;
+			auto& model = RCWidget->getModel();
+			double* bounds = SourcePanelActor_Position[0]->GetBounds();
+			ofpList << bounds[0] << " " << bounds[1] << " " << bounds[2] << " " << bounds[3] << " " << bounds[4] << " " << bounds[5] << endl;
+			for (auto itr_RIvector : model.RI_Info_sourceRC)
+			{
+				ofpList << itr_RIvector[1].toStdString() << " " << itr_RIvector[2].toStdString() << endl;
+			}
 		}
+
 	}
 	ofpList << "END" << endl;
 
@@ -2859,6 +2247,8 @@ void ETHuman3DApp::Generate_MaterialFile()
 		}		
 	}
 }
+
+
 void ETHuman3DApp::TranslatePhantomTetFile(int reset_phantomID) // called by (1) DataInitialization_Local
 {
 	int phantomID = pRt->m_Phantom_SequenceVector[reset_phantomID];
@@ -3970,385 +3360,7 @@ FILETIME ETHuman3DApp::getLastWriteTime(const std::string& path) {
 // 	bool isMatch;       // Match Status
 // };
 
-void ETHuman3DApp::ReadSkinDoseData(std::stringstream &ss)
-{
-	if (ss.str().empty()) {
-		return;
-	}
-
-	double LogMaximum_VertexDoseAmongAllPhantoms_pGy = DBL_MIN;
-	double LogMinimum_VertexDoseAmongAllPhantoms_pGy = DBL_MAX;
-	double Maximum_VertexDoseAmongAllPhantoms_pGy = DBL_MIN;
-	double Minimum_VertexDoseAmongAllPhantoms_pGy = DBL_MAX;
-	double Maximum_FacetDose_pGy = DBL_MIN;
-
-	// 휘발성 데이터 컨테이너 (현재 배치 처리용)
-	std::map<int, std::vector<std::array<double, 3>>> SkinDEpoint;
-	std::map<int, std::vector<double>> SkinDEvalue;
-
-	int tmp_phantomID;
-	double x, y, z, dE;
-	std::uint64_t event_count;
-	double unit_conversion_factor;
-
-	// 헤더 정보 읽기
-	ss >> event_count >> unit_conversion_factor;
-
-	// ------------------------------------------------------------
-	// [1] Data Parsing & Mapping Loop
-	// ------------------------------------------------------------
-	while (ss >> tmp_phantomID >> x >> y >> z >> dE)
-	{       
-		if (tmp_phantomID != -1) // 정상 선량 데이터
-		{
-			SkinDEpoint[tmp_phantomID].push_back({ x,y,z });
-			SkinDEvalue[tmp_phantomID].push_back(dE * unit_conversion_factor); 
-		}
-		else // Sentinel (-1): 하나의 이벤트(History) 종료
-		{
-			for (auto phantomID : pRt->m_Phantom_SequenceVector)
-			{
-				if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_DUMMY] == pRt->E_PHANTOMDUMMY_YES) continue;
-				if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_CATEGORY] == pRt->E_PHANTOMCATEGORY_AIR) continue;
-
-				for (int DEpointID = 0; DEpointID < SkinDEpoint[phantomID].size(); DEpointID++)
-				{
-					double p[3] = { SkinDEpoint[phantomID][DEpointID][0], SkinDEpoint[phantomID][DEpointID][1], SkinDEpoint[phantomID][DEpointID][2] };
-
-					// ------------------------------------------------------------
-					// [Old Algorithm: 2D Closest Point] - 주석처리
-					// ------------------------------------------------------------
-					// vtkIdType oldFacetID = -1;
-					// double old_cp[3]; int subId; double d2;
-					// SkinCellLocator[phantomID]->FindClosestPoint(p, old_cp, oldFacetID, subId, d2);
-
-					// ------------------------------------------------------------
-					// New Algorithm: 3D Wedge Volume Mapping
-					// ------------------------------------------------------------
-					vtkIdType targetFacetID = -1;
-					if (m_SkinVolumeLocator.count(phantomID) && m_SkinVolumeLocator[phantomID] != nullptr)
-					{
-						targetFacetID = m_SkinVolumeLocator[phantomID]->FindCell(p);
-					}
-
-					// Fallback: 3D 매핑 실패 시 2D 결과 사용
-					if (targetFacetID == -1)
-					{
-						double cp[3]; int subId; double d2;
-						SkinCellLocator[phantomID]->FindClosestPoint(p, cp, targetFacetID, subId, d2);
-					}
-
-					// ------------------------------------------------------------
-					// Dose Accumulation
-					// ------------------------------------------------------------
-					if (targetFacetID != -1)
-					{
-						if (FacetInfo[phantomID][targetFacetID][7] <= 0.05)
-						{
-							double neighborCount = TinyFacetAdjacentFacetMap[phantomID][targetFacetID].size();
-							if (neighborCount > 0)
-							{
-								double distributed_dE = SkinDEvalue[phantomID][DEpointID] / neighborCount;
-								for (auto itr : TinyFacetAdjacentFacetMap[phantomID][targetFacetID])
-								{
-									Facet_DE_DE2[phantomID][itr].first += distributed_dE;
-									Facet_DE_DE2[phantomID][itr].second += distributed_dE * distributed_dE;
-								}
-							}
-						}
-						else
-						{
-							Facet_DE_DE2[phantomID][targetFacetID].first += SkinDEvalue[phantomID][DEpointID];
-							Facet_DE_DE2[phantomID][targetFacetID].second += SkinDEvalue[phantomID][DEpointID] * SkinDEvalue[phantomID][DEpointID];
-						}
-					}
-				}
-			}
-			SkinDEpoint.clear();
-			SkinDEvalue.clear();
-		}       
-	}
-
-	// ------------------------------------------------------------
-	// 최종 선량(Dose) 계산 및 통계 처리
-	// ------------------------------------------------------------
-	for (auto phantomID : pRt->m_Phantom_SequenceVector)
-	{
-		double density_skin = SkinDenstiy[phantomID]; 
-
-		// FacetDose 계산
-		for (auto f_de : Facet_DE_DE2[phantomID])
-		{
-			double Mass = 0;
-			double volume_cm3 = 0.0;
-
-			if (FacetInfo[phantomID][f_de.first].size() >= 9) {
-				volume_cm3 = FacetInfo[phantomID][f_de.first][8]; 
-			} else {
-				volume_cm3 = FacetInfo[phantomID][f_de.first][7] * (50.0 / 10000.0); 
-			}
-
-			Mass = volume_cm3 * density_skin / 1.0E+3; 
-			if (Mass <= 0) Mass = 1.0e-15; 
-
-			double de_sum = f_de.second.first;
-			double de2_sum = f_de.second.second;
-			double EX = de_sum / event_count;
-			double EX2 = de2_sum / event_count;
-			double variance = (EX2 - (EX*EX)) / (event_count - 1);
-			
-			double relativeE = 0.0;
-			if (EX != 0) relativeE = sqrt(std::abs(variance)) / EX;
-
-			FacetDose[phantomID][f_de.first] = EX / Mass; 
-			FacetError[phantomID][f_de.first] = relativeE;
-
-			if (FacetDose[phantomID][f_de.first] > Maximum_FacetDose_pGy)
-			{
-				Maximum_FacetDose_pGy = FacetDose[phantomID][f_de.first];
-				MaximumFacetDoseID[phantomID] = f_de.first;
-			}
-
-			if (FacetDose[phantomID][f_de.first] > 10'000'000'000)
-			{
-				LOG_ERROR("=== FacetDose is much bigger than 1e10===");
-				LOG_ERROR("FacetID: " + QString::number(f_de.first));
-				LOG_ERROR("Mass: " + QString::number(Mass));
-				LOG_ERROR("FacetDose: " + QString::number(FacetDose[phantomID][f_de.first]));
-			}
-			if (FacetDose[phantomID][f_de.first] > 0 && FacetDose[phantomID][f_de.first] < 1e-10)
-			{
-				LOG_ERROR("=== FacetDose is much smaller than 1e-10===");
-				LOG_ERROR("FacetID: " + QString::number(f_de.first));
-			}
-		}
-
-		// VertexDose 누적
-		vtkSmartPointer<vtkPoints> originalPoints = SkinLayer_PolyData[phantomID]->GetPoints();
-		for (vtkIdType i = 0; i < originalPoints->GetNumberOfPoints(); i++) 
-		{
-			double dE = 0;
-			double Mass = 0;
-			for (auto AdjacentFacetID : VertexToFacetMap[phantomID][i]) 
-			{
-				dE += Facet_DE_DE2[phantomID][AdjacentFacetID].first; 
-				
-				double vol_cm3 = 0.0;
-				if (FacetInfo[phantomID][AdjacentFacetID].size() >= 9) {
-					vol_cm3 = FacetInfo[phantomID][AdjacentFacetID][8];
-				} else {
-					vol_cm3 = FacetInfo[phantomID][AdjacentFacetID][7] * (50.0 / 10000.0);
-				}
-				
-				Mass += vol_cm3 * density_skin / 1.0E+3; 
-			}
-			
-			if (Mass > 0) VertexDose[phantomID][i] = dE / Mass / event_count;
-			else VertexDose[phantomID][i] = 0;
-
-			if (VertexDose[phantomID][i] > Maximum_VertexDoseAmongAllPhantoms_pGy) {
-				Maximum_VertexDoseAmongAllPhantoms_pGy = VertexDose[phantomID][i];
-			}
-			if (VertexDose[phantomID][i] != 0 && (VertexDose[phantomID][i] < Minimum_VertexDoseAmongAllPhantoms_pGy)) {
-				Minimum_VertexDoseAmongAllPhantoms_pGy = VertexDose[phantomID][i];
-			}
-		}
-		
-		LogMaximum_VertexDoseAmongAllPhantoms_pGy = log(Maximum_VertexDoseAmongAllPhantoms_pGy);
-		LogMinimum_VertexDoseAmongAllPhantoms_pGy = log(Minimum_VertexDoseAmongAllPhantoms_pGy);
-
-		// ------------------------------------------------------------
-		// 3D Visualization Setup (LUT, ScalarBar, Labels)
-		// ------------------------------------------------------------
-		float SkinColor[3] = { 255, 192, 160 };
-		
-		vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
-		lut->SetRange(0, 1); 
-		lut->SetNumberOfTableValues(256); 
-
-		float SkinColor_lut[3] = { 255.0f / 255.0f, 192.0f / 255.0f, 160.0f / 255.0f }; 
-		float GreenColor_lut[3] = { 0.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f };
-		float YellowColor_lut[3] = { 255.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f };
-		float RedColor_lut[3] = { 255.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f }; 
-
-		for (int i = 0; i < 256; i++) {
-			double value = static_cast<double>(i) / 255.0;
-			double rgb[3];
-
-			if (value <= 0.7) {
-				for (int j = 0; j < 3; j++) {
-					rgb[j] = GreenColor_lut[j] + value / 0.7 * (YellowColor_lut[j] - GreenColor_lut[j]);
-				}
-			}
-			else {
-				for (int j = 0; j < 3; j++) {
-					rgb[j] = YellowColor_lut[j] + (value - 0.7) / 0.3 * (RedColor_lut[j] - YellowColor_lut[j]);
-				}
-			}
-			lut->SetTableValue(i, rgb);
-		}
-		lut->Build();
-
-		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_ScalarBar);
-		SkinDoseVisualization_ScalarBar = nullptr;
-		SkinDoseVisualization_ScalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
-		SkinDoseVisualization_ScalarBar->SetLookupTable(lut);
-		SkinDoseVisualization_ScalarBar->SetNumberOfLabels(0);
-		SkinDoseVisualization_ScalarBar->SetPosition(0, 0.79); 
-		SkinDoseVisualization_ScalarBar->SetPosition2(0.10, 0.20); 
-		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_ScalarBar);
-
-		vtkSmartPointer<vtkTextProperty> textProperty = vtkSmartPointer<vtkTextProperty>::New();
-		textProperty->SetFontSize(pRt->FontSizeScaling(18));
-		textProperty->SetFontFamilyToArial(); 
-		textProperty->BoldOn();
-		textProperty->SetColor(100, 100, 100);
-
-		double tmp_value;
-
-		// Label 0%
-		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label0percent);
-		SkinDoseVisualization_Label0percent = nullptr;
-		SkinDoseVisualization_Label0percent = vtkSmartPointer<vtkTextActor>::New();
-		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1. - 0) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 0);
-		std::ostringstream oss0percent;
-		oss0percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
-		SkinDoseVisualization_Label0percent->SetInput(oss0percent.str().c_str());
-		SkinDoseVisualization_Label0percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
-		SkinDoseVisualization_Label0percent->SetPosition(0.04, 0.785); 
-		SkinDoseVisualization_Label0percent->SetTextProperty(textProperty);
-		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label0percent);
-
-		// Label 20%
-		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label20percent);
-		SkinDoseVisualization_Label20percent = nullptr;
-		SkinDoseVisualization_Label20percent = vtkSmartPointer<vtkTextActor>::New();
-		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1. - 0.2) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 0.2);
-		std::ostringstream oss20percent;
-		oss20percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
-		SkinDoseVisualization_Label20percent->SetInput(oss20percent.str().c_str());
-		SkinDoseVisualization_Label20percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
-		SkinDoseVisualization_Label20percent->SetPosition(0.04, 0.825); 
-		SkinDoseVisualization_Label20percent->SetTextProperty(textProperty);
-		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label20percent);
-
-		// Label 40%
-		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label40percent);
-		SkinDoseVisualization_Label40percent = nullptr;
-		SkinDoseVisualization_Label40percent = vtkSmartPointer<vtkTextActor>::New();
-		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1. - 0.4) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 0.4);
-		std::ostringstream oss40percent;
-		oss40percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
-		SkinDoseVisualization_Label40percent->SetInput(oss40percent.str().c_str());
-		SkinDoseVisualization_Label40percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
-		SkinDoseVisualization_Label40percent->SetPosition(0.04, 0.865); 
-		SkinDoseVisualization_Label40percent->SetTextProperty(textProperty);
-		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label40percent);
-
-		// Label 60%
-		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label60percent);
-		SkinDoseVisualization_Label60percent = nullptr;
-		SkinDoseVisualization_Label60percent = vtkSmartPointer<vtkTextActor>::New();
-		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1. - 0.6) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 0.6);
-		std::ostringstream oss60percent;
-		oss60percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
-		SkinDoseVisualization_Label60percent->SetInput(oss60percent.str().c_str());
-		SkinDoseVisualization_Label60percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
-		SkinDoseVisualization_Label60percent->SetPosition(0.04, 0.905); 
-		SkinDoseVisualization_Label60percent->SetTextProperty(textProperty);
-		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label60percent);
-
-		// Label 80%
-		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label80percent);
-		SkinDoseVisualization_Label80percent = nullptr;
-		SkinDoseVisualization_Label80percent = vtkSmartPointer<vtkTextActor>::New();
-		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1. - 0.8) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 0.8);
-		std::ostringstream oss80percent;
-		oss80percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
-		SkinDoseVisualization_Label80percent->SetInput(oss80percent.str().c_str());
-		SkinDoseVisualization_Label80percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
-		SkinDoseVisualization_Label80percent->SetPosition(0.04, 0.945); 
-		SkinDoseVisualization_Label80percent->SetTextProperty(textProperty);
-		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label80percent);
-
-		// Label 100%
-		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label100percent);
-		SkinDoseVisualization_Label100percent = nullptr;
-		SkinDoseVisualization_Label100percent = vtkSmartPointer<vtkTextActor>::New();
-		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1.) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 1.);
-		std::ostringstream oss100percent;
-		oss100percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
-		SkinDoseVisualization_Label100percent->SetInput(oss100percent.str().c_str());
-		SkinDoseVisualization_Label100percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
-		SkinDoseVisualization_Label100percent->SetPosition(0.04, 0.98); 
-		SkinDoseVisualization_Label100percent->SetTextProperty(textProperty);
-		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label100percent);
-
-		// Apply Mapper and Actor
-		vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-		mapper->SetScalarVisibility(true);
-		mapper->SetInputData(SkinLayer_PolyData[phantomID]); 
-
-		vtkNew<vtkUnsignedCharArray> Colors; 
-		Colors->SetNumberOfComponents(3);
-		Colors->SetNumberOfTuples(SkinLayer_PolyData[phantomID]->GetNumberOfPoints());
-		
-		for (vtkIdType i = 0; i < originalPoints->GetNumberOfPoints(); i++) 
-		{
-			double colorValue[3];
-			if (VertexDose[phantomID][i] == 0) {
-				Colors->SetTuple(i, SkinColor);
-			}
-			else {
-				lut->GetColor((log(VertexDose[phantomID][i]) - LogMinimum_VertexDoseAmongAllPhantoms_pGy) / (LogMaximum_VertexDoseAmongAllPhantoms_pGy - LogMinimum_VertexDoseAmongAllPhantoms_pGy), colorValue); 
-
-				float mappedColor[3] = { static_cast<float>(colorValue[0] * 255.0),
-										static_cast<float>(colorValue[1] * 255.0),
-										static_cast<float>(colorValue[2] * 255.0) };
-				Colors->SetTuple(i, mappedColor);
-			}
-		}
-
-		SkinLayer_PolyData[phantomID]->GetPointData()->SetScalars(Colors);
-		mapper->Update();
-		
-		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinPhantomActor[phantomID]);
-		SkinPhantomActor[phantomID] = nullptr;
-		SkinPhantomActor[phantomID] = vtkSmartPointer<vtkActor>::New();
-		SkinPhantomActor[phantomID]->SetMapper(mapper);
-		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinPhantomActor[phantomID]);
-		
-		SkinPhantomActor[phantomID]->VisibilityOff();
-		SkinDoseVisualization_ScalarBar->VisibilityOff();
-		SkinDoseVisualization_Label0percent->VisibilityOff();
-		SkinDoseVisualization_Label20percent->VisibilityOff();
-		SkinDoseVisualization_Label40percent->VisibilityOff();
-		SkinDoseVisualization_Label60percent->VisibilityOff();
-		SkinDoseVisualization_Label80percent->VisibilityOff();
-		SkinDoseVisualization_Label100percent->VisibilityOff();
-	}
-
-	// Visualization Toggle Check
-	if (pRt->m_skinDoseVisualizationButton->isChecked()) 
-	{
-		for (auto phantomID : pRt->m_Phantom_SequenceVector)
-		{
-			if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_DUMMY] == pRt->E_PHANTOMDUMMY_YES) continue;
-
-			PhantomPanelActor[phantomID]->VisibilityOff();
-			SkinPhantomActor[phantomID]->VisibilityOn();
-			SkinDoseVisualization_ScalarBar->VisibilityOn();
-			SkinDoseVisualization_Label0percent->VisibilityOn();
-			SkinDoseVisualization_Label20percent->VisibilityOn();
-			SkinDoseVisualization_Label40percent->VisibilityOn();
-			SkinDoseVisualization_Label60percent->VisibilityOn();
-			SkinDoseVisualization_Label80percent->VisibilityOn();
-			SkinDoseVisualization_Label100percent->VisibilityOn();
-		}
-	}
-	theApp.m_pVTKWidget->renderWindow()->Render();
-}
-
+////////////===================================================================
 vtkSmartPointer<vtkPolyData> ETHuman3DApp::ExportGeodesicROIForPhantom(int phantomID, double targetAreaCm2, double refineFactor, vtkSmartPointer<vtkPolyData>* roiBeforeSubdivision)
 {
 	// 0) 입력 메쉬/seed 준비 (클래스 멤버 존재 가정)
@@ -4835,6 +3847,384 @@ void ETHuman3DApp::ReadSkinDoseData_HP(std::stringstream &ss)
 		}
 	}
 }
+void ETHuman3DApp::ReadSkinDoseData(std::stringstream &ss)
+{
+	if (ss.str().empty()) {
+		return;
+	}
+
+	double LogMaximum_VertexDoseAmongAllPhantoms_pGy = DBL_MIN;
+	double LogMinimum_VertexDoseAmongAllPhantoms_pGy = DBL_MAX;
+	double Maximum_VertexDoseAmongAllPhantoms_pGy = DBL_MIN;
+	double Minimum_VertexDoseAmongAllPhantoms_pGy = DBL_MAX;
+	double Maximum_FacetDose_pGy = DBL_MIN;
+
+	// 휘발성 데이터 컨테이너 (현재 배치 처리용)
+	std::map<int, std::vector<std::array<double, 3>>> SkinDEpoint;
+	std::map<int, std::vector<double>> SkinDEvalue;
+
+	int tmp_phantomID;
+	double x, y, z, dE;
+	std::uint64_t event_count;
+	double unit_conversion_factor;
+
+	// 헤더 정보 읽기
+	ss >> event_count >> unit_conversion_factor;
+
+	// ------------------------------------------------------------
+	// [1] Data Parsing & Mapping Loop
+	// ------------------------------------------------------------
+	while (ss >> tmp_phantomID >> x >> y >> z >> dE)
+	{       
+		if (tmp_phantomID != -1) // 정상 선량 데이터
+		{
+			SkinDEpoint[tmp_phantomID].push_back({ x,y,z });
+			SkinDEvalue[tmp_phantomID].push_back(dE * unit_conversion_factor); 
+		}
+		else // Sentinel (-1): 하나의 이벤트(History) 종료
+		{
+			for (auto phantomID : pRt->m_Phantom_SequenceVector)
+			{
+				if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_DUMMY] == pRt->E_PHANTOMDUMMY_YES) continue;
+				if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_CATEGORY] == pRt->E_PHANTOMCATEGORY_AIR) continue;
+
+				for (int DEpointID = 0; DEpointID < SkinDEpoint[phantomID].size(); DEpointID++)
+				{
+					double p[3] = { SkinDEpoint[phantomID][DEpointID][0], SkinDEpoint[phantomID][DEpointID][1], SkinDEpoint[phantomID][DEpointID][2] };
+
+					// ------------------------------------------------------------
+					// [Old Algorithm: 2D Closest Point] - 주석처리
+					// ------------------------------------------------------------
+					// vtkIdType oldFacetID = -1;
+					// double old_cp[3]; int subId; double d2;
+					// SkinCellLocator[phantomID]->FindClosestPoint(p, old_cp, oldFacetID, subId, d2);
+
+					// ------------------------------------------------------------
+					// New Algorithm: 3D Wedge Volume Mapping
+					// ------------------------------------------------------------
+					vtkIdType targetFacetID = -1;
+					if (m_SkinVolumeLocator.count(phantomID) && m_SkinVolumeLocator[phantomID] != nullptr)
+					{
+						targetFacetID = m_SkinVolumeLocator[phantomID]->FindCell(p);
+					}
+
+					// Fallback: 3D 매핑 실패 시 2D 결과 사용
+					if (targetFacetID == -1)
+					{
+						double cp[3]; int subId; double d2;
+						SkinCellLocator[phantomID]->FindClosestPoint(p, cp, targetFacetID, subId, d2);
+					}
+
+					// ------------------------------------------------------------
+					// Dose Accumulation
+					// ------------------------------------------------------------
+					if (targetFacetID != -1)
+					{
+						if (FacetInfo[phantomID][targetFacetID][7] <= 0.05)
+						{
+							double neighborCount = TinyFacetAdjacentFacetMap[phantomID][targetFacetID].size();
+							if (neighborCount > 0)
+							{
+								double distributed_dE = SkinDEvalue[phantomID][DEpointID] / neighborCount;
+								for (auto itr : TinyFacetAdjacentFacetMap[phantomID][targetFacetID])
+								{
+									Facet_DE_DE2[phantomID][itr].first += distributed_dE;
+									Facet_DE_DE2[phantomID][itr].second += distributed_dE * distributed_dE;
+								}
+							}
+						}
+						else
+						{
+							Facet_DE_DE2[phantomID][targetFacetID].first += SkinDEvalue[phantomID][DEpointID];
+							Facet_DE_DE2[phantomID][targetFacetID].second += SkinDEvalue[phantomID][DEpointID] * SkinDEvalue[phantomID][DEpointID];
+						}
+					}
+				}
+			}
+			SkinDEpoint.clear();
+			SkinDEvalue.clear();
+		}       
+	}
+
+	// ------------------------------------------------------------
+	// 최종 선량(Dose) 계산 및 통계 처리
+	// ------------------------------------------------------------
+	for (auto phantomID : pRt->m_Phantom_SequenceVector)
+	{
+		double density_skin = SkinDenstiy[phantomID]; 
+
+		// FacetDose 계산
+		for (auto f_de : Facet_DE_DE2[phantomID])
+		{
+			double Mass = 0;
+			double volume_cm3 = 0.0;
+
+			if (FacetInfo[phantomID][f_de.first].size() >= 9) {
+				volume_cm3 = FacetInfo[phantomID][f_de.first][8]; 
+			} else {
+				volume_cm3 = FacetInfo[phantomID][f_de.first][7] * (50.0 / 10000.0); 
+			}
+
+			Mass = volume_cm3 * density_skin / 1.0E+3; 
+			if (Mass <= 0) Mass = 1.0e-15; 
+
+			double de_sum = f_de.second.first;
+			double de2_sum = f_de.second.second;
+			double EX = de_sum / event_count;
+			double EX2 = de2_sum / event_count;
+			double variance = (EX2 - (EX*EX)) / (event_count - 1);
+			
+			double relativeE = 0.0;
+			if (EX != 0) relativeE = sqrt(std::abs(variance)) / EX;
+
+			FacetDose[phantomID][f_de.first] = EX / Mass; 
+			FacetError[phantomID][f_de.first] = relativeE;
+
+			if (FacetDose[phantomID][f_de.first] > Maximum_FacetDose_pGy)
+			{
+				Maximum_FacetDose_pGy = FacetDose[phantomID][f_de.first];
+				MaximumFacetDoseID[phantomID] = f_de.first;
+			}
+
+			if (FacetDose[phantomID][f_de.first] > 10'000'000'000)
+			{
+				LOG_ERROR("=== FacetDose is much bigger than 1e10===");
+				LOG_ERROR("FacetID: " + QString::number(f_de.first));
+				LOG_ERROR("Mass: " + QString::number(Mass));
+				LOG_ERROR("FacetDose: " + QString::number(FacetDose[phantomID][f_de.first]));
+			}
+			if (FacetDose[phantomID][f_de.first] > 0 && FacetDose[phantomID][f_de.first] < 1e-10)
+			{
+				LOG_ERROR("=== FacetDose is much smaller than 1e-10===");
+				LOG_ERROR("FacetID: " + QString::number(f_de.first));
+			}
+		}
+
+		// VertexDose 누적
+		vtkSmartPointer<vtkPoints> originalPoints = SkinLayer_PolyData[phantomID]->GetPoints();
+		for (vtkIdType i = 0; i < originalPoints->GetNumberOfPoints(); i++) 
+		{
+			double dE = 0;
+			double Mass = 0;
+			for (auto AdjacentFacetID : VertexToFacetMap[phantomID][i]) 
+			{
+				dE += Facet_DE_DE2[phantomID][AdjacentFacetID].first; 
+				
+				double vol_cm3 = 0.0;
+				if (FacetInfo[phantomID][AdjacentFacetID].size() >= 9) {
+					vol_cm3 = FacetInfo[phantomID][AdjacentFacetID][8];
+				} else {
+					vol_cm3 = FacetInfo[phantomID][AdjacentFacetID][7] * (50.0 / 10000.0);
+				}
+				
+				Mass += vol_cm3 * density_skin / 1.0E+3; 
+			}
+			
+			if (Mass > 0) VertexDose[phantomID][i] = dE / Mass / event_count;
+			else VertexDose[phantomID][i] = 0;
+
+			if (VertexDose[phantomID][i] > Maximum_VertexDoseAmongAllPhantoms_pGy) {
+				Maximum_VertexDoseAmongAllPhantoms_pGy = VertexDose[phantomID][i];
+			}
+			if (VertexDose[phantomID][i] != 0 && (VertexDose[phantomID][i] < Minimum_VertexDoseAmongAllPhantoms_pGy)) {
+				Minimum_VertexDoseAmongAllPhantoms_pGy = VertexDose[phantomID][i];
+			}
+		}
+		
+		LogMaximum_VertexDoseAmongAllPhantoms_pGy = log(Maximum_VertexDoseAmongAllPhantoms_pGy);
+		LogMinimum_VertexDoseAmongAllPhantoms_pGy = log(Minimum_VertexDoseAmongAllPhantoms_pGy);
+
+		// ------------------------------------------------------------
+		// 3D Visualization Setup (LUT, ScalarBar, Labels)
+		// ------------------------------------------------------------
+		float SkinColor[3] = { 255, 192, 160 };
+		
+		vtkSmartPointer<vtkLookupTable> lut = vtkSmartPointer<vtkLookupTable>::New();
+		lut->SetRange(0, 1); 
+		lut->SetNumberOfTableValues(256); 
+
+		float SkinColor_lut[3] = { 255.0f / 255.0f, 192.0f / 255.0f, 160.0f / 255.0f }; 
+		float GreenColor_lut[3] = { 0.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f };
+		float YellowColor_lut[3] = { 255.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f };
+		float RedColor_lut[3] = { 255.0f / 255.0f, 0.0f / 255.0f, 0.0f / 255.0f }; 
+
+		for (int i = 0; i < 256; i++) {
+			double value = static_cast<double>(i) / 255.0;
+			double rgb[3];
+
+			if (value <= 0.7) {
+				for (int j = 0; j < 3; j++) {
+					rgb[j] = GreenColor_lut[j] + value / 0.7 * (YellowColor_lut[j] - GreenColor_lut[j]);
+				}
+			}
+			else {
+				for (int j = 0; j < 3; j++) {
+					rgb[j] = YellowColor_lut[j] + (value - 0.7) / 0.3 * (RedColor_lut[j] - YellowColor_lut[j]);
+				}
+			}
+			lut->SetTableValue(i, rgb);
+		}
+		lut->Build();
+
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_ScalarBar);
+		SkinDoseVisualization_ScalarBar = nullptr;
+		SkinDoseVisualization_ScalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
+		SkinDoseVisualization_ScalarBar->SetLookupTable(lut);
+		SkinDoseVisualization_ScalarBar->SetNumberOfLabels(0);
+		SkinDoseVisualization_ScalarBar->SetPosition(0, 0.79); 
+		SkinDoseVisualization_ScalarBar->SetPosition2(0.10, 0.20); 
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_ScalarBar);
+
+		vtkSmartPointer<vtkTextProperty> textProperty = vtkSmartPointer<vtkTextProperty>::New();
+		textProperty->SetFontSize(pRt->FontSizeScaling(18));
+		textProperty->SetFontFamilyToArial(); 
+		textProperty->BoldOn();
+		textProperty->SetColor(100, 100, 100);
+
+		double tmp_value;
+
+		// Label 0%
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label0percent);
+		SkinDoseVisualization_Label0percent = nullptr;
+		SkinDoseVisualization_Label0percent = vtkSmartPointer<vtkTextActor>::New();
+		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1. - 0) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 0);
+		std::ostringstream oss0percent;
+		oss0percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
+		SkinDoseVisualization_Label0percent->SetInput(oss0percent.str().c_str());
+		SkinDoseVisualization_Label0percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
+		SkinDoseVisualization_Label0percent->SetPosition(0.04, 0.785); 
+		SkinDoseVisualization_Label0percent->SetTextProperty(textProperty);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label0percent);
+
+		// Label 20%
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label20percent);
+		SkinDoseVisualization_Label20percent = nullptr;
+		SkinDoseVisualization_Label20percent = vtkSmartPointer<vtkTextActor>::New();
+		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1. - 0.2) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 0.2);
+		std::ostringstream oss20percent;
+		oss20percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
+		SkinDoseVisualization_Label20percent->SetInput(oss20percent.str().c_str());
+		SkinDoseVisualization_Label20percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
+		SkinDoseVisualization_Label20percent->SetPosition(0.04, 0.825); 
+		SkinDoseVisualization_Label20percent->SetTextProperty(textProperty);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label20percent);
+
+		// Label 40%
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label40percent);
+		SkinDoseVisualization_Label40percent = nullptr;
+		SkinDoseVisualization_Label40percent = vtkSmartPointer<vtkTextActor>::New();
+		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1. - 0.4) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 0.4);
+		std::ostringstream oss40percent;
+		oss40percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
+		SkinDoseVisualization_Label40percent->SetInput(oss40percent.str().c_str());
+		SkinDoseVisualization_Label40percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
+		SkinDoseVisualization_Label40percent->SetPosition(0.04, 0.865); 
+		SkinDoseVisualization_Label40percent->SetTextProperty(textProperty);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label40percent);
+
+		// Label 60%
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label60percent);
+		SkinDoseVisualization_Label60percent = nullptr;
+		SkinDoseVisualization_Label60percent = vtkSmartPointer<vtkTextActor>::New();
+		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1. - 0.6) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 0.6);
+		std::ostringstream oss60percent;
+		oss60percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
+		SkinDoseVisualization_Label60percent->SetInput(oss60percent.str().c_str());
+		SkinDoseVisualization_Label60percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
+		SkinDoseVisualization_Label60percent->SetPosition(0.04, 0.905); 
+		SkinDoseVisualization_Label60percent->SetTextProperty(textProperty);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label60percent);
+
+		// Label 80%
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label80percent);
+		SkinDoseVisualization_Label80percent = nullptr;
+		SkinDoseVisualization_Label80percent = vtkSmartPointer<vtkTextActor>::New();
+		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1. - 0.8) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 0.8);
+		std::ostringstream oss80percent;
+		oss80percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
+		SkinDoseVisualization_Label80percent->SetInput(oss80percent.str().c_str());
+		SkinDoseVisualization_Label80percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
+		SkinDoseVisualization_Label80percent->SetPosition(0.04, 0.945); 
+		SkinDoseVisualization_Label80percent->SetTextProperty(textProperty);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label80percent);
+
+		// Label 100%
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinDoseVisualization_Label100percent);
+		SkinDoseVisualization_Label100percent = nullptr;
+		SkinDoseVisualization_Label100percent = vtkSmartPointer<vtkTextActor>::New();
+		tmp_value = std::pow(Minimum_VertexDoseAmongAllPhantoms_pGy, 1.) * std::pow(Maximum_VertexDoseAmongAllPhantoms_pGy, 1.);
+		std::ostringstream oss100percent;
+		oss100percent << std::scientific << std::setprecision(4) << tmp_value << " pGy" << pRt->DoseUnit_QString.toStdString();
+		SkinDoseVisualization_Label100percent->SetInput(oss100percent.str().c_str());
+		SkinDoseVisualization_Label100percent->GetPositionCoordinate()->SetCoordinateSystemToNormalizedDisplay();
+		SkinDoseVisualization_Label100percent->SetPosition(0.04, 0.98); 
+		SkinDoseVisualization_Label100percent->SetTextProperty(textProperty);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinDoseVisualization_Label100percent);
+
+		// Apply Mapper and Actor
+		vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+		mapper->SetScalarVisibility(true);
+		mapper->SetInputData(SkinLayer_PolyData[phantomID]); 
+
+		vtkNew<vtkUnsignedCharArray> Colors; 
+		Colors->SetNumberOfComponents(3);
+		Colors->SetNumberOfTuples(SkinLayer_PolyData[phantomID]->GetNumberOfPoints());
+		
+		for (vtkIdType i = 0; i < originalPoints->GetNumberOfPoints(); i++) 
+		{
+			double colorValue[3];
+			if (VertexDose[phantomID][i] == 0) {
+				Colors->SetTuple(i, SkinColor);
+			}
+			else {
+				lut->GetColor((log(VertexDose[phantomID][i]) - LogMinimum_VertexDoseAmongAllPhantoms_pGy) / (LogMaximum_VertexDoseAmongAllPhantoms_pGy - LogMinimum_VertexDoseAmongAllPhantoms_pGy), colorValue); 
+
+				float mappedColor[3] = { static_cast<float>(colorValue[0] * 255.0),
+										static_cast<float>(colorValue[1] * 255.0),
+										static_cast<float>(colorValue[2] * 255.0) };
+				Colors->SetTuple(i, mappedColor);
+			}
+		}
+
+		SkinLayer_PolyData[phantomID]->GetPointData()->SetScalars(Colors);
+		mapper->Update();
+		
+		theApp.m_pVTKWidget->GetSceneRenderer()->RemoveActor(SkinPhantomActor[phantomID]);
+		SkinPhantomActor[phantomID] = nullptr;
+		SkinPhantomActor[phantomID] = vtkSmartPointer<vtkActor>::New();
+		SkinPhantomActor[phantomID]->SetMapper(mapper);
+		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(SkinPhantomActor[phantomID]);
+		
+		SkinPhantomActor[phantomID]->VisibilityOff();
+		SkinDoseVisualization_ScalarBar->VisibilityOff();
+		SkinDoseVisualization_Label0percent->VisibilityOff();
+		SkinDoseVisualization_Label20percent->VisibilityOff();
+		SkinDoseVisualization_Label40percent->VisibilityOff();
+		SkinDoseVisualization_Label60percent->VisibilityOff();
+		SkinDoseVisualization_Label80percent->VisibilityOff();
+		SkinDoseVisualization_Label100percent->VisibilityOff();
+	}
+
+	// Visualization Toggle Check
+	if (pRt->m_skinDoseVisualizationButton->isChecked()) 
+	{
+		for (auto phantomID : pRt->m_Phantom_SequenceVector)
+		{
+			if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_DUMMY] == pRt->E_PHANTOMDUMMY_YES) continue;
+
+			PhantomPanelActor[phantomID]->VisibilityOff();
+			SkinPhantomActor[phantomID]->VisibilityOn();
+			SkinDoseVisualization_ScalarBar->VisibilityOn();
+			SkinDoseVisualization_Label0percent->VisibilityOn();
+			SkinDoseVisualization_Label20percent->VisibilityOn();
+			SkinDoseVisualization_Label40percent->VisibilityOn();
+			SkinDoseVisualization_Label60percent->VisibilityOn();
+			SkinDoseVisualization_Label80percent->VisibilityOn();
+			SkinDoseVisualization_Label100percent->VisibilityOn();
+		}
+	}
+	theApp.m_pVTKWidget->renderWindow()->Render();
+}
 
 int  ETHuman3DApp::HP_SkinDepth_to_Index(int phantomID, double input_depth)
 {
@@ -4848,6 +4238,7 @@ int  ETHuman3DApp::HP_SkinDepth_to_Index(int phantomID, double input_depth)
 
 	return changed_index;
 }
+////////////===================================================================
 void ETHuman3DApp::ResultLoad_OrganDose_OutputPanel(std::stringstream &ss)
 {
 	std::string dump, organ, dose, err;
@@ -4880,6 +4271,7 @@ void ETHuman3DApp::ResultLoad_OrganDose_OutputPanel(std::stringstream &ss)
 			
 	theApp.pRt->b_IsOutputResultLoaded = true;
 }
+
 void ETHuman3DApp::LoadOutputData_AirKerma(std::stringstream &ss)
 {
 

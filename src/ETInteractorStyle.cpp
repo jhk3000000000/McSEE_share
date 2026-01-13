@@ -75,16 +75,26 @@ void ETInteractorStyle::OnLeftButtonDown()
 		// 특정 패널에 값 전달 
 		if (theApp.st_Pick3D_sourceEP) // EP 3D pick 중일때
 		{
-			theApp.pRt->PosX_sourceEP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[0], 6));
-			theApp.pRt->PosY_sourceEP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[1], 6));
-			theApp.pRt->PosZ_sourceEP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[2], 6));
+			auto* EPWidget = theApp.pRt->getSourceWidget<ExternalPointWidget>();
+			if(EPWidget)
+			{
+				EPWidget->updateEP_Points(pickedpos[0], pickedpos[1], pickedpos[2]);
+			}
+			// theApp.pRt->PosX_sourceEP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[0], 6));
+			// theApp.pRt->PosY_sourceEP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[1], 6));
+			// theApp.pRt->PosZ_sourceEP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[2], 6));
 		}
 
 		if (theApp.st_Pick3D_sourceCB) // CB 3D pick 중일때
 		{
-			theApp.pRt->m_lineEditConeBeamPointX->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[0], 6));
-			theApp.pRt->m_lineEditConeBeamPointY->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[1], 6));
-			theApp.pRt->m_lineEditConeBeamPointZ->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[2], 6));
+			auto* CBWidget = theApp.pRt->getSourceWidget<ConeBeamWidget>();
+			if(CBWidget)
+			{
+				CBWidget->updateCB_Points(pickedpos[0], pickedpos[1], pickedpos[2]);
+			}
+			// theApp.pRt->m_lineEditConeBeamPointX->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[0], 6));
+			// theApp.pRt->m_lineEditConeBeamPointY->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[1], 6));
+			// theApp.pRt->m_lineEditConeBeamPointZ->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[2], 6));
 		}
 
 		if (theApp.st_Pick3D_sourceHP) // HP 3D pick 중일때
@@ -93,15 +103,26 @@ void ETInteractorStyle::OnLeftButtonDown()
 			vtkSmartPointer<vtkActor> PickedActor = m_pCellPicker->GetActor();
 			if (PickedActor) // 팬텀을 선택했을 때만
 			{
-				theApp.pRt->SelectedPointNormalVector_sourceHP[0] = pickedpos_normal[0];
-				theApp.pRt->SelectedPointNormalVector_sourceHP[1] = pickedpos_normal[1];
-				theApp.pRt->SelectedPointNormalVector_sourceHP[2] = pickedpos_normal[2];
-				//double translated_x = pickedpos[0] + pickedpos_normal[0] * theApp.pRt->SeparationDist_SourceHP_QLineEdit->text().toFloat();
-				//double translated_y = pickedpos[1] + pickedpos_normal[1] * theApp.pRt->SeparationDist_SourceHP_QLineEdit->text().toFloat();
-				//double translated_z = pickedpos[2] + pickedpos_normal[2] * theApp.pRt->SeparationDist_SourceHP_QLineEdit->text().toFloat();
-				theApp.pRt->PosX_SourceHP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[0], 6));
-				theApp.pRt->PosY_SourceHP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[1], 6));
-				theApp.pRt->PosZ_SourceHP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[2], 6));
+				auto* HPWidget = theApp.pRt->getSourceWidget<HotParticleWidget>();
+				if(HPWidget)
+				{
+					HPWidget->updateHP_Vector(pickedpos_normal[0],
+											  pickedpos_normal[1],
+											  pickedpos_normal[2]);
+
+					HPWidget->updateHP_Points(pickedpos[0],
+											  pickedpos[1],
+											  pickedpos[2]);
+				}
+				// theApp.pRt->SelectedPointNormalVector_sourceHP[0] = pickedpos_normal[0];
+				// theApp.pRt->SelectedPointNormalVector_sourceHP[1] = pickedpos_normal[1];
+				// theApp.pRt->SelectedPointNormalVector_sourceHP[2] = pickedpos_normal[2];
+				// //double translated_x = pickedpos[0] + pickedpos_normal[0] * theApp.pRt->SeparationDist_SourceHP_QLineEdit->text().toFloat();
+				// //double translated_y = pickedpos[1] + pickedpos_normal[1] * theApp.pRt->SeparationDist_SourceHP_QLineEdit->text().toFloat();
+				// //double translated_z = pickedpos[2] + pickedpos_normal[2] * theApp.pRt->SeparationDist_SourceHP_QLineEdit->text().toFloat();
+				// // theApp.pRt->PosX_SourceHP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[0], 6));
+				// theApp.pRt->PosY_SourceHP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[1], 6));
+				// theApp.pRt->PosZ_SourceHP_QLineEdit->setText(theApp.getQStringNumberInSpecificDigit(pickedpos[2], 6));
 				double coords[3] = { pickedpos[0] , pickedpos[1] , pickedpos[2] };
 				theApp.sourceObjects->Selecting3DShpere(coords);
 			}

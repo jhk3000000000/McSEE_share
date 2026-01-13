@@ -1152,20 +1152,38 @@ std::map<int, std::map<int, std::map<int, QString>>> m_PhantomWearableName; // m
 
 // Global bool
 	
+
+
+// QPushButton
+	QPushButton* m_sourceOKandResetButton = nullptr; //
+	
+	QPushButton* ConeBeamRadionuclideButton = nullptr;
+	QPushButton* ConeBeamEnergyspectrumButton = nullptr;
+
+// QComboBox
+	QComboBox* m_comboBoxSourceGeometry = nullptr;
+
 // QGroupBox
 	QGroupBox* SourcePanel_QGroupBox = nullptr;
 	QVBoxLayout* m_sourceGeometryContainerLayout = nullptr;
 	QList<SourceGeometryWidget*> m_sources;
 
-// QPushButton
-	QPushButton* m_sourceOKandResetButton = nullptr; //
-	
-	// QPushButton* ConeBeamRadionuclideButton = nullptr;
-	// QPushButton* ConeBeamEnergyspectrumButton = nullptr;
+template <typename T>
+    T* getSourceWidget() 
+	{
+        for (SourceGeometryWidget* widget : m_sources) {
+            // 리스트에 있는 위젯을 T 타입으로 변환 시도
+            T* specificWidget = qobject_cast<T*>(widget);
+            
+            // 변환 성공하면(nullptr가 아니면) 그 위젯을 찾은 것임!
+            if (specificWidget) {
+                return specificWidget;
+            }
+        }
+        return nullptr; // 못 찾았으면 null 반환
+    }
 
-// QComboBox
-	QComboBox* m_comboBoxSourceGeometry = nullptr;
-
+	SourceGeometryWidget* getCurrentSourceWidget();
 
 // QStringList
 	QStringList RIsourceList; // Completer(자동완성)
@@ -1534,7 +1552,7 @@ public slots:
 	void slot_ObjectUpdate_ButtonClicked();
 	
 	void slot_SourceOKandReset_ButtonClicked();
-	void slot_BUpdate_ButtonClicked();
+	// void slot_BUpdate_ButtonClicked();
 
 	void slot_SkinDoseVisualization_ButtonClicked();
 	void slot_Output_resultType(int user);
