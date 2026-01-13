@@ -374,7 +374,8 @@ struct ParallelBeamModel
     bool isMonoEnergyMode = true; 
 
     // --- Mono Energy Mode ---
-    std::string particleTypeIndex = 0; // Particle Type ComboBox Index
+    int particleTypeIndex = 0; // Particle Type ComboBox Index
+    QString ParallelBeamParticleType;
     double monoEnergy = 0.0;
     double monoIntensity = 0.0;
 

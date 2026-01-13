@@ -8102,8 +8102,8 @@ void FunctionPanelRight::CreateSourceWidgets()
     layout->setContentsMargins(Window_width * 0.003, Window_height * 0.005, Window_width * 0.003, Window_height * 0.005);
     layout->setSpacing(Window_width * 0.003);
     layout->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-
     SourcePanel_QGroupBox->setLayout(layout);
+
 
     // 3. 상단 콤보박스 및 OK 버튼 영역 (기존 코드 거의 유지)
     {     
@@ -8170,7 +8170,7 @@ void FunctionPanelRight::CreateSourceWidgets()
     // [리팩토링 핵심 부분] 기존 Create... 함수들을 지우고 리스트 초기화 코드로 대체합니다.
     // =================================================================================
     
-// 4. 위젯들을 담을 컨테이너 레이아웃 생성
+	// 4. 위젯들을 담을 컨테이너 레이아웃 생성
     m_sourceGeometryContainerLayout = new QVBoxLayout;
     m_sourceGeometryContainerLayout->setContentsMargins(0, 0, 0, 0);
     m_sourceGeometryContainerLayout->setSpacing(0);
@@ -8190,8 +8190,7 @@ void FunctionPanelRight::CreateSourceWidgets()
     m_sources.append(SourceGeometryWidgetFactory::CreateSourceGeometry("ConeBeam"));        // 6
     m_sources.append(SourceGeometryWidgetFactory::CreateSourceGeometry("RoomContamination")); // 7
     m_sources.append(SourceGeometryWidgetFactory::CreateSourceGeometry("EnvironmentalContamination")); // 8
-    m_sources.append(SourceGeometryWidgetFactory::CreateSourceGeometry("ParallelBeam"));    // 9
-
+    m_sources.append(SourceGeometryWidgetFactory::CreateSourceGeometry("ParallelBeam"));    // 9 
     // 7. 생성된 위젯 초기화 및 배치
     for (auto* widget : m_sources) {
         if (widget) {
@@ -8203,7 +8202,6 @@ void FunctionPanelRight::CreateSourceWidgets()
             widget->hide();       // 일단 숨김
         }
     }
-
     // 8. 초기 화면 설정
     SetSourceGeometryType(0); // 0번(BroadBeam)을 기본값으로 설정
 }
@@ -8263,13 +8261,17 @@ void FunctionPanelRight::SetSourceGeometryType(int index)
 		CurrentSourceType = -1;
 		for(int i = 0; i < m_sources.size(); ++i)
 		{
-			m_sources[i]->hide();
+			if (m_sources[i] != nullptr) 
+            {
+                m_sources[i]->hide();
+            }
 		}
 	}
 	else
 	{
 		for(int i = 0; i < m_sources.size(); ++i)
 		{
+			if (m_sources[i] == nullptr) continue;
 			if (i == index)
 			{
 				CurrentSourceType = i;

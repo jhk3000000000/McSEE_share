@@ -3531,15 +3531,16 @@ void FloorDiskWidget::slot_sourceFD_EnergyspectrumFileLoad_ButtonClicked()
 ObjectVolumeWidget::ObjectVolumeWidget(QWidget* parent)
     : ParentT(parent)
 {
+	sourceOV_ObjectAddingDialog = nullptr;
 }
 
 ObjectVolumeWidget::~ObjectVolumeWidget()
 {
-    // 다이얼로그 등 동적 할당된 객체 중 부모가 없는 경우 여기서 삭제 필요
-    if (sourceOV_ObjectAddingDialog) {
-        delete sourceOV_ObjectAddingDialog;
-        sourceOV_ObjectAddingDialog = Q_NULLPTR;
-    }
+    // // 다이얼로그 등 동적 할당된 객체 중 부모가 없는 경우 여기서 삭제 필요
+    // if (sourceOV_ObjectAddingDialog) {
+    //     delete sourceOV_ObjectAddingDialog;
+    //     sourceOV_ObjectAddingDialog = Q_NULLPTR;
+    // }
 }
 
 bool ObjectVolumeWidget::initialize()
@@ -9684,11 +9685,11 @@ void ParallelBeamWidget::WriteSourceMacro(std::ofstream& ofp_source)
 	if (m_model.isMonoEnergyMode) // Mono Energy 형태일 때
 	{
 		ofp_source << "/gps/particle ";
-		if (m_model.particleTypeIndex == "Photon") ofp_source << "gamma" << endl;
-		else if (m_model.particleTypeIndex == "Electron") ofp_source << "e-" << endl;
-		else if (m_model.particleTypeIndex == "Neutron") ofp_source << "neutron" << endl;
-		else if (m_model.particleTypeIndex == "Proton") ofp_source << "proton" << endl;
-		else if (m_model.particleTypeIndex == "Alpha") ofp_source << "alpha" << endl;
+		if (m_model.ParallelBeamParticleType == "Photon") ofp_source << "gamma" << endl;
+		else if (m_model.ParallelBeamParticleType == "Electron") ofp_source << "e-" << endl;
+		else if (m_model.ParallelBeamParticleType == "Neutron") ofp_source << "neutron" << endl;
+		else if (m_model.ParallelBeamParticleType == "Proton") ofp_source << "proton" << endl;
+		else if (m_model.ParallelBeamParticleType == "Alpha") ofp_source << "alpha" << endl;
 		ofp_source << "/gps/pos/type Plane" << endl;
 		ofp_source << "/gps/pos/shape Circle" << endl;
 		ofp_source << "/gps/pos/centre " << std::scientific << std::setprecision(4) << center_x << " " << center_y << " " << center_z << " cm " << endl;
@@ -9730,7 +9731,7 @@ void ParallelBeamWidget::updateModelFromUI()
     m_model.isMonoEnergyMode = sourcePB_MonoEnergy_radioButton->isChecked();
 
     // 4. Mono Energy Inputs
-    m_model.particleTypeIndex = m_comboBoxParallelBeamParticleType->currentText().toStdString();
+    m_model.ParallelBeamParticleType = m_comboBoxParallelBeamParticleType->currentText();
     m_model.monoEnergy = m_lineEditParallelBeamEnergy->text().toDouble();
     m_model.monoIntensity = m_lineEditParallelBeamIntensity_MonoEnergy->text().toDouble();
 
