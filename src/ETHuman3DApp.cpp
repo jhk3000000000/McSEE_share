@@ -31,9 +31,15 @@
 #include "TaskManager.h"
 
 
+#include "GeometryObjects.h"
 #include "PhantomObjects.h"
 #include "SourceObjects.h"
+
+#include "PhantomWidget.h"
+#include "SourceGeometryWidget.h"
+
 #include "Manager_Calculation.h"
+
 
 #include <qsettings.h>
 #include <QtWidgets>
@@ -1410,19 +1416,19 @@ std::string ETHuman3DApp::SetComputerID()
 
 	return tmp_computerID_English;
 }
-void ETHuman3DApp::MultipleUICloseTrigger() // 닫을 때 Ok버튼으로 눌러서 정상종료하지 않았으면 Closed 플래그 업데이트
-{
-	auto* OVWidget = pRt->getSourceWidget<ObjectVolumeWidget>();
-	if(!OVWidget) return;
+// void ETHuman3DApp::MultipleUICloseTrigger() // 닫을 때 Ok버튼으로 눌러서 정상종료하지 않았으면 Closed 플래그 업데이트 // FunctionPanelRight로 옮기기 아무리 봐도 ETHuman3DApp에 있을 이유가 없다. 어차피 이건 비워질 거기도 하고.
+// {
+// 	auto* OVWidget = pRt->getSourceWidget<ObjectVolumeWidget>();
+// 	if(!OVWidget) return;
 
-	if (pRt->m_Is_PhantomSetting_OKbutton_Clicked == false) pRt->m_Is_PhantomSetting_Closed = true;
-	if (pRt->m_Is_ClothingSetting_OKbutton_Clicked == false) pRt->m_Is_ClothingSetting_Closed = true;
-	if (pRt->m_Is_ClothingLayer_Setting_OKbutton_Clicked == false) pRt->m_Is_ClothingLayer_Setting_Closed = true;
-	if (pRt->b_IsObjectSettingOKClicked == false) pRt->b_IsObjectSettingClosed = true;		
-	//if (pRt->b_IsSourceOV_AddingSettingOKClicked == false) pRt->b_IsSourceOV_AddingSettingClosed = true;
-	//if(OVWidget->isOV_AddingSettingOKClicked() == false) OVWidget->setOV_AddingSettingClosed();
-	if(OVWidget->getModel().b_IsSourceOV_AddingSettingOKClicked == false) OVWidget->getModel().b_IsSourceOV_AddingSettingClosed = true;
-}
+// 	if (pRt->m_Is_PhantomSetting_OKbutton_Clicked == false) pRt->m_Is_PhantomSetting_Closed = true;
+// 	if (pRt->m_Is_ClothingSetting_OKbutton_Clicked == false) pRt->m_Is_ClothingSetting_Closed = true;
+// 	if (pRt->m_Is_ClothingLayer_Setting_OKbutton_Clicked == false) pRt->m_Is_ClothingLayer_Setting_Closed = true;
+// 	if (pRt->b_IsObjectSettingOKClicked == false) pRt->b_IsObjectSettingClosed = true;		
+// 	//if (pRt->b_IsSourceOV_AddingSettingOKClicked == false) pRt->b_IsSourceOV_AddingSettingClosed = true;
+// 	//if(OVWidget->isOV_AddingSettingOKClicked() == false) OVWidget->setOV_AddingSettingClosed();
+// 	if(OVWidget->getModel().b_IsSourceOV_AddingSettingOKClicked == false) OVWidget->getModel().b_IsSourceOV_AddingSettingClosed = true;
+// }
 std::string ETHuman3DApp::ExtractInnerString(std::string& input)
 {
 	if (input.length() >= 2 && input.front() == '[' && input.back() == ']') {
@@ -1507,9 +1513,9 @@ void ETHuman3DApp::CleaningPolyData(vtkSmartPointer<vtkPolyData> polyData, std::
 }
 
 //************************************** Phantom Widget **************************************//
-void ETHuman3DApp::UpdatePhantom_ActorHighlighted(int phantomIndex) // 현재 선택된 팬텀버튼에 해당하는 팬텀만 pickable 하도록
+void ETHuman3DApp::UpdatePhantom_ActorHighlighted(int phantomIndex) // 현재 선택된 팬텀버튼에 해당하는 팬텀만 pickable 하도록 // PhantomObjects로 갈 것.
 {
-	for (auto itr_phanntom : pRt->m_Phantom_SequenceVector)
+	for (auto itr_phanntom : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
 		if (itr_phanntom == phantomIndex)
 		{
@@ -1803,7 +1809,7 @@ void ETHuman3DApp::SaveData() // called by (1) FunctionPanelRight::DataInitializ
 	MakeFile_CalcCollection();	
 
 	/////////////////////////////// 팬텀/의복/선량계는 Geant4상에서 회전/이동함, Glasses tet.node 제작 및 회전/이동///////////////////////////////////////
-	//for (auto itr_phantomIndex : pRt->m_Phantom_SequenceVector)
+	//for (auto itr_phantomIndex : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	//{
 	//	// if 안경이 존재할때만
 	//	GenerateGlassesTetFile(itr_phantomIndex);
@@ -1820,10 +1826,10 @@ void ETHuman3DApp::Make_mcsee_File_extdata_previous(QString filepath)
 		return;
 	}
 	int rearragned_phantomID = 0;
-	// pRt->m_Phantom_SequenceVector 순회
-	for (auto itr_phantomIndex : pRt->m_Phantom_SequenceVector) 
+	// theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector 순회
+	for (auto itr_phantomIndex : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector) 
 	{
-		if (pRt->m_Phantom_MainInfo[itr_phantomIndex][pRt->E_PHANTOMMAININFO_TYPE] == pRt->E_PHANTOMTYPE_IMPORTED) 
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][E_PHANTOMMAININFO_TYPE] == E_PHANTOMTYPE_IMPORTED) 
 		{
 			// .ply 파일 열기 (이진 모드로 열기)
 			QFile plyFile(m_ImportedPhantomFilePath[itr_phantomIndex]);
@@ -1885,7 +1891,7 @@ void ETHuman3DApp::Make_mcsee_File_extdata_previous(QString filepath)
 	// 파일 닫기
 	outputFile.close();
 }
-void ETHuman3DApp::MakeFile_PhantomCollection()
+void ETHuman3DApp::MakeFile_PhantomCollection() // 관련 함수 PhantomWidget에 놓기/ 아니지 Manager_IO에 들어갈 예정인듯
 {
 	//Phantom_collection 파일 생성, 
 	std::string phantom_collection = "./data/dbsend/phantom_collection";
@@ -1893,15 +1899,15 @@ void ETHuman3DApp::MakeFile_PhantomCollection()
 	ofpPhantom.precision(8);
 	ofpPhantom.open(phantom_collection);
 
-	ofpPhantom << pRt->m_Phantom_SequenceVector.size() << "\t" << pRt->maxX_PhantomBox << "\t" << pRt->maxY_PhantomBox << "\t" << pRt->maxZ_PhantomBox
+	ofpPhantom << theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector.size() << "\t" << pRt->maxX_PhantomBox << "\t" << pRt->maxY_PhantomBox << "\t" << pRt->maxZ_PhantomBox
 		<< "\t" << pRt->minX_PhantomBox << "\t" << pRt->minY_PhantomBox << "\t" << pRt->minZ_PhantomBox << endl;
 
-	for (auto itr_phantomIndex : pRt->m_Phantom_SequenceVector)
+	for (auto itr_phantomIndex : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
-		if (pRt->m_Phantom_MainInfo[itr_phantomIndex][pRt->E_PHANTOMMAININFO_CATEGORY] == pRt->E_PHANTOMCATEGORY_AIR) continue;
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][E_PHANTOMMAININFO_CATEGORY] == E_PHANTOMCATEGORY_AIR) continue;
 		// Dummy phantom
 		int is_dummy = 0;
-		if (pRt->m_Phantom_MainInfo[itr_phantomIndex][pRt->E_PHANTOMMAININFO_DUMMY] == pRt->E_PHANTOMDUMMY_YES) is_dummy = 1;
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][E_PHANTOMMAININFO_DUMMY] == E_PHANTOMDUMMY_YES) is_dummy = 1;
 
 		double pCenterX;
 		double pCenterY;
@@ -1929,12 +1935,12 @@ void ETHuman3DApp::MakeFile_PhantomCollection()
 			ScaleZ = DummyPolyDataInfo[itr_phantomIndex][5];
 		}
 
-		double PosX = pRt->m_Phantom_MainInfo[itr_phantomIndex][6];
-		double PosY = pRt->m_Phantom_MainInfo[itr_phantomIndex][7];
-		double PosZ = pRt->m_Phantom_MainInfo[itr_phantomIndex][8];
-		double RotX = pRt->m_Phantom_MainInfo[itr_phantomIndex][9];
-		double RotY = pRt->m_Phantom_MainInfo[itr_phantomIndex][10];
-		double RotZ = pRt->m_Phantom_MainInfo[itr_phantomIndex][11];
+		double PosX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][6];
+		double PosY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][7];
+		double PosZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][8];
+		double RotX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][9];
+		double RotY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][10];
+		double RotZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][11];
 		const double PI = 3.141592 / 180; // 라디안 변환 
 		double RadianX = RotX * PI;
 		double RadianY = RotY * PI;
@@ -1947,7 +1953,7 @@ void ETHuman3DApp::MakeFile_PhantomCollection()
 		int check_dosimeter = 0;
 
 		//  clothing
-		for (auto itr_clothingIndex : pRt->m_Clothing_SequenceVector[itr_phantomIndex]) // 의복 순환
+		for (auto itr_clothingIndex : theApp.pRt->m_phantoms->getModel().m_Clothing_SequenceVector[itr_phantomIndex]) // 의복 순환
 		{
 			check_clothing = 1; // 의복 인덱스 존재하면 의복 생성된 팬텀임
 		}
@@ -1959,11 +1965,11 @@ void ETHuman3DApp::MakeFile_PhantomCollection()
 		int is_imported = 0;
 		QString Q_phantom_path = "-";
 		std::string phantom_path = "-";
-		if (pRt->m_Phantom_MainInfo[itr_phantomIndex][2] != pRt->E_PHANTOMTYPE_IMPORTED)
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][2] != E_PHANTOMTYPE_IMPORTED)
 		{
 			pTitle = PhantomFileTitle[itr_phantomIndex].toStdString();
 		}
-		if (pRt->m_Phantom_MainInfo[itr_phantomIndex][2] == pRt->E_PHANTOMTYPE_IMPORTED)
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][2] == E_PHANTOMTYPE_IMPORTED)
 		{
 			pTitle = m_ImportedPhantom_ParentPhantomFileName[itr_phantomIndex].toStdString();
 			is_imported = 1;
@@ -2184,12 +2190,12 @@ void ETHuman3DApp::MakeFile_CalcCollection()
 
 	ofp_calc.close();
 }
-void ETHuman3DApp::Generate_MaterialFile()
+void ETHuman3DApp::Generate_MaterialFile() // 일단 PhantomWidget에 놓고.
 {
 	// MATERIAL 파일 생성 -> tet.ele / tet.node 와 함께 있는 tet.material 파일 생성	
-	for (auto phantomIdx : pRt->m_Phantom_SequenceVector)
+	for (auto phantomIdx : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{		
-		if (pRt->m_Clothing_SequenceVector[phantomIdx].size() != 0)
+		if (theApp.pRt->m_phantoms->getModel().m_Clothing_SequenceVector[phantomIdx].size() != 0)
 		{
 			// 의복의 .material 파일 생성	
 			QString materialFile = "./result/" + pRt->m_CalculationSetting_ResultFileName + "/tmpdata/clothing_" + QString::number(phantomIdx) + ".material";// +".material" 나중에추가			
@@ -2198,13 +2204,13 @@ void ETHuman3DApp::Generate_MaterialFile()
 			QIODeviceOStream ofpNode(outFile);
 			ofpNode.precision(18);
 
-			for (auto clothingIdx : pRt->m_Clothing_SequenceVector[phantomIdx]) // 의복 순환
+			for (auto clothingIdx : theApp.pRt->m_phantoms->getModel().m_Clothing_SequenceVector[phantomIdx]) // 의복 순환
 			{
-				for (auto layerIdx : pRt->m_ClothingLayer_SequenceVector[phantomIdx][clothingIdx]) // 레이어순환
+				for (auto layerIdx : theApp.pRt->m_phantoms->getModel().m_ClothingLayer_SequenceVector[phantomIdx][clothingIdx]) // 레이어순환
 				{
 					std::string name = "Layer_" + std::to_string(layerIdx);
-					double density = pRt->m_Clothing_MainInfo[phantomIdx][clothingIdx][layerIdx][1]; ;
-					double thickness = pRt->m_Clothing_MainInfo[phantomIdx][clothingIdx][layerIdx][0];
+					double density = theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[phantomIdx][clothingIdx][layerIdx][1]; ;
+					double thickness = theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[phantomIdx][clothingIdx][layerIdx][0];
 					if (thickness == 0)
 					{
 					} //해당 의복의 해당 레이어가 정의 되어 있지않다면 break
@@ -2213,7 +2219,7 @@ void ETHuman3DApp::Generate_MaterialFile()
 						ofpNode << "C  " << name << "  " << density << " g/cm3" << endl;
 						ofpNode << "m" << phantomIdx * 1000000 + 20000 + (clothingIdx * 100) + layerIdx << "    ";
 
-						if (pRt->m_Clothing_MainInfo[phantomIdx][clothingIdx][layerIdx][pRt->E_CLOTHINGMAININFO_COMPOSITION] == pRt->E_CLOTHINGMAININFO_COMPOSITION_CLOTH) // Material: Cloth
+						if (theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[phantomIdx][clothingIdx][layerIdx][E_CLOTHINGMAININFO_COMPOSITION] == E_CLOTHINGMAININFO_COMPOSITION_CLOTH) // Material: Cloth
 						{
 							ofpNode << " 5000     -0.056" << endl;
 							ofpNode << "          8000     -0.472" << endl;
@@ -2227,12 +2233,12 @@ void ETHuman3DApp::Generate_MaterialFile()
 							ofpNode << "         40000     -0.037" << endl;
 							ofpNode << "C" << endl;
 						}
-						if (pRt->m_Clothing_MainInfo[phantomIdx][clothingIdx][layerIdx][pRt->E_CLOTHINGMAININFO_COMPOSITION] == pRt->E_CLOTHINGMAININFO_COMPOSITION_LEAD) // Material: Lead
+						if (theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[phantomIdx][clothingIdx][layerIdx][E_CLOTHINGMAININFO_COMPOSITION] == E_CLOTHINGMAININFO_COMPOSITION_LEAD) // Material: Lead
 						{
 							ofpNode << "82000     -1" << endl;
 							ofpNode << "C" << endl;
 						}
-						if (pRt->m_Clothing_MainInfo[phantomIdx][clothingIdx][layerIdx][pRt->E_CLOTHINGMAININFO_COMPOSITION] == pRt->E_CLOTHINGMAININFO_COMPOSITION_AIR) // Material: Air
+						if (theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[phantomIdx][clothingIdx][layerIdx][E_CLOTHINGMAININFO_COMPOSITION] == E_CLOTHINGMAININFO_COMPOSITION_AIR) // Material: Air
 						{
 							ofpNode << "7000     -0.8" << endl;
 							ofpNode << "         8000     -0.2" << endl;
@@ -2251,17 +2257,17 @@ void ETHuman3DApp::Generate_MaterialFile()
 
 void ETHuman3DApp::TranslatePhantomTetFile(int reset_phantomID) // called by (1) DataInitialization_Local
 {
-	int phantomID = pRt->m_Phantom_SequenceVector[reset_phantomID];
+	int phantomID = theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector[reset_phantomID];
 
 	double pCenterX = PhantomOrigianlPolyDataCenter[phantomID][0];
 	double pCenterY = PhantomOrigianlPolyDataCenter[phantomID][1];
 	double pCenterZ = PhantomOrigianlPolyDataCenter[phantomID][2];
-	double PosX = pRt->m_Phantom_MainInfo[phantomID][6];
-	double PosY = pRt->m_Phantom_MainInfo[phantomID][7];
-	double PosZ = pRt->m_Phantom_MainInfo[phantomID][8];
-	double RotX = pRt->m_Phantom_MainInfo[phantomID][9];
-	double RotY = pRt->m_Phantom_MainInfo[phantomID][10];
-	double RotZ = pRt->m_Phantom_MainInfo[phantomID][11];
+	double PosX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][6];
+	double PosY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][7];
+	double PosZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][8];
+	double RotX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][9];
+	double RotY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][10];
+	double RotZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][11];
 	const double PI = 3.141592 / 180; // 라디안 변환 
 	double RadianX = RotX * PI;
 	double RadianY = RotY * PI;
@@ -2273,18 +2279,18 @@ void ETHuman3DApp::TranslatePhantomTetFile(int reset_phantomID) // called by (1)
 }
 void ETHuman3DApp::TranslateClothingTetFile(int reset_phantomID) // called by (1) DataInitialization_Local
 {	
-	int phantomID = pRt->m_Phantom_SequenceVector[reset_phantomID];
-	if (pRt->m_Clothing_SequenceVector[phantomID].size() == 0) return; // Clothing 하나도 없으면 빠져 나오기
+	int phantomID = theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector[reset_phantomID];
+	if (theApp.pRt->m_phantoms->getModel().m_Clothing_SequenceVector[phantomID].size() == 0) return; // Clothing 하나도 없으면 빠져 나오기
 
 	double pCenterX = PhantomOrigianlPolyDataCenter[phantomID][0];
 	double pCenterY = PhantomOrigianlPolyDataCenter[phantomID][1];
 	double pCenterZ = PhantomOrigianlPolyDataCenter[phantomID][2];
-	double PosX = pRt->m_Phantom_MainInfo[phantomID][6];
-	double PosY = pRt->m_Phantom_MainInfo[phantomID][7];
-	double PosZ = pRt->m_Phantom_MainInfo[phantomID][8];
-	double RotX = pRt->m_Phantom_MainInfo[phantomID][9];
-	double RotY = pRt->m_Phantom_MainInfo[phantomID][10];
-	double RotZ = pRt->m_Phantom_MainInfo[phantomID][11];
+	double PosX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][6];
+	double PosY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][7];
+	double PosZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][8];
+	double RotX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][9];
+	double RotY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][10];
+	double RotZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][11];
 	const double PI = 3.141592 / 180; // 라디안 변환 
 	double RadianX = RotX * PI;
 	double RadianY = RotY * PI;
@@ -2370,7 +2376,7 @@ void ETHuman3DApp::TranslateClothingTetFile(int reset_phantomID) // called by (1
 void ETHuman3DApp::WearableTetrahedralization() // called by (1) DataInitialization_Local
 {
 	////////////////////////File deletion in output folder//////////////////////////
-	for (auto itr_phantomIndex : pRt->m_Phantom_SequenceVector)
+	for (auto itr_phantomIndex : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
 		std::string wearablePath = "./data/dbsend/wearable_send/";
 		
@@ -2402,7 +2408,7 @@ void ETHuman3DApp::WearableTetrahedralization() // called by (1) DataInitializat
 		file_to_delete = LayerDosimeterSideNode.c_str();	remove(file_to_delete);
 	}
 
-	for (auto itr_phantomIndex : pRt->m_Phantom_SequenceVector)
+	for (auto itr_phantomIndex : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
 		//사면체화에 사용될 points와 faces
 		std::map<int, std::map<int, std::vector<Point_3>>> points_clothing;
@@ -2428,14 +2434,14 @@ void ETHuman3DApp::WearableTetrahedralization() // called by (1) DataInitializat
 		std::map<int, Polyhedron_SK> update_dosimeter_side; // 첫번째 이후 레이어들(update)
 
 		// 사면체화할 base polygon 생성		
-		for (auto itr_clothingIndex : theApp.pRt->m_Clothing_SequenceVector[itr_phantomIndex]) // 의복 순환
+		for (auto itr_clothingIndex : theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_SequenceVector[itr_phantomIndex]) // 의복 순환
 		{
 			BaseLayer_clothing[itr_clothingIndex] = new std::ifstream; // 기본 base layer 설정(0번째 layer)
 			BaseLayer_clothing[itr_clothingIndex]->open("./data/wearable/Clothing_forTetra/" + std::to_string(itr_phantomIndex) + "_" + std::to_string(itr_clothingIndex) + ".obj"); // 기본으로 offset 하지 않은 original layer 사용			
 		}
 
 		////선량계
-		//for (int dosim_idx = 0; dosim_idx < theApp.pRt->m_Clothing_MainInfo[itr_phantomIndex][999][0][0]; dosim_idx++) // dosimeter 순환
+		//for (int dosim_idx = 0; dosim_idx < theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[itr_phantomIndex][999][0][0]; dosim_idx++) // dosimeter 순환
 		//{
 		//	vtkSmartPointer<vtkPolyData> PolydataOffsetDosimeter;
 		//	vtkSmartPointer<vtkOBJReader> reader = vtkSmartPointer<vtkOBJReader>::New();
@@ -2450,9 +2456,9 @@ void ETHuman3DApp::WearableTetrahedralization() // called by (1) DataInitializat
 		//	BaseLayer_dosimeter[dosim_idx] = new ifstream;
 		//	BaseLayer_dosimeter[dosim_idx]->open(stdPath);
 		//}
-		//for (int dosim_idx = 0; dosim_idx < theApp.pRt->m_Clothing_MainInfo[itr_phantomIndex][999][0][0]; dosim_idx++) // dosimeter side 순환
+		//for (int dosim_idx = 0; dosim_idx < theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[itr_phantomIndex][999][0][0]; dosim_idx++) // dosimeter side 순환
 		//{	// 사면체화용 offset한(0.0001 cm + separation distance) 팬텀 polydata로부터 만든 선량계를 이용하여 side dosimeter 생성
-		//	GenerateSideDosimeter("./data/wearable/Dosimeter/" + QString::number(itr_phantomIndex) + "_" + QString::number(dosim_idx) + ".obj", itr_phantomIndex, 0.0001 + theApp.pRt->m_Clothing_MainInfo[itr_phantomIndex][1000][dosim_idx][2], "./data/wearable/Dosimeter/" + QString::number(itr_phantomIndex) + "_" + QString::number(dosim_idx) + "_side.obj");
+		//	GenerateSideDosimeter("./data/wearable/Dosimeter/" + QString::number(itr_phantomIndex) + "_" + QString::number(dosim_idx) + ".obj", itr_phantomIndex, 0.0001 + theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[itr_phantomIndex][1000][dosim_idx][2], "./data/wearable/Dosimeter/" + QString::number(itr_phantomIndex) + "_" + QString::number(dosim_idx) + "_side.obj");
 		//	QString qPath;
 		//	qPath = "./data/wearable/Dosimeter/" + QString::number(itr_phantomIndex) + "_" + QString::number(dosim_idx) + "_side.obj";
 		//	std::string stdPath = qPath.toStdString();
@@ -2473,12 +2479,12 @@ void ETHuman3DApp::WearableTetrahedralization() // called by (1) DataInitializat
 		int matID;
 
 		CGAL_LayerDef* LAYERDEF = new CGAL_LayerDef;
-		for (auto itr_clothingIndex : theApp.pRt->m_Clothing_SequenceVector[itr_phantomIndex]) // 의복 순환
+		for (auto itr_clothingIndex : theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_SequenceVector[itr_phantomIndex]) // 의복 순환
 		{
 			int initial_selfintersections = 0;
-			for (int LayerIdx = 0; LayerIdx < pRt->const_ClothingLayer_MaximumCount; LayerIdx++) // 레이어순환
+			for (int LayerIdx = 0; LayerIdx < PhantomConstants::const_ClothingLayer_MaximumCount; LayerIdx++) // 레이어순환
 			{
-				Thickness = pRt->m_Clothing_MainInfo[itr_phantomIndex][itr_clothingIndex][LayerIdx][pRt->E_CLOTHINGMAININFO_THICKNESS];
+				Thickness = theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[itr_phantomIndex][itr_clothingIndex][LayerIdx][E_CLOTHINGMAININFO_THICKNESS];
 				if (Thickness == 0)
 				{
 				}
@@ -2502,9 +2508,9 @@ void ETHuman3DApp::WearableTetrahedralization() // called by (1) DataInitializat
 			}
 		}
 
-		//for (int DosimeterIdx = 0; DosimeterIdx < theApp.pRt->m_Clothing_MainInfo[itr_phantomIndex][999][0][0]; DosimeterIdx++) // dosimeter 순환
+		//for (int DosimeterIdx = 0; DosimeterIdx < theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[itr_phantomIndex][999][0][0]; DosimeterIdx++) // dosimeter 순환
 		//{
-		//	if (theApp.pRt->m_Clothing_MainInfo[itr_phantomIndex][1000][DosimeterIdx][1] == 0) continue;
+		//	if (theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[itr_phantomIndex][1000][DosimeterIdx][1] == 0) continue;
 		//	// 사용자 지정 original dosimeter 사면체화
 		//	int initial_selfintersections = 0;
 		//	for (int DosimeterLayer = 0; DosimeterLayer < 7; DosimeterLayer++) // 총 7 개 레이어로 이루어짐
@@ -2638,16 +2644,16 @@ void ETHuman3DApp::GenerateClothingLayerOverlappedWithDosimeter(int phantomIdx, 
 	{
 		theApp.SetMessageBox("Start!");
 		double thickness = 0;
-		for (int layerIdx = 0; layerIdx < theApp.pRt->const_ClothingLayer_MaximumCount; layerIdx++)
+		for (int layerIdx = 0; layerIdx < PhantomConstants::const_ClothingLayer_MaximumCount; layerIdx++)
 		{
-			thickness += theApp.pRt->m_Clothing_MainInfo[phantomIdx][WearableIdx][layerIdx][0]; // 피부로부터 현재 의복레이어 표면의 깊이(즉, 레이어들의 누적 두께)
+			thickness += theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[phantomIdx][WearableIdx][layerIdx][0]; // 피부로부터 현재 의복레이어 표면의 깊이(즉, 레이어들의 누적 두께)
 			theApp.SetMessageBox("Cummulated Thickness: " + QString::number(thickness));
-			theApp.SetMessageBox("Layer Thickness: " + QString::number(theApp.pRt->m_Clothing_MainInfo[phantomIdx][WearableIdx][layerIdx][0]));
-			theApp.SetMessageBox("Separation distance: " + QString::number(theApp.pRt->m_Clothing_MainInfo[phantomIdx][1000][dosimeterIdx][2]));
-			if (thickness > theApp.pRt->m_Clothing_MainInfo[phantomIdx][1000][dosimeterIdx][2])
+			theApp.SetMessageBox("Layer Thickness: " + QString::number(theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[phantomIdx][WearableIdx][layerIdx][0]));
+			theApp.SetMessageBox("Separation distance: " + QString::number(theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[phantomIdx][1000][dosimeterIdx][2]));
+			if (thickness > theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[phantomIdx][1000][dosimeterIdx][2])
 			{
 				// 선량계가 처음으로 겹치는 깊이
-				sorted_overlapped_dosimeter_info[phantomIdx][WearableIdx].push_back(std::make_tuple(dosimeterIdx, layerIdx, thickness - theApp.pRt->m_Clothing_MainInfo[phantomIdx][WearableIdx][layerIdx][0]));  // 피부로부터 가까운 순서대로 겹치는 선량계 인덱스 저장
+				sorted_overlapped_dosimeter_info[phantomIdx][WearableIdx].push_back(std::make_tuple(dosimeterIdx, layerIdx, thickness - theApp.theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[phantomIdx][WearableIdx][layerIdx][0]));  // 피부로부터 가까운 순서대로 겹치는 선량계 인덱스 저장
 				IsOverlapped = true;
 				theApp.SetMessageBox(QString::number(WearableIdx) + "_clothing is overlapped with " + QString::number(dosimeterIdx) + "_dosimeter");
 				break;
@@ -3253,12 +3259,12 @@ void ETHuman3DApp::TranslateGlassesTetFile(int phantomIdx)
 	double pCenterX = PhantomOrigianlPolyDataCenter[phantomIdx][0];
 	double pCenterY = PhantomOrigianlPolyDataCenter[phantomIdx][1];
 	double pCenterZ = PhantomOrigianlPolyDataCenter[phantomIdx][2];
-	double PosX = pRt->m_Phantom_MainInfo[phantomIdx][6];
-	double PosY = pRt->m_Phantom_MainInfo[phantomIdx][7];
-	double PosZ = pRt->m_Phantom_MainInfo[phantomIdx][8];
-	double RotX = pRt->m_Phantom_MainInfo[phantomIdx][9];
-	double RotY = pRt->m_Phantom_MainInfo[phantomIdx][10];
-	double RotZ = pRt->m_Phantom_MainInfo[phantomIdx][11];
+	double PosX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomIdx][6];
+	double PosY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomIdx][7];
+	double PosZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomIdx][8];
+	double RotX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomIdx][9];
+	double RotY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomIdx][10];
+	double RotZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomIdx][11];
 	const double PI = 3.141592 / 180; // 라디안 변환 
 	double RadianX = RotX * PI;
 	double RadianY = RotY * PI;
@@ -3417,10 +3423,10 @@ void ETHuman3DApp::ReadSkinDoseData_1_10cm2(const std::vector<SkinDoseData>& tot
 	std::map<int, std::array<double, 3>> seedCenter;
 	std::map<int, vtkDataArray*> cellNormalsFull;
 
-	for (auto phantomID : pRt->m_Phantom_SequenceVector)
+	for (auto phantomID : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
-		if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_DUMMY] == pRt->E_PHANTOMDUMMY_YES ||
-			pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_CATEGORY] == pRt->E_PHANTOMCATEGORY_AIR) continue;
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][E_PHANTOMMAININFO_DUMMY] == E_PHANTOMDUMMY_YES ||
+			theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][E_PHANTOMMAININFO_CATEGORY] == E_PHANTOMCATEGORY_AIR) continue;
 
 		vtkIdType seedRaw = MaximumFacetDoseID[phantomID]; // 최대 선량 지점의 facetID
 		vtkPolyData* skinRaw = SkinLayer_PolyData[phantomID];
@@ -3509,7 +3515,7 @@ void ETHuman3DApp::ReadSkinDoseData_1_10cm2(const std::vector<SkinDoseData>& tot
 		else // Sentinel (이벤트 경계) 처리
 		{			
 			// "Find closet point w.r.t DEpoint"
-			for (auto phantomID : pRt->m_Phantom_SequenceVector)
+			for (auto phantomID : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 			{
 				for (int DEpointID = 0; DEpointID < SkinDEpoint[phantomID].size(); DEpointID++)
 				{
@@ -3550,7 +3556,7 @@ void ETHuman3DApp::ReadSkinDoseData_1_10cm2(const std::vector<SkinDoseData>& tot
 		}		
 	}
 
-	for (auto phantomID : pRt->m_Phantom_SequenceVector)
+	for (auto phantomID : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
 		// === 1cm2 계산 ===
 		{
@@ -3632,10 +3638,10 @@ void ETHuman3DApp::ReadSkinDoseData_HP(std::stringstream &ss)
 	const double targetAreaCm2 = 30.0; // 30 cm2이 ROI임(1, 10cm2 구하기 위한 여유 있는 ROI)
 	const double refineFactor = 50.0; // 하나의 삼각형을 50개의 삼각형으로 subdivide -> 필요시 조정/입력화
 
-	for (auto phantomID : pRt->m_Phantom_SequenceVector)
+	for (auto phantomID : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
-		if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_DUMMY] == pRt->E_PHANTOMDUMMY_YES ||
-			pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_CATEGORY] == pRt->E_PHANTOMCATEGORY_AIR) continue;
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][E_PHANTOMMAININFO_DUMMY] == E_PHANTOMDUMMY_YES ||
+			theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][E_PHANTOMMAININFO_CATEGORY] == E_PHANTOMCATEGORY_AIR) continue;
 
 		vtkIdType seedRaw = MaximumFacetDoseID[phantomID]; // 최대 선량 지점의 facetID
 		vtkPolyData* skinRaw = SkinLayer_PolyData[phantomID];
@@ -3883,10 +3889,10 @@ void ETHuman3DApp::ReadSkinDoseData(std::stringstream &ss)
 		}
 		else // Sentinel (-1): 하나의 이벤트(History) 종료
 		{
-			for (auto phantomID : pRt->m_Phantom_SequenceVector)
+			for (auto phantomID : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 			{
-				if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_DUMMY] == pRt->E_PHANTOMDUMMY_YES) continue;
-				if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_CATEGORY] == pRt->E_PHANTOMCATEGORY_AIR) continue;
+				if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][E_PHANTOMMAININFO_DUMMY] == E_PHANTOMDUMMY_YES) continue;
+				if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][E_PHANTOMMAININFO_CATEGORY] == E_PHANTOMCATEGORY_AIR) continue;
 
 				for (int DEpointID = 0; DEpointID < SkinDEpoint[phantomID].size(); DEpointID++)
 				{
@@ -3949,7 +3955,7 @@ void ETHuman3DApp::ReadSkinDoseData(std::stringstream &ss)
 	// ------------------------------------------------------------
 	// 최종 선량(Dose) 계산 및 통계 처리
 	// ------------------------------------------------------------
-	for (auto phantomID : pRt->m_Phantom_SequenceVector)
+	for (auto phantomID : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
 		double density_skin = SkinDenstiy[phantomID]; 
 
@@ -4208,9 +4214,9 @@ void ETHuman3DApp::ReadSkinDoseData(std::stringstream &ss)
 	// Visualization Toggle Check
 	if (pRt->m_skinDoseVisualizationButton->isChecked()) 
 	{
-		for (auto phantomID : pRt->m_Phantom_SequenceVector)
+		for (auto phantomID : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 		{
-			if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_DUMMY] == pRt->E_PHANTOMDUMMY_YES) continue;
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][E_PHANTOMMAININFO_DUMMY] == E_PHANTOMDUMMY_YES) continue;
 
 			PhantomPanelActor[phantomID]->VisibilityOff();
 			SkinPhantomActor[phantomID]->VisibilityOn();
@@ -4243,10 +4249,10 @@ void ETHuman3DApp::ResultLoad_OrganDose_OutputPanel(std::stringstream &ss)
 {
 	std::string dump, organ, dose, err;
 	int cnt(0);
-		for (auto phantomID : pRt->m_Phantom_SequenceVector)
+		for (auto phantomID : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 		{
-			if (pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_DUMMY] == pRt->E_PHANTOMDUMMY_YES ||
-				pRt->m_Phantom_MainInfo[phantomID][pRt->E_PHANTOMMAININFO_CATEGORY] == pRt->E_PHANTOMCATEGORY_AIR) continue;
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][E_PHANTOMMAININFO_DUMMY] == E_PHANTOMDUMMY_YES ||
+				theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomID][E_PHANTOMMAININFO_CATEGORY] == E_PHANTOMCATEGORY_AIR) continue;
 			while (ss >> dump)
 			{
 				if (dump == "Relative_error") 

@@ -6,6 +6,11 @@
 #include "Util.h"
 #include <QRandomGenerator>
 
+#include "PhantomObjects.h"
+#include "PhantomWidget.h"
+#include "SourceGeometryWidget.h"
+#include "SourceObjects.h"
+
 #ifndef getmax
 #define getmax(a,b)            (((a) > (b)) ? (a) : (b))
 #endif
@@ -371,8 +376,8 @@ void RealTimeResultPanel::ForcedGraphUpdate_H_AK_Dose() // 임시 함수임
 	}
 
 	QVector<double> doses;
-	doses.reserve(theApp.pRt->m_Phantom_SequenceVector.size() * 2); // 팬텀의 개수가 air sphere (전산팬텀 + airsphere) 개수임 -> 각각 AK, H
-	for (int i = 0; i < theApp.pRt->m_Phantom_SequenceVector.size(); i++)
+	doses.reserve(theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector.size() * 2); // 팬텀의 개수가 air sphere (전산팬텀 + airsphere) 개수임 -> 각각 AK, H
+	for (int i = 0; i < theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector.size(); i++)
 	{
 		// 랜덤하게 0.5-1 생성 중...
 		//int randInt = qrand(); // qrand()는 Qt6에서 사라졌다. 표준 C 라이블러리의 rand()함수를 단순 wrap한 구식이기 때문이다.

@@ -10,6 +10,96 @@ struct SkinDoseData {
 	double dE;
 };
 
+struct PhantomConstants {
+    static const int const_Phantom_MaximumCount = 5;
+    static const int const_Clothing_MaximumCount = 10;
+    static const int const_ClothingLayer_MaximumCount = 5;
+    static const int m_Dosimeter_Maximum_Count = 20; 
+};
+enum PhantomMainInfo {
+    E_PHANTOMMAININFO_CATEGORY = 0, // Human phantom: 0, Air phantom: 1
+    E_PHANTOMMAININFO_GENDER = 1, // Male: 1 , Female: 2
+    E_PHANTOMMAININFO_TYPE = 2, // MRCP: 0, Deformable: 1, Imported: 2
+    E_PHANTOMMAININFO_POSTURE = 3, // Default: 0, Bending: 1, Kneeling: 2, Sitting: 3, Squatting: 4, Walking: 5
+    E_PHANTOMMAININFO_HEIGHT = 4,
+    E_PHANTOMMAININFO_WEIGHT = 5,
+    E_PHANTOMMAININFO_POS_X = 6,
+    E_PHANTOMMAININFO_POS_Y = 7,
+    E_PHANTOMMAININFO_POS_Z = 8,
+    E_PHANTOMMAININFO_ROT_X = 9,
+    E_PHANTOMMAININFO_ROT_Y = 10,
+    E_PHANTOMMAININFO_ROT_Z = 11,
+    E_PHANTOMMAININFO_AGE = 12, // Adult(35y): 0, 15y: 1, 10y: 2, 5y: 3, 1y: 4, 0y: 5
+    E_PHANTOMMAININFO_DUMMY = 13,
+    E_PHANTOMMAININFO_FETALAGE = 14 // for PFMRCP phantom only: 0: 8w, 1: 10w, 2:15w, 3:20w, 4:25w, 5:30w, 6:35w, 7:38w  
+};
+
+enum PhantomCategory {
+    E_PHANTOMCATEGORY_HUMAN = 0,
+    E_PHANTOMCATEGORY_AIR = 1
+};
+
+enum PhantomGender {
+    E_PHANTOMGENDER_MALE = 0,
+    E_PHANTOMGENDER_FEMALE = 1
+};
+
+enum PhantomType {
+    E_PHANTOMTYPE_ADULTMRCP = 0,
+    E_PHANTOMTYPE_PEDIATRICMRCP = 1,
+    E_PHANTOMTYPE_PFMRCP = 2,
+    E_PHANTOMTYPE_TRANSFORMED = 3,
+    E_PHANTOMTYPE_IMPORTED = 4
+};
+
+enum PhantomPosture {
+    E_PHANTOMPOSTURE_STANDING = 0,
+    E_PHANTOMPOSTURE_BENDING = 1,
+    E_PHANTOMPOSTURE_KNEELING = 2,
+    E_PHANTOMPOSTURE_SITTING = 3,
+    E_PHANTOMPOSTURE_SQUATTING = 4,
+    E_PHANTOMPOSTURE_WALKING = 5,
+};
+
+enum PhantomAge {
+    E_PHANTOMAGE_ADULT = 0,
+    E_PHANTOMAGE_15y = 1,
+    E_PHANTOMAGE_10y = 2,
+    E_PHANTOMAGE_5y = 3,
+    E_PHANTOMAGE_1y = 4,
+    E_PHANTOMAGE_0y = 5,
+};
+
+enum PhantomFetalAge {
+    E_PHANTOMFETALAGE_8w = 0,
+    E_PHANTOMFETALAGE_10w = 1,
+    E_PHANTOMFETALAGE_15w = 2,
+    E_PHANTOMFETALAGE_20w = 3,
+    E_PHANTOMFETALAGE_25w = 4,
+    E_PHANTOMFETALAGE_30w = 5,
+    E_PHANTOMFETALAGE_35w = 6,
+    E_PHANTOMFETALAGE_38w = 7
+};
+
+enum PhantomDummy {
+    E_PHANTOMDUMMY_NO = 0,
+    E_PHANTOMDUMMY_YES = 1
+};
+
+enum ClothingMainInfo {
+    E_CLOTHINGMAININFO_THICKNESS = 0,
+    E_CLOTHINGMAININFO_DENSITY = 1,
+    E_CLOTHINGMAININFO_COMPOSITION = 2
+};
+
+enum ClothingMainInfo_Composition {
+    E_CLOTHINGMAININFO_COMPOSITION_CLOTH = 0,
+    E_CLOTHINGMAININFO_COMPOSITION_LEAD = 1,
+    E_CLOTHINGMAININFO_COMPOSITION_AIR = 2
+};
+
+
+
 
 struct BodySizeInfo {
 	QString HtWtName;

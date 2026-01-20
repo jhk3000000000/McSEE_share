@@ -433,7 +433,7 @@ public:
 
 	void UpdatePhantom_ActorHighlighted(int phantomIndex);
 
-	void    MultipleUICloseTrigger();
+	// void    MultipleUICloseTrigger();
 	std::string		ExtractInnerString(std::string& input);
 	void	TranslatePhantomTetFile(int reset_phantomID); // resetID-> makingindex와 잔트상의 팬텀ID정렬 필요...
 	void	TranslateClothingTetFile(int reset_phantomID); // resetID-> makingindex와 잔트상의 팬텀ID정렬 필요...

@@ -7,6 +7,8 @@
 #include "vtkKdTree.h"
 
 #include "PhantomObjects.h"
+#include "PhantomWidget.h"
+#include "SourceGeometryWidget.h"
 #include "SourceObjects.h"
 #include "Manager_Calculation.h"
 
@@ -147,13 +149,13 @@ void ETInteractorStyle::OnLeftButtonDown()
 		m_pCellPicker->GetPickPosition(pickedpos); // 이 pickedpos는 실제 actor 상의 점, pos/rot 이동 후의 점의 좌표
 		// 여기서 얻는 아이디는 누적 polydata의 ID임 -> 즉 안경이나 선량계가 있으면 문제가 생김
 
-		int PhantomIdx = theApp.pRt->m_Phantom_SelectedIndex;
-		double PosX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][5];
-		double PosY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][6];
-		double PosZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][7];
-		double RotX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][8];
-		double RotY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][9];
-		double RotZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][10];
+		int PhantomIdx = theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex;
+		double PosX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][5];
+		double PosY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][6];
+		double PosZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][7];
+		double RotX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][8];
+		double RotY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][9];
+		double RotZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][10];
 		const double PI = 3.141592 / 180; // 라디안 변환 
 		double RadianX = RotX * PI;
 		double RadianY = RotY * PI;
@@ -190,7 +192,7 @@ void ETInteractorStyle::OnLeftButtonDown()
 		vtkSmartPointer<vtkActor> spPickedActor = m_pCellPicker->GetActor();
 		if (spPickedActor)
 		{
-			int SelectedDosimeterIdx = theApp.pRt->m_Dosimeter_Selected_Index;
+			int SelectedDosimeterIdx = theApp.pRt->m_phantoms->getModel().m_Dosimeter_Selected_Index;
 			theApp.phantomObjects->RefreshDosimeter3DShpere(pickedpos, SelectedDosimeterIdx);			
 			theApp.m_DosimeterInfo.Dosimeter_PointID = pickedID;
 			double PickedPoint[3];
@@ -202,9 +204,12 @@ void ETInteractorStyle::OnLeftButtonDown()
 			TransforemdPickedPos[0] = point[0];
 			TransforemdPickedPos[1] = point[1];
 			TransforemdPickedPos[2] = point[2];
-			theApp.pRt->DosimeterPosX_QLineEdit->setText(QString::number(TransforemdPickedPos[0]));
-			theApp.pRt->DosimeterPosY_QLineEdit->setText(QString::number(TransforemdPickedPos[1]));
-			theApp.pRt->DosimeterPosZ_QLineEdit->setText(QString::number(TransforemdPickedPos[2]));
+			// theApp.pRt->DosimeterPosX_QLineEdit->setText(QString::number(TransforemdPickedPos[0]));
+			// theApp.pRt->DosimeterPosY_QLineEdit->setText(QString::number(TransforemdPickedPos[1]));
+			// theApp.pRt->DosimeterPosZ_QLineEdit->setText(QString::number(TransforemdPickedPos[2]));
+			theApp.pRt->m_phantoms->temporal_Dosimeter_SetText(TransforemdPickedPos[0],
+															   TransforemdPickedPos[1],
+															   TransforemdPickedPos[2]);
 		}
 	} 
 
@@ -226,15 +231,15 @@ void ETInteractorStyle::OnLeftButtonDown()
 		m_pCellPicker->GetPickNormal(pickedpos_normal);
 
 		// 안경/선량계 누적 폴리데이터에서 선택한 좌표(pickedpos)로부터 polydata_base의 좌표로의 변환과정
-		int PhantomIdx = theApp.pRt->m_Phantom_SelectedIndex;
+		int PhantomIdx = theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex;
 
-		double PosX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][5];
-		double PosY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][6];
-		double PosZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][7];
+		double PosX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][5];
+		double PosY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][6];
+		double PosZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][7];
 
-		double RotX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][8];
-		double RotY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][9];
-		double RotZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][10];
+		double RotX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][8];
+		double RotY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][9];
+		double RotZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][10];
 		const double PI = 3.141592 / 180; // 라디안 변환 
 		double RadianX = RotX * PI;
 		double RadianY = RotY * PI;

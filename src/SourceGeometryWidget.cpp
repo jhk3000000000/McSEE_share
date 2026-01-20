@@ -7,13 +7,17 @@
 #include <QComboBox>
 
 
-#include "SourceGeometryWidget.h"
 #include "ETHuman3DApp.h" // theApp 접근용도
 #include "ETQVTKWidget.h" // render 함수 접근 용도
 #include "StyleSheet.h"
 #include "pch.h"
 
 #include "FunctionPanelRight.h" // *** 부모 패널 ***
+
+#include "PhantomObjects.h"
+#include "PhantomWidget.h"
+#include "SourceGeometryWidget.h"
+#include "SourceObjects.h"
 
 using namespace utils::ui;
 
@@ -2802,7 +2806,7 @@ void FloorDiskWidget::slot_FloorSourceVisualization_ButtonClicked()
 }
 void FloorDiskWidget::slot_FloorSetDefaultGeom_ButtonClicked()
 {
-	if (panel->m_Phantom_SequenceVector.size() == 0)
+	if (panel->m_phantoms->getModel().m_Phantom_SequenceVector.size() == 0)
 	{
 		theApp.SetMessageBox("At least one phantom is required!");
 		return;
@@ -2810,7 +2814,7 @@ void FloorDiskWidget::slot_FloorSetDefaultGeom_ButtonClicked()
 	// 현재까지 설치된 팬텀의 bound box 계산
 	int phantomID_zpos_min = 0;
 	std::vector<double> phantombox_bounds = { DBL_MAX, -DBL_MAX, DBL_MAX, -DBL_MAX, DBL_MAX, -DBL_MAX };
-	for (auto itr_phantomID : panel->m_Phantom_SequenceVector)
+	for (auto itr_phantomID : panel->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
 		double* bounds = theApp.PhantomPanelActor[itr_phantomID]->GetBounds();
 		if (bounds[0] < phantombox_bounds[0]) phantombox_bounds[0] = bounds[0];

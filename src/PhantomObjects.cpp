@@ -1,11 +1,15 @@
 //PhantomObjects.cpp
 #include "pch.h"
-#include "PhantomObjects.h"
 #include "ETHuman3DApp.h"       // theApp 변수 접근용
 #include "FunctionPanelRight.h" // UI 접근용
 #include "ETQVTKWidget.h"       // 3D 뷰어 접근용
-#include "Util.h"               // Util 기능 사용
 #include "ETInteractorStyleRubberBand.h"
+
+
+#include "Util.h"               // Util 기능 사용
+#include "SourceGeometryWidget.h"
+#include "PhantomWidget.h"
+#include "PhantomObjects.h"
 
 // [C++ 표준 라이브러리] (ExtractPhantomOBJ 등 파싱 로직용)
 #include <iostream>
@@ -74,14 +78,14 @@ void PhantomObjects::PhantomPolydataActor_Generate(QString strFileName, int Sele
 	theApp.PhantomPolyDataScaleFactor[SelectedIndex][1] = BodySizeInfo_for_ThisPhantom.zScale;
 	// Generate phantom polydata
 	vtkSmartPointer<vtkPolyData> polydata_phantom;
-	if (theApp.pRt->m_Phantom_MainInfo[SelectedIndex][theApp.pRt->E_PHANTOMMAININFO_TYPE] != theApp.pRt->E_PHANTOMTYPE_IMPORTED) // Imported가 아닐 때
+	if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[SelectedIndex][E_PHANTOMMAININFO_TYPE] != E_PHANTOMTYPE_IMPORTED) // Imported가 아닐 때
 	{
 		vtkSmartPointer<vtkOBJReader> reader = vtkSmartPointer<vtkOBJReader>::New();
 		reader->SetFileName(Util::Wcs_to_mbs(strFileName.toStdWString()).c_str());
 		reader->Update();
 		polydata_phantom = Util::CreatePolyData(reader);
 	}
-	if (theApp.pRt->m_Phantom_MainInfo[SelectedIndex][theApp.pRt->E_PHANTOMMAININFO_TYPE] == theApp.pRt->E_PHANTOMTYPE_IMPORTED) // Imported 일때
+	if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[SelectedIndex][E_PHANTOMMAININFO_TYPE] == E_PHANTOMTYPE_IMPORTED) // Imported 일때
 	{
 		std::vector<std::string> extract_organlist;
 		extract_organlist.push_back("12200_Skin_surface");
@@ -113,7 +117,7 @@ void PhantomObjects::PhantomPolydataActor_Generate(QString strFileName, int Sele
 		PhantomColors->SetTuple(i, SkinColor);
 	}
 	polydata_phantom->GetPointData()->SetScalars(PhantomColors);
-	// Generate polydata_original, polydata_base (which is set to 0,0,0 center and scaled (for body-size-dependent phantom)
+	// Generate polydata_original, polydata_base (which is set to 0,0,0 center and scaled (fro body-size-dependent phantom)
 	theApp.PhantomPolyData_original[SelectedIndex] = polydata_phantom; // Set polydata_original (.obj 불러온 그대로의 팬텀파일)
 	double *pCenter = polydata_phantom->GetCenter();
 	theApp.PhantomOrigianlPolyDataCenter[SelectedIndex][0] = pCenter[0]; 
@@ -137,9 +141,9 @@ void PhantomObjects::PhantomPolydataActor_Generate(QString strFileName, int Sele
 	actor_phantom->SetProperty(property);	
 	// Full/Dummy phantom Actor save
 	theApp.FullPhantomActor[SelectedIndex] = actor_phantom; //Full phantom
-	if(theApp.pRt->m_Phantom_MainInfo[SelectedIndex][theApp.pRt->E_PHANTOMMAININFO_TYPE] == theApp.pRt->E_PHANTOMTYPE_ADULTMRCP
-	|| theApp.pRt->m_Phantom_MainInfo[SelectedIndex][theApp.pRt->E_PHANTOMMAININFO_TYPE] == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP
-	|| theApp.pRt->m_Phantom_MainInfo[SelectedIndex][theApp.pRt->E_PHANTOMMAININFO_TYPE] == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED) 
+	if(theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[SelectedIndex][E_PHANTOMMAININFO_TYPE] == E_PHANTOMTYPE_ADULTMRCP
+	|| theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[SelectedIndex][E_PHANTOMMAININFO_TYPE] == E_PHANTOMTYPE_PEDIATRICMRCP
+	|| theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[SelectedIndex][E_PHANTOMMAININFO_TYPE] == E_PHANTOMTYPE_TRANSFORMED) 
 	{
 		//Dummy phantom
 		vtkSmartPointer<vtkOBJReader> reader_dummy = vtkSmartPointer<vtkOBJReader>::New();
@@ -241,14 +245,14 @@ void PhantomObjects::AppendPhantomPolyData_GeneratePhantomActor(int PhantomIdx)
 	theApp.PhantomPanelActor[PhantomIdx]->SetProperty(property);
 
 	// Translate actor
-	double height = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][4]; // Set phantomInfo
-	double weight = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][5];
-	double CenterX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][6];
-	double CenterY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][7];
-	double CenterZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][8];
-	double VectorX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][9];
-	double VectorY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][10];
-	double VectorZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][11];
+	// double height = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][4]; // Set phantomInfo
+	// double weight = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][5];
+	double CenterX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][6];
+	double CenterY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][7];
+	double CenterZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][8];
+	double VectorX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][9];
+	double VectorY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][10];
+	double VectorZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][11];
 	theApp.PhantomPanelActor[PhantomIdx]->SetPosition(CenterX, CenterY, CenterZ);
 	theApp.PhantomPanelActor[PhantomIdx]->SetOrientation(VectorX, VectorY, VectorZ);
 
@@ -313,7 +317,7 @@ BodySizeInfo PhantomObjects::CalcBoydSizeScaleFactor(int phantomType, int phanto
 	double reference_height;
 	double reference_weight;
 
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_ADULTMRCP || phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP) // MRCP
+	if (phantomType == E_PHANTOMTYPE_ADULTMRCP || phantomType == E_PHANTOMTYPE_PEDIATRICMRCP) // MRCP
 	{
 		BodySizeInfo_for_ThisPhantom.zScale = 1;
 		BodySizeInfo_for_ThisPhantom.xyScale = 1;
@@ -338,7 +342,7 @@ BodySizeInfo PhantomObjects::CalcBoydSizeScaleFactor(int phantomType, int phanto
 
 		return BodySizeInfo_for_ThisPhantom; //MRCP 종료
 	}
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_IMPORTED || phantomType == theApp.pRt->E_PHANTOMTYPE_PFMRCP) //Imported and pfMRCP -> no dummy phantom
+	if (phantomType == E_PHANTOMTYPE_IMPORTED || phantomType == E_PHANTOMTYPE_PFMRCP) //Imported and pfMRCP -> no dummy phantom
 	{
 		BodySizeInfo_for_ThisPhantom.zScale = 1;
 		BodySizeInfo_for_ThisPhantom.xyScale = 1;
@@ -557,7 +561,7 @@ QString PhantomObjects::GetPhantomFile_AbsolutePath(int phantomType, int phantom
 {
 	QString phantomPath;
 	
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_IMPORTED) 
+	if (phantomType == E_PHANTOMTYPE_IMPORTED) 
 	{
 		phantomPath = theApp.m_ImportedPhantomFilePath_NoExtention[phantomIndex];
 
@@ -580,55 +584,55 @@ QString PhantomObjects::GetPhantomFile_AbsolutePath(int phantomType, int phantom
 	}
 	
 	// male_MRCP
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_ADULTMRCP && phantomGender == 0 && phantomAge == 0) phantomPath = "./data/phantom/MRCP/MRCP_AM.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 0 && phantomAge == 1) phantomPath = "./data/phantom/MRCP/MRCP_15M.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 0 && phantomAge == 2) phantomPath = "./data/phantom/MRCP/MRCP_10M.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 0 && phantomAge == 3) phantomPath = "./data/phantom/MRCP/MRCP_05M.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 0 && phantomAge == 4) phantomPath = "./data/phantom/MRCP/MRCP_01M.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 0 && phantomAge == 5) phantomPath = "./data/phantom/MRCP/MRCP_00M.obj";
+	if (phantomType == E_PHANTOMTYPE_ADULTMRCP && phantomGender == 0 && phantomAge == 0) phantomPath = "./data/phantom/MRCP/MRCP_AM.obj";
+	if (phantomType == E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 0 && phantomAge == 1) phantomPath = "./data/phantom/MRCP/MRCP_15M.obj";
+	if (phantomType == E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 0 && phantomAge == 2) phantomPath = "./data/phantom/MRCP/MRCP_10M.obj";
+	if (phantomType == E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 0 && phantomAge == 3) phantomPath = "./data/phantom/MRCP/MRCP_05M.obj";
+	if (phantomType == E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 0 && phantomAge == 4) phantomPath = "./data/phantom/MRCP/MRCP_01M.obj";
+	if (phantomType == E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 0 && phantomAge == 5) phantomPath = "./data/phantom/MRCP/MRCP_00M.obj";
 	// female_MRCP
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_ADULTMRCP && phantomGender == 1 && phantomAge == 0) phantomPath = "./data/phantom/MRCP/MRCP_AF.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 1 && phantomAge == 1) phantomPath = "./data/phantom/MRCP/MRCP_15F.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 1 && phantomAge == 2) phantomPath = "./data/phantom/MRCP/MRCP_10F.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 1 && phantomAge == 3) phantomPath = "./data/phantom/MRCP/MRCP_05F.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 1 && phantomAge == 4) phantomPath = "./data/phantom/MRCP/MRCP_01F.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 1 && phantomAge == 5) phantomPath = "./data/phantom/MRCP/MRCP_00F.obj";
+	if (phantomType == E_PHANTOMTYPE_ADULTMRCP && phantomGender == 1 && phantomAge == 0) phantomPath = "./data/phantom/MRCP/MRCP_AF.obj";
+	if (phantomType == E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 1 && phantomAge == 1) phantomPath = "./data/phantom/MRCP/MRCP_15F.obj";
+	if (phantomType == E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 1 && phantomAge == 2) phantomPath = "./data/phantom/MRCP/MRCP_10F.obj";
+	if (phantomType == E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 1 && phantomAge == 3) phantomPath = "./data/phantom/MRCP/MRCP_05F.obj";
+	if (phantomType == E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 1 && phantomAge == 4) phantomPath = "./data/phantom/MRCP/MRCP_01F.obj";
+	if (phantomType == E_PHANTOMTYPE_PEDIATRICMRCP && phantomGender == 1 && phantomAge == 5) phantomPath = "./data/phantom/MRCP/MRCP_00F.obj";
 	// pf_MRCP
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PFMRCP && phantomFetalAge == theApp.pRt->E_PHANTOMFETALAGE_8w) phantomPath = "./data/phantom/MRCP/08wM.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PFMRCP && phantomFetalAge == theApp.pRt->E_PHANTOMFETALAGE_10w) phantomPath = "./data/phantom/MRCP/10wM.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PFMRCP && phantomFetalAge == theApp.pRt->E_PHANTOMFETALAGE_15w) phantomPath = "./data/phantom/MRCP/15wM.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PFMRCP && phantomFetalAge == theApp.pRt->E_PHANTOMFETALAGE_20w) phantomPath = "./data/phantom/MRCP/20wM.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PFMRCP && phantomFetalAge == theApp.pRt->E_PHANTOMFETALAGE_25w) phantomPath = "./data/phantom/MRCP/25wM.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PFMRCP && phantomFetalAge == theApp.pRt->E_PHANTOMFETALAGE_30w) phantomPath = "./data/phantom/MRCP/30wM.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PFMRCP && phantomFetalAge == theApp.pRt->E_PHANTOMFETALAGE_35w) phantomPath = "./data/phantom/MRCP/35wM.obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_PFMRCP && phantomFetalAge == theApp.pRt->E_PHANTOMFETALAGE_38w) phantomPath = "./data/phantom/MRCP/38wM.obj";	
+	if (phantomType == E_PHANTOMTYPE_PFMRCP && phantomFetalAge == E_PHANTOMFETALAGE_8w) phantomPath = "./data/phantom/MRCP/08wM.obj";
+	if (phantomType == E_PHANTOMTYPE_PFMRCP && phantomFetalAge == E_PHANTOMFETALAGE_10w) phantomPath = "./data/phantom/MRCP/10wM.obj";
+	if (phantomType == E_PHANTOMTYPE_PFMRCP && phantomFetalAge == E_PHANTOMFETALAGE_15w) phantomPath = "./data/phantom/MRCP/15wM.obj";
+	if (phantomType == E_PHANTOMTYPE_PFMRCP && phantomFetalAge == E_PHANTOMFETALAGE_20w) phantomPath = "./data/phantom/MRCP/20wM.obj";
+	if (phantomType == E_PHANTOMTYPE_PFMRCP && phantomFetalAge == E_PHANTOMFETALAGE_25w) phantomPath = "./data/phantom/MRCP/25wM.obj";
+	if (phantomType == E_PHANTOMTYPE_PFMRCP && phantomFetalAge == E_PHANTOMFETALAGE_30w) phantomPath = "./data/phantom/MRCP/30wM.obj";
+	if (phantomType == E_PHANTOMTYPE_PFMRCP && phantomFetalAge == E_PHANTOMFETALAGE_35w) phantomPath = "./data/phantom/MRCP/35wM.obj";
+	if (phantomType == E_PHANTOMTYPE_PFMRCP && phantomFetalAge == E_PHANTOMFETALAGE_38w) phantomPath = "./data/phantom/MRCP/38wM.obj";	
 	// male_deformed - standing (body-size only)
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 0) phantomPath = "./data/phantom/bodysize/AM_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 1) phantomPath = "./data/phantom/bodysize/15M_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 2) phantomPath = "./data/phantom/bodysize/10M_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 3) phantomPath = "./data/phantom/bodysize/05M_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 4) phantomPath = "./data/phantom/bodysize/01M_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 5) phantomPath = "./data/phantom/bodysize/00M_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 0) phantomPath = "./data/phantom/bodysize/AM_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 1) phantomPath = "./data/phantom/bodysize/15M_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 2) phantomPath = "./data/phantom/bodysize/10M_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 3) phantomPath = "./data/phantom/bodysize/05M_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 4) phantomPath = "./data/phantom/bodysize/01M_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 0 && phantomAge == 5) phantomPath = "./data/phantom/bodysize/00M_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
 	// female_deformed - standing (body-size only)
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 0) phantomPath = "./data/phantom/bodysize/AF_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 1) phantomPath = "./data/phantom/bodysize/15F_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 2) phantomPath = "./data/phantom/bodysize/10F_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 3) phantomPath = "./data/phantom/bodysize/05F_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 4) phantomPath = "./data/phantom/bodysize/01F_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 5) phantomPath = "./data/phantom/bodysize/00F_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 0) phantomPath = "./data/phantom/bodysize/AF_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 1) phantomPath = "./data/phantom/bodysize/15F_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 2) phantomPath = "./data/phantom/bodysize/10F_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 3) phantomPath = "./data/phantom/bodysize/05F_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 4) phantomPath = "./data/phantom/bodysize/01F_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomPosture == 0 && phantomGender == 1 && phantomAge == 5) phantomPath = "./data/phantom/bodysize/00F_" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
 		
 	// male_deformed - other posture (posture/body-size) - 지금은 body-size X
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomGender == 0 && phantomPosture == 1) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomGender == 0 && phantomPosture == 2) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomGender == 0 && phantomPosture == 3) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomGender == 0 && phantomPosture == 4) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomGender == 0 && phantomPosture == 5) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomGender == 0 && phantomPosture == 1) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomGender == 0 && phantomPosture == 2) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomGender == 0 && phantomPosture == 3) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomGender == 0 && phantomPosture == 4) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomGender == 0 && phantomPosture == 5) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
 	// female_deformed - other posture (posture/body-size) - 지금은 body-size X
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomGender == 1 && phantomPosture == 1) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomGender == 1 && phantomPosture == 2) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomGender == 1 && phantomPosture == 3) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomGender == 1 && phantomPosture == 4) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
-	if (phantomType == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED && phantomGender == 1 && phantomPosture == 5) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomGender == 1 && phantomPosture == 1) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomGender == 1 && phantomPosture == 2) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomGender == 1 && phantomPosture == 3) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomGender == 1 && phantomPosture == 4) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
+	if (phantomType == E_PHANTOMTYPE_TRANSFORMED && phantomGender == 1 && phantomPosture == 5) phantomPath = "./data/phantom/posture/" + BodySizeInfo_for_ThisPhantom.HtWtName + ".obj";
 
 	return phantomPath;
 }
@@ -823,40 +827,40 @@ std::string PhantomObjects::ExtractPhantomOBJ(std::string PATH, std::string Name
 	return output;
 }
 
-void PhantomObjects::UpdatePhantom_InfoStatus_InActorMouseControl(int phantomIndex) // 마우스로 움직인 팬텀 현재 위치 및 회전으로 패널값(line) 업데이트
-{		
-	double* pCenter = theApp.PhantomPanelActor[phantomIndex]->GetPosition();
-	double TransformPos[3];
-	TransformPos[0] = pCenter[0];
-	TransformPos[1] = pCenter[1];
-	TransformPos[2] = pCenter[2];
-	QString StringTranslatedPosX = theApp.getQStringNumberInSpecificDigit(TransformPos[0], 6);
-	QString StringTranslatedPosY = theApp.getQStringNumberInSpecificDigit(TransformPos[1], 6);
-	QString StringTranslatedPosZ = theApp.getQStringNumberInSpecificDigit(TransformPos[2], 6);
+// void PhantomObjects::UpdatePhantom_InfoStatus_InActorMouseControl(int phantomIndex) // 마우스로 움직인 팬텀 현재 위치 및 회전으로 패널값(line) 업데이트 // 
+// {		
+// 	double* pCenter = theApp.PhantomPanelActor[phantomIndex]->GetPosition();
+// 	double TransformPos[3];
+// 	TransformPos[0] = pCenter[0];
+// 	TransformPos[1] = pCenter[1];
+// 	TransformPos[2] = pCenter[2];
+// 	QString StringTranslatedPosX = theApp.getQStringNumberInSpecificDigit(TransformPos[0], 6);
+// 	QString StringTranslatedPosY = theApp.getQStringNumberInSpecificDigit(TransformPos[1], 6);
+// 	QString StringTranslatedPosZ = theApp.getQStringNumberInSpecificDigit(TransformPos[2], 6);
 
-	double* pRotation = theApp.PhantomPanelActor[phantomIndex]->GetOrientation();
-	double TransformRot[3];
-	TransformRot[0] = pRotation[0];
-	TransformRot[1] = pRotation[1];
-	TransformRot[2] = pRotation[2];
-	QString StringRotX = theApp.getQStringNumberInSpecificDigit(TransformRot[0], 6);
-	QString StringRotY = theApp.getQStringNumberInSpecificDigit(TransformRot[1], 6);
-	QString StringRotZ = theApp.getQStringNumberInSpecificDigit(TransformRot[2], 6);
+// 	double* pRotation = theApp.PhantomPanelActor[phantomIndex]->GetOrientation();
+// 	double TransformRot[3];
+// 	TransformRot[0] = pRotation[0];
+// 	TransformRot[1] = pRotation[1];
+// 	TransformRot[2] = pRotation[2];
+// 	QString StringRotX = theApp.getQStringNumberInSpecificDigit(TransformRot[0], 6);
+// 	QString StringRotY = theApp.getQStringNumberInSpecificDigit(TransformRot[1], 6);
+// 	QString StringRotZ = theApp.getQStringNumberInSpecificDigit(TransformRot[2], 6);
 
-	theApp.pRt->PhantomPosX_QLineEdit->setText(StringTranslatedPosX);
-	theApp.pRt->PhantomPosY_QLineEdit->setText(StringTranslatedPosY);
-	theApp.pRt->PhantomPosZ_QLineEdit->setText(StringTranslatedPosZ);
+// 	theApp.pRt->PhantomPosX_QLineEdit->setText(StringTranslatedPosX);
+// 	theApp.pRt->PhantomPosY_QLineEdit->setText(StringTranslatedPosY);
+// 	theApp.pRt->PhantomPosZ_QLineEdit->setText(StringTranslatedPosZ);
 
-	theApp.pRt->PhantomRotX_QLineEdit->setText(StringRotX);
-	theApp.pRt->PhantomRotY_QLineEdit->setText(StringRotY);
-	theApp.pRt->PhantomRotZ_QLineEdit->setText(StringRotZ);
-}
+// 	theApp.pRt->PhantomRotX_QLineEdit->setText(StringRotX);
+// 	theApp.pRt->PhantomRotY_QLineEdit->setText(StringRotY);
+// 	theApp.pRt->PhantomRotZ_QLineEdit->setText(StringRotZ);
+// }
 
 ////////////////// Phantom Clothing ////////////////// 
 void PhantomObjects::PhantomClothingGenerate(QString strFileName, bool IsPreDefinedClothing) // called by (1) slot_ClothingAddingOK_ButtonClicked, (2) RubberBandUserClothingGenerate, (3) LoadReconsturctionFile_previous
 {
-	int phantomIdx = theApp.pRt->m_Phantom_SelectedIndex;
-	int clothingIdx = theApp.pRt->m_Clothing_MakingIndex; 	
+	int phantomIdx = theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex; //m_Phantom_SelectedIndex;
+	int clothingIdx = theApp.pRt->m_phantoms->getModel().m_Clothing_MakingIndex; 	
 
 	if (strFileName == "") return; //Imported 팬텀이어서 없으면 빠져나가기	
 	
@@ -931,11 +935,11 @@ void PhantomObjects::PhantomClothingGenerate(QString strFileName, bool IsPreDefi
 	AppendPhantomPolyData_GeneratePhantomActor(phantomIdx);
 
 	// Save clothing information
-	theApp.pRt->SaveClothingInformation_InClothingGenerate();
+	theApp.pRt->m_phantoms->SaveClothingInformation_InClothingGenerate();
 
 	// Set clothing panel
-	theApp.pRt->SetClothingPanelInfo(clothingIdx, 0); // Generate 중에는 0번 layer index를 생성
-	theApp.pRt->InitializeClothingPanel_InClothingAdd();
+	theApp.pRt->m_phantoms->SetClothingPanelInfo(clothingIdx, 0); // Generate 중에는 0번 layer index를 생성
+	theApp.pRt->m_phantoms->InitializeClothingPanel_InClothingAdd();
 }
 void PhantomObjects::RubberBandInitialization() // called by (1) slot_ClothingAddingOK_ButtonClicked
 {
@@ -944,7 +948,8 @@ void PhantomObjects::RubberBandInitialization() // called by (1) slot_ClothingAd
 	theApp.m_pVTKWidget->renderWindow()->GetInteractor()->SetPicker(areaPicker);
 
 	const double PI = vtkMath::Pi() / 180; // deg to rad 변환용 PI
-	int PhantomIdx = theApp.pRt->m_Phantom_SelectedIndex;
+	//int PhantomIdx = theApp.pRt->m_Phantom_SelectedIndex;
+	int PhantomIdx = theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex;
 
 	// Origianl polydata 생성 
 	vtkSmartPointer<vtkPolyData> PhantomPolydataOriginal;
@@ -966,12 +971,12 @@ void PhantomObjects::RubberBandInitialization() // called by (1) slot_ClothingAd
 	double xy_scale = theApp.PhantomPolyDataScaleFactor[PhantomIdx][0];
 	double z_scale = theApp.PhantomPolyDataScaleFactor[PhantomIdx][1];
 
-	double PosX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][6];
-	double PosY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][7];
-	double PosZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][8];
-	double RotX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][9];
-	double RotY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][10];
-	double RotZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][11];
+	double PosX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][6];
+	double PosY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][7];
+	double PosZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][8];
+	double RotX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][9];
+	double RotY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][10];
+	double RotZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][11];
 
 	Eigen::Matrix4f X;
 	Eigen::Matrix4f Y;
@@ -1028,12 +1033,12 @@ void PhantomObjects::RubberBandInitialization() // called by (1) slot_ClothingAd
 	double xy_scale_AC = 1; // 체형변형 팬텀 또한 이미 scale 되어 있으므로 스케일링은 형식상 존재
 	double z_scale_AC = 1;
 
-	double PosX_AC = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][6];
-	double PosY_AC = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][7];
-	double PosZ_AC = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][8];
-	double RotX_AC = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][9];
-	double RotY_AC = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][10];
-	double RotZ_AC = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][11];
+	double PosX_AC = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][6];
+	double PosY_AC = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][7];
+	double PosZ_AC = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][8];
+	double RotX_AC = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][9];
+	double RotY_AC = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][10];
+	double RotZ_AC = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][11];
 
 	Eigen::Matrix4f X_AC;
 	Eigen::Matrix4f Y_AC;
@@ -1099,8 +1104,10 @@ void PhantomObjects::RubberBandUserClothingGenerate() // called by (1) ETInterac
 		theApp.m_pVTKWidget->renderWindow()->GetInteractor()->SetInteractorStyle(theApp.m_pVTKWidget->GetBaseInteractorStyle()); // 다 종료 후 cameraview모드로 돌아가기
 		return;
 	}	
-	int phantomIdx = theApp.pRt->m_Phantom_SelectedIndex;
-	int clothingIdx = theApp.pRt->m_Clothing_MakingIndex;
+	//int phantomIdx = theApp.pRt->m_Phantom_SelectedIndex;
+	int phantomIdx = theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex;
+	//int clothingIdx = theApp.pRt->m_Clothing_MakingIndex;
+	int clothingIdx = theApp.pRt->m_phantoms->getModel().m_Clothing_MakingIndex;
 
 	// 의복까지 누적된 팬텀에 해당하는 pointID에 일치하는 point와 일치하는 cell data 얻어서 polydata 제작
 	vtkSmartPointer<vtkPoints> originalPoints = theApp.PhantomPanelAccumulatedPolyData[phantomIdx]->GetPoints(); // 누적 팬텀에서 points 데이터 획득
@@ -1188,13 +1195,15 @@ void PhantomObjects::RubberBandUserClothingGenerate() // called by (1) ETInterac
 ////////////////// Phantom Eyewear ////////////////// 
 void PhantomObjects::PhantomFlatGlassesGenerate() //
 {
-	int PhantomIdx = theApp.pRt->m_Phantom_SelectedIndex;
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][0] = theApp.pRt->EyewearDistance_QLineEdit->text().toDouble(); // distance
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][1] = theApp.pRt->EyewearRadius_QLineEdit->text().toDouble(); // radius
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][2] = theApp.pRt->EyewearThickness_QLineEdit->text().toDouble(); // radius
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][3] = theApp.pRt->EyewearDensity_QLineEdit->text().toDouble(); // density
-	// composition(1: Glasses, 2: Leaded glasses)
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][4] = theApp.pRt->EyewearComposition_QComboBox->currentIndex();
+	int PhantomIdx = theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex;
+	// theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][0] = theApp.pRt->EyewearDistance_QLineEdit->text().toDouble(); // distance
+	// theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][1] = theApp.pRt->EyewearRadius_QLineEdit->text().toDouble(); // radius
+	// theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][2] = theApp.pRt->EyewearThickness_QLineEdit->text().toDouble(); // radius
+	// theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][3] = theApp.pRt->EyewearDensity_QLineEdit->text().toDouble(); // density
+	// // composition(1: Glasses, 2: Leaded glasses)
+	// theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][4] = theApp.pRt->EyewearComposition_QComboBox->currentIndex();
+	// -->
+	theApp.pRt->m_phantoms->Eyewear_Generate(PhantomIdx);
 
 	double centerX, centerY, centerZ, nx, ny, nz, pointX, pointY, pointZ;
 	int pointID;	
@@ -1331,9 +1340,9 @@ void PhantomObjects::PhantomFlatGlassesGenerate() //
 			centerZ = Pickedpoint[2];
 		}	
 
-		cylinderSource->SetRadius(theApp.pRt->EyewearRadius_QLineEdit->text().toDouble());
-		cylinderSource->SetHeight(theApp.pRt->EyewearThickness_QLineEdit->text().toDouble());
-		cylinderSource->SetCenter(0, (cylinderSource->GetHeight() / 2) + theApp.pRt->EyewearDistance_QLineEdit->text().toDouble(), 0); // Height(두께)의 중점에서 시작 + 눈으로부터 이격거리 만큼 이동
+		cylinderSource->SetRadius(theApp.pRt->m_phantoms->getModel().m_Eyewear_Radius);
+		cylinderSource->SetHeight(theApp.pRt->m_phantoms->getModel().m_Eyewear_Thickness); // EyewearThickness_QLineEdit->text().toDouble());
+		cylinderSource->SetCenter(0, (cylinderSource->GetHeight() / 2) + theApp.pRt->m_phantoms->getModel().m_Eyewear_Distance,0); // EyewearDistance_QLineEdit->text().toDouble(), 0); // Height(두께)의 중점에서 시작 + 눈으로부터 이격거리 만큼 이동
 		cylinderSource->SetResolution(15);
 				
 		vtkSmartPointer<vtkMath> math = vtkSmartPointer<vtkMath>::New();
@@ -1441,8 +1450,8 @@ void PhantomObjects::PhantomFlatGlassesGenerate() //
 	//clothingPolydata = transformFilter_pCenter->GetOutput();
 
 	///////////////////////// Color scalar 설정 //////////////////////
-	double radius = theApp.pRt->EyewearRadius_QLineEdit->text().toDouble(); // 기본 radius = 1 
-	double thickness = theApp.pRt->EyewearThickness_QLineEdit->text().toDouble(); // 기본 thickness(height) = 1
+	double radius = theApp.pRt->m_phantoms->getModel().m_Eyewear_Radius;// EyewearRadius_QLineEdit->text().toDouble(); // 기본 radius = 1 
+	double thickness = theApp.pRt->m_phantoms->getModel().m_Eyewear_Thickness;// EyewearThickness_QLineEdit->text().toDouble(); // 기본 thickness(height) = 1
 
 	float LeadColor[3] = { 240, 255, 255 }; // Wearable color
 
@@ -1476,14 +1485,14 @@ void PhantomObjects::PhantomFlatGlassesGenerate() //
 	theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].actor = Util::CreateActor(theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].polydata);
 	theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].actor->SetMapper(mapper);
 
-	double height = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][3]; // Set phantomInfo
-	double weight = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][4];
-	double CenterX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][5];
-	double CenterY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][6];
-	double CenterZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][7];
-	double VectorX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][8];
-	double VectorY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][9];
-	double VectorZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][10];
+	double height = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][3]; // Set phantomInfo
+	double weight = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][4];
+	double CenterX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][5];
+	double CenterY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][6];
+	double CenterZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][7];
+	double VectorX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][8];
+	double VectorY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][9];
+	double VectorZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][10];
 
 	theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].actor->SetPosition(CenterX, CenterY, CenterZ);
 	theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].actor->SetOrientation(VectorX, VectorY, VectorZ);
@@ -1512,14 +1521,16 @@ void PhantomObjects::PhantomFlatGlassesGenerate() //
 }
 void PhantomObjects::PhantomWraparoundGlassesGenerate() //
 {
-	int PhantomIdx = theApp.pRt->m_Phantom_SelectedIndex;
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][0] = theApp.pRt->EyewearDistance_QLineEdit->text().toDouble(); // distance
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][1] = theApp.pRt->EyewearRadius_QLineEdit->text().toDouble(); // radius
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][2] = theApp.pRt->EyewearThickness_QLineEdit->text().toDouble(); // radius
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][3] = theApp.pRt->EyewearDensity_QLineEdit->text().toDouble(); // density
-	// composition(1: Glasses, 2: Leaded glasses)
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][4] = theApp.pRt->EyewearComposition_QComboBox->currentIndex();
+	int PhantomIdx = theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex;
 
+	// theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][0] = theApp.pRt->EyewearDistance_QLineEdit->text().toDouble(); // distance
+	// theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][1] = theApp.pRt->EyewearRadius_QLineEdit->text().toDouble(); // radius
+	// theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][2] = theApp.pRt->EyewearThickness_QLineEdit->text().toDouble(); // radius
+	// theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][3] = theApp.pRt->EyewearDensity_QLineEdit->text().toDouble(); // density
+	// // composition(1: Glasses, 2: Leaded glasses)
+	// theApp.pRt->m_Clothing_MainInfo[PhantomIdx][100][0][4] = theApp.pRt->EyewearComposition_QComboBox->currentIndex();
+	theApp.pRt->m_phantoms->Eyewear_Generate(PhantomIdx);
+	
 	std::map<int, double> pickedPointCenterX, pickedPointCenterY, pickedPointCenterZ, pickedPointNx, pickedPointNy, pickedPointNz, pointX, pointY, pointZ;
 	int pointID;
 
@@ -1589,8 +1600,8 @@ void PhantomObjects::PhantomWraparoundGlassesGenerate() //
 	}
 	vtkSmartPointer<vtkCubeSource> cubeSource_center = vtkSmartPointer<vtkCubeSource>::New();
 	cubeSource_center->SetXLength(3.0 * abs(pickedPointCenterX[0] - pickedPointCenterX[1]));
-	cubeSource_center->SetYLength(theApp.pRt->EyewearThickness_QLineEdit->text().toDouble());
-	cubeSource_center->SetZLength(2.0 * theApp.pRt->EyewearRadius_QLineEdit->text().toDouble());
+	cubeSource_center->SetYLength(theApp.pRt->m_phantoms->getModel().m_Eyewear_Thickness);// EyewearThickness_QLineEdit->text().toDouble());
+	cubeSource_center->SetZLength(2.0 * theApp.pRt->m_phantoms->getModel().m_Eyewear_Radius);// EyewearRadius_QLineEdit->text().toDouble());
 
 	double normalVector[3] = { (pickedPointNx[0] + pickedPointNx[1]) * 0.5, (pickedPointNy[0] + pickedPointNy[1]) * 0.5, (pickedPointNz[0] + pickedPointNz[1]) * 0.5 };
 	vtkMath::Normalize(normalVector);
@@ -1604,7 +1615,7 @@ void PhantomObjects::PhantomWraparoundGlassesGenerate() //
 	vtkSmartPointer<vtkTransform> transform = vtkSmartPointer<vtkTransform>::New();
 	transform->PostMultiply();
 	transform->RotateWXYZ(rotationAngle, rotationAxis);
-	transform->Translate((pickedPointCenterX[0] + pickedPointCenterX[1]) * 0.5, ((pickedPointCenterY[0] + pickedPointCenterY[1]) * 0.5) - cubeSource_center->GetYLength()*0.5 - theApp.pRt->EyewearDistance_QLineEdit->text().toDouble(), (pickedPointCenterZ[0] + pickedPointCenterZ[1]) * 0.5);
+	transform->Translate((pickedPointCenterX[0] + pickedPointCenterX[1]) * 0.5, ((pickedPointCenterY[0] + pickedPointCenterY[1]) * 0.5) - cubeSource_center->GetYLength()*0.5 - theApp.pRt->m_phantoms->getModel().m_Eyewear_Distance, (pickedPointCenterZ[0] + pickedPointCenterZ[1]) * 0.5);
 
 	vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
 	transformFilter->SetInputConnection(cubeSource_center->GetOutputPort());
@@ -1618,14 +1629,14 @@ void PhantomObjects::PhantomWraparoundGlassesGenerate() //
 	objWriter_center->Write();
 
 	vtkSmartPointer<vtkCubeSource> cubeSource_side1 = vtkSmartPointer<vtkCubeSource>::New();
-	cubeSource_side1->SetXLength(theApp.pRt->EyewearThickness_QLineEdit->text().toDouble());
+	cubeSource_side1->SetXLength(theApp.pRt->m_phantoms->getModel().m_Eyewear_Thickness);
 	cubeSource_side1->SetYLength(abs(pickedPointCenterX[0] - pickedPointCenterX[1]));
-	cubeSource_side1->SetZLength(2.0 * theApp.pRt->EyewearRadius_QLineEdit->text().toDouble());
+	cubeSource_side1->SetZLength(2.0 * theApp.pRt->m_phantoms->getModel().m_Eyewear_Radius);
 	
 	vtkSmartPointer<vtkTransform> transform_side1 = vtkSmartPointer<vtkTransform>::New();
 	transform_side1->PostMultiply();
 	transform_side1->RotateWXYZ(rotationAngle, rotationAxis);
-	transform_side1->Translate((pickedPointCenterX[0] + pickedPointCenterX[1]) * 0.5 + 1.5 * abs(pickedPointCenterX[0] - pickedPointCenterX[1]) - 0.5 * cubeSource_side1->GetXLength(), ((pickedPointCenterY[0] + pickedPointCenterY[1]) * 0.5) - theApp.pRt->EyewearDistance_QLineEdit->text().toDouble() + 0.5 * cubeSource_side1->GetYLength(), (pickedPointCenterZ[0] + pickedPointCenterZ[1]) * 0.5);
+	transform_side1->Translate((pickedPointCenterX[0] + pickedPointCenterX[1]) * 0.5 + 1.5 * abs(pickedPointCenterX[0] - pickedPointCenterX[1]) - 0.5 * cubeSource_side1->GetXLength(), ((pickedPointCenterY[0] + pickedPointCenterY[1]) * 0.5) - theApp.pRt->m_phantoms->getModel().m_Eyewear_Distance + 0.5 * cubeSource_side1->GetYLength(), (pickedPointCenterZ[0] + pickedPointCenterZ[1]) * 0.5);
 
 	vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter_side1 = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
 	transformFilter_side1->SetInputConnection(cubeSource_side1->GetOutputPort());
@@ -1639,14 +1650,14 @@ void PhantomObjects::PhantomWraparoundGlassesGenerate() //
 	objWriter_side1->Write();
 
 	vtkSmartPointer<vtkCubeSource> cubeSource_side2 = vtkSmartPointer<vtkCubeSource>::New();
-	cubeSource_side2->SetXLength(theApp.pRt->EyewearThickness_QLineEdit->text().toDouble());
+	cubeSource_side2->SetXLength(theApp.pRt->m_phantoms->getModel().m_Eyewear_Thickness);
 	cubeSource_side2->SetYLength(abs(pickedPointCenterX[0] - pickedPointCenterX[1]));
-	cubeSource_side2->SetZLength(2.0 * theApp.pRt->EyewearRadius_QLineEdit->text().toDouble());
+	cubeSource_side2->SetZLength(2.0 * theApp.pRt->m_phantoms->getModel().m_Eyewear_Radius);
 
 	vtkSmartPointer<vtkTransform> transform_side2 = vtkSmartPointer<vtkTransform>::New();
 	transform_side2->PostMultiply();
 	transform_side2->RotateWXYZ(rotationAngle, rotationAxis);
-	transform_side2->Translate((pickedPointCenterX[0] + pickedPointCenterX[1]) * 0.5 - 1.5 * abs(pickedPointCenterX[0] - pickedPointCenterX[1]) + 0.5 * cubeSource_side2->GetXLength(), ((pickedPointCenterY[0] + pickedPointCenterY[1]) * 0.5) - theApp.pRt->EyewearDistance_QLineEdit->text().toDouble() + 0.5 * cubeSource_side2->GetYLength(), (pickedPointCenterZ[0] + pickedPointCenterZ[1]) * 0.5);
+	transform_side2->Translate((pickedPointCenterX[0] + pickedPointCenterX[1]) * 0.5 - 1.5 * abs(pickedPointCenterX[0] - pickedPointCenterX[1]) + 0.5 * cubeSource_side2->GetXLength(), ((pickedPointCenterY[0] + pickedPointCenterY[1]) * 0.5) - theApp.pRt->m_phantoms->getModel().m_Eyewear_Distance + 0.5 * cubeSource_side2->GetYLength(), (pickedPointCenterZ[0] + pickedPointCenterZ[1]) * 0.5);
 
 	vtkSmartPointer<vtkTransformPolyDataFilter> transformFilter_side2 = vtkSmartPointer<vtkTransformPolyDataFilter>::New();
 	transformFilter_side2->SetInputConnection(cubeSource_side2->GetOutputPort());
@@ -1691,16 +1702,16 @@ void PhantomObjects::PhantomWraparoundGlassesGenerate() //
 ////////////////// Phantom Dosimeter ////////////////// 
 void PhantomObjects::DosimeterGenerate(int no) // 가시화용(10 um offset, pCenter 0,0,0 맞춤) polydata, 의복비교용(면적 30% margin, pCenter 안 맞춤) polydata, 사면체화용(1 um + separation distance offset, pCenter 안 맞춤) obj 파일 생성
 {
-	int PhantomIdx = theApp.pRt->m_Phantom_SelectedIndex;
+	int PhantomIdx = theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex;
 	int DosimeterIdx = no; 
 	// dosimeter info 업데이트
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][999][0][0] = theApp.pRt->m_DosimeterSequenceVector[PhantomIdx].size();
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][3] = theApp.pRt->DosimeterPosX_QLineEdit->text().toDouble(); // X
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][4] = theApp.pRt->DosimeterPosY_QLineEdit->text().toDouble(); // Y
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][5] = theApp.pRt->DosimeterPosZ_QLineEdit->text().toDouble(); // Z
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][1] = theApp.pRt->DosimeterRadius_QLineEdit->text().toDouble(); // Radius
-	theApp.pRt->m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][2] = theApp.pRt->DosimeterSeparationDistance_QLineEdit->text().toDouble(); // Distance
-		
+	// theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[PhantomIdx][999][0][0] = theApp.pRt->m_phantoms->getModel().m_DosimeterSequenceVector[PhantomIdx].size();
+	// theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][3] = theApp.pRt->DosimeterPosX_QLineEdit->text().toDouble(); // X
+	// theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][4] = theApp.pRt->DosimeterPosY_QLineEdit->text().toDouble(); // Y
+	// theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][5] = theApp.pRt->DosimeterPosZ_QLineEdit->text().toDouble(); // Z
+	// theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][1] = theApp.pRt->DosimeterRadius_QLineEdit->text().toDouble(); // Radius
+	// theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][2] = theApp.pRt->DosimeterSeparationDistance_QLineEdit->text().toDouble(); // Distance
+	theApp.pRt->m_phantoms->Dosimeter_Generate(PhantomIdx, DosimeterIdx);
 	vtkSmartPointer<vtkPolyData> PhantomPolydataBase = theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].polydata_base; // 이 데이터는 BASE POLYDATA임
 	vtkSmartPointer<vtkPoints> points = PhantomPolydataBase->GetPoints();
 	double PickedPoint[3];
@@ -1713,7 +1724,7 @@ void PhantomObjects::DosimeterGenerate(int no) // 가시화용(10 um offset, pCe
 	{
 		// Check if the point is within radius of the specified point
 		double dist = vtkMath::Distance2BetweenPoints(PhantomPolydataBasePoints->GetPoint(i), PickedPoint); // 거리 제곱을 반환
-		double radius = theApp.pRt->DosimeterRadius_QLineEdit->text().toDouble();
+		double radius = theApp.pRt->m_phantoms->getModel().m_Eyewear_Radius;
 		if (dist <= radius * radius) // radius = 2 cm -> dist = 2^2 = 4
 		{			
 			vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
@@ -1802,14 +1813,14 @@ void PhantomObjects::DosimeterGenerate(int no) // 가시화용(10 um offset, pCe
 	theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].actor = Util::CreateActor(theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].polydata);
 	theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].actor->SetMapper(mapper);
 
-	double height = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][3]; // Set phantomInfo
-	double weight = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][4];
-	double CenterX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][5];
-	double CenterY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][6];
-	double CenterZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][7];
-	double VectorX = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][8];
-	double VectorY = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][9];
-	double VectorZ = theApp.pRt->m_Phantom_MainInfo[PhantomIdx][10];
+	double height = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][3]; // Set phantomInfo
+	double weight = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][4];
+	double CenterX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][5];
+	double CenterY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][6];
+	double CenterZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][7];
+	double VectorX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][8];
+	double VectorY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][9];
+	double VectorZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[PhantomIdx][10];
 
 	theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].actor->SetPosition(CenterX, CenterY, CenterZ);
 	theApp.m_3DHumanData_MultiplePhantom[PhantomIdx].actor->SetOrientation(VectorX, VectorY, VectorZ);
@@ -1828,7 +1839,7 @@ void PhantomObjects::DosimeterGenerate(int no) // 가시화용(10 um offset, pCe
 	{
 		// Check if the point is within radius of the specified point
 		double dist = vtkMath::Distance2BetweenPoints(PhantomPolydataBasePoints->GetPoint(i), PickedPoint); // 거리 제곱을 반환
-		double radius = theApp.pRt->DosimeterRadius_QLineEdit->text().toDouble();
+		double radius = theApp.pRt->m_phantoms->getModel().m_Eyewear_Radius;
 		if (dist <= radius * 1.3 * radius * 1.3) // 30% margin
 		{
 			vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
@@ -1879,7 +1890,7 @@ void PhantomObjects::DosimeterGenerate(int no) // 가시화용(10 um offset, pCe
 	normalsFilter_offset->ComputeCellNormalsOff();
 	normalsFilter_offset->Update();
 	vtkDataArray* normalData_offset = normalsFilter_offset->GetOutput()->GetPointData()->GetNormals();
-	double offsetDistance_offset = 0.0001 + theApp.pRt->m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][2]; // 1um 마진 + separation distance
+	double offsetDistance_offset = 0.0001 + theApp.pRt->m_phantoms->getModel().m_Clothing_MainInfo[PhantomIdx][1000][DosimeterIdx][2]; // 1um 마진 + separation distance
 	for (vtkIdType i = 0; i < PhantomPolydata_offset->GetNumberOfPoints(); i++)
 	{
 		double p[3];
@@ -1904,7 +1915,7 @@ void PhantomObjects::DosimeterGenerate(int no) // 가시화용(10 um offset, pCe
 	{
 		// Check if the point is within radius of the specified point
 		double dist = vtkMath::Distance2BetweenPoints(PhantomPolydata_offsetPoints->GetPoint(i), PickedPoint_offset); // 거리 제곱을 반환
-		double radius = theApp.pRt->DosimeterRadius_QLineEdit->text().toDouble();
+		double radius = theApp.pRt->m_phantoms->getModel().m_Eyewear_Radius;
 		if (dist <= radius * radius) // radius = 2 cm -> dist = 2^2 = 4
 		{
 			vtkSmartPointer<vtkIdList> cellIds = vtkSmartPointer<vtkIdList>::New();
@@ -1980,11 +1991,11 @@ void PhantomObjects::SkinLayerGeneration() // called by (1) DataInitialization_L
 		return std::abs(vtkMath::Dot(v1, cross)) / 6.0;
 	};
 
-	for (auto itr_phantomIndex : theApp.pRt->m_Phantom_SequenceVector)
+	for (auto itr_phantomIndex : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
 		// 더미팬텀, 에어스피어팬텀이면 continue
-		if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][theApp.pRt->E_PHANTOMMAININFO_DUMMY] == theApp.pRt->E_PHANTOMDUMMY_YES ||
-			theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][theApp.pRt->E_PHANTOMMAININFO_CATEGORY] == theApp.pRt->E_PHANTOMCATEGORY_AIR) continue;
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][E_PHANTOMMAININFO_DUMMY] == E_PHANTOMDUMMY_YES ||
+			theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][E_PHANTOMMAININFO_CATEGORY] == E_PHANTOMCATEGORY_AIR) continue;
 
 		theApp.SkinPhantomActor[itr_phantomIndex] = vtkSmartPointer<vtkActor>::New();
 		theApp.SkinDoseVisualization_ScalarBar = vtkSmartPointer<vtkScalarBarActor>::New();
@@ -1997,23 +2008,23 @@ void PhantomObjects::SkinLayerGeneration() // called by (1) DataInitialization_L
 		theApp.m_pVTKWidget->GetSceneRenderer()->AddActor(theApp.SkinPhantomActor[itr_phantomIndex]);
 
 		// Skin Density and skin depth(for HP)      
-		if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][1] == 0) // Gender: male
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][1] == 0) // Gender: male
 		{
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 0) { theApp.SkinDenstiy[itr_phantomIndex] = 1.089; theApp.SkinAverageDepth[itr_phantomIndex] = 1600. / 10000.; } 
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 1) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 1250. / 10000.; } 
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 2) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 990. / 10000.; } 
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 3) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 850. / 10000.; } 
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 4) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 5) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 0) { theApp.SkinDenstiy[itr_phantomIndex] = 1.089; theApp.SkinAverageDepth[itr_phantomIndex] = 1600. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 1) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 1250. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 2) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 990. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 3) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 850. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 4) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 5) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
 		}
-		if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][1] == 1) // Gender: female
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][1] == 1) // Gender: female
 		{
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 0) { theApp.SkinDenstiy[itr_phantomIndex] = 1.088; theApp.SkinAverageDepth[itr_phantomIndex] = 1300. / 10000.; } 
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 1) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 1200. / 10000.; } 
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 2) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 990. / 10000.; } 
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 3) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 850. / 10000.; } 
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 4) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
-			if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][12] == 5) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 0) { theApp.SkinDenstiy[itr_phantomIndex] = 1.088; theApp.SkinAverageDepth[itr_phantomIndex] = 1300. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 1) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 1200. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 2) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 990. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 3) { theApp.SkinDenstiy[itr_phantomIndex] = 1.098; theApp.SkinAverageDepth[itr_phantomIndex] = 850. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 4) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][12] == 5) { theApp.SkinDenstiy[itr_phantomIndex] = 1.099; theApp.SkinAverageDepth[itr_phantomIndex] = 660. / 10000.; } 
 		}
 
 		// -------------------------------------------------------
@@ -2021,7 +2032,7 @@ void PhantomObjects::SkinLayerGeneration() // called by (1) DataInitialization_L
 		// -------------------------------------------------------
 		vtkSmartPointer<vtkPolyData> PhantomPolydataOriginal = vtkSmartPointer<vtkPolyData>::New();
 		QString strPath;
-		if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][2] == theApp.pRt->E_PHANTOMTYPE_IMPORTED)
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][2] == E_PHANTOMTYPE_IMPORTED)
 		{
 			std::vector<std::string> extract_organlist;
 			extract_organlist.push_back("12200_Skin_surface");
@@ -2081,18 +2092,18 @@ void PhantomObjects::SkinLayerGeneration() // called by (1) DataInitialization_L
 		transform->PostMultiply(); 
 		double xy_scale = 1;
 		double z_scale = 1;
-		if (theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][theApp.pRt->E_PHANTOMMAININFO_TYPE] == theApp.pRt->E_PHANTOMTYPE_TRANSFORMED) 
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][E_PHANTOMMAININFO_TYPE] == E_PHANTOMTYPE_TRANSFORMED) 
 		{
 			xy_scale = theApp.PhantomPolyDataScaleFactor[itr_phantomIndex][0];
 			z_scale = theApp.PhantomPolyDataScaleFactor[itr_phantomIndex][1];
 		}
 
-		double PosX = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][6];
-		double PosY = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][7];
-		double PosZ = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][8];
-		double RotX = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][9];
-		double RotY = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][10];
-		double RotZ = theApp.pRt->m_Phantom_MainInfo[itr_phantomIndex][11];
+		double PosX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][6];
+		double PosY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][7];
+		double PosZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][8];
+		double RotX = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][9];
+		double RotY = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][10];
+		double RotZ = theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[itr_phantomIndex][11];
 		const double PI = 3.141592 / 180; 
 
 		Eigen::Matrix4f X, Y, Z, Scale;

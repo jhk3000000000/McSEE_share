@@ -9,6 +9,12 @@
 #include <array>
 #include <Eigen/Dense>
 
+#include "PhantomObjects.h"
+#include "PhantomWidget.h"
+#include "SourceGeometryWidget.h"
+#include "SourceObjects.h"
+
+
 vtkStandardNewMacro(ETInteractorStyleTrackballActor);
 
 ETInteractorStyleTrackballActor::ETInteractorStyleTrackballActor()
@@ -118,10 +124,10 @@ void ETInteractorStyleTrackballActor::HandlePhantomPick(vtkActor* pickedActor)
 		if (pickedActor == actor)
 		{
 			b_IsPhantomActorMoving = true;
-			theApp.pRt->m_Phantom_SelectedIndex = key; // Key값 (ID)을 저장
+			theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex = key; // Key값 (ID)을 저장
 
 			// 버튼 Clicked 및 하이라이트 설정
-			theApp.pRt->UpdatePhantom_ListButton(key);
+			theApp.pRt->m_phantoms->UpdatePhantom_ListButton(key);
 			theApp.UpdatePhantom_ActorHighlighted(key);
 
 			pickedActor->GetProperty()->SetOpacity(pickedActor->GetProperty()->GetOpacity() * 0.5);
@@ -144,10 +150,10 @@ void ETInteractorStyleTrackballActor::OnLeftButtonUp()
 	}
 	else if (b_IsPhantomActorMoving) 
 	{		
-		theApp.pRt->SavePhantom_InfoData_InMouseControl(theApp.pRt->m_Phantom_SelectedIndex); // Actor 기반의 데이터를 InfoStatus에 업데이트
-		theApp.pRt->UpdatePhantom_InfoStatus(theApp.pRt->m_Phantom_SelectedIndex); // InfoStatus의 데이터를 InfoData 컨테이너에 업데이트
+		theApp.pRt->m_phantoms->SavePhantom_InfoData_InMouseControl(theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex); // Actor 기반의 데이터를 InfoStatus에 업데이트
+		theApp.pRt->m_phantoms->UpdatePhantom_InfoStatus(theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex); // InfoStatus의 데이터를 InfoData 컨테이너에 업데이트
 
-		theApp.PhantomPanelActor[theApp.pRt->m_Phantom_SelectedIndex]->GetProperty()->SetOpacity(theApp.PhantomPanelActor[theApp.pRt->m_Phantom_SelectedIndex]->GetProperty()->GetOpacity() * 2.0);
+		theApp.PhantomPanelActor[theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex]->GetProperty()->SetOpacity(theApp.PhantomPanelActor[theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex]->GetProperty()->GetOpacity() * 2.0);
 		b_IsPhantomActorMoving = false;
 	}
 

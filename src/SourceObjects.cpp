@@ -63,6 +63,10 @@
 #include <vtkTriangleFilter.h>
 #include <vtkDiskSource.h>
 
+
+#include "SourceGeometryWidget.h"
+#include "PhantomWidget.h"
+
 void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor 가시화 -> 전용코드로 따로 관리
 {
 	auto* BBWidget = theApp.pRt->getSourceWidget<BroadBeamWidget>();
@@ -113,7 +117,8 @@ void SourceObjects::GenerateSourceActor_sourceBB() // Broad Beam 선원 actor �
 	double PhantomBoxYmax = -DBL_MAX;
 	double PhantomBoxZmin = DBL_MAX;
 	double PhantomBoxZmax = -DBL_MAX;
-	for (auto phantomID : theApp.pRt->m_Phantom_SequenceVector)
+	//for (auto phantomID : theApp.pRt->m_Phantom_SequenceVector)
+	for (auto phantomID : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 	{
 		double* bounds = theApp.PhantomPanelActor[phantomID]->GetBounds();
 		if (bounds[0] < PhantomBoxXmin) PhantomBoxXmin = bounds[0];

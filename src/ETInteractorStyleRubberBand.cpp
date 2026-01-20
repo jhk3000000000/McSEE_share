@@ -8,7 +8,9 @@
 #include "vtkUnsignedCharArray.h"
 
 #include "PhantomObjects.h"
+#include "PhantomWidget.h"
 #include "SourceObjects.h"
+#include "SourceGeometryWidget.h"
 #include "Manager_Calculation.h"
 
 #include "Util.h"
@@ -239,7 +241,7 @@ void ETInteractorStyleRubberBand::OnLeftButtonUp()
 		float skyblue_color[3] = { 62, 120, 219 }; // SkyBlue color
 		float skin_color[3] = { 255, 192, 160 };
 		vtkNew<vtkUnsignedCharArray> colors;
-		colors->DeepCopy(theApp.PhantomPanelAccumulatedPolyData[theApp.pRt->m_Phantom_SelectedIndex]->GetPointData()->GetScalars());
+		colors->DeepCopy(theApp.PhantomPanelAccumulatedPolyData[theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex]->GetPointData()->GetScalars());
 		vtkSmartPointer<vtkKdTree> kdTree = vtkSmartPointer<vtkKdTree>::New();
 		//kdTree->BuildLocatorFromPoints(this->AccumulatedPolyData); // Point scalar가 동일한 안경/선량계 누적팬텀을 transform한 팬텀
 		kdTree->BuildLocatorFromPoints(this->OrigianlPolyData); // 어차피 kdTree에서 의복 제외한 origianl 팬텀의 좌표를 통해서만 의복을 만듦(pointID는 안씀)
@@ -331,7 +333,7 @@ void ETInteractorStyleRubberBand::OnLeftButtonUp()
 			}
 			
 		}
-		theApp.PhantomPanelAccumulatedPolyData[theApp.pRt->m_Phantom_SelectedIndex]->GetPointData()->SetScalars(colors); // 실제 움직이는 팬텀은 누적 polydata
+		theApp.PhantomPanelAccumulatedPolyData[theApp.pRt->m_phantoms->getModel().m_Phantom_SelectedIndex]->GetPointData()->SetScalars(colors); // 실제 움직이는 팬텀은 누적 polydata
 		theApp.m_pVTKWidget->renderWindow()->Render();
 
 		__super::OnLeftButtonUp();

@@ -7,7 +7,9 @@
 #include "SimpleLogger.h"
 
 #include "PhantomObjects.h"
+#include "PhantomWidget.h"
 #include "SourceObjects.h"
+#include "SourceGeometryWidget.h"
 
 Manager_Calculation::Manager_Calculation(QObject *parent)
     : QObject(parent)
@@ -90,7 +92,7 @@ void Manager_Calculation::Calculate_Local()
 	{
 		theApp.pRslt->Create_OrganDose_RealtimeLineGraphWidgets(theApp.pRslt->Layout_OrganDose_RealtimeLineGraph_QVBoxLayout, organID);
 	}
-	for (int dosimID = 0; dosimID < theApp.pRt->m_Dosimeter_Maximum_Count; dosimID++) // 선량계 최대 10개
+	for (int dosimID = 0; dosimID < PhantomConstants::m_Dosimeter_Maximum_Count; dosimID++) // 선량계 최대 10개
 	{
 		theApp.pRslt->Create_Dosimeter_RealtimeLineGraphWidgets(theApp.pRslt->Layout_Dosimeter_RealtimeLineGraph_QVBoxLayout, dosimID);
 	}
@@ -236,9 +238,9 @@ void Manager_Calculation::DataInitialization_Local()
 	theApp.WearableTetrahedralization(); 
 	theApp.Generate_MaterialFile();
 	// 사면체 팬텀/의복류 transformation (local mode에서만 Geant4가 아닌 GUI 모듈에서 실행)
-	for (int reset_phantomID = 0; reset_phantomID < theApp.pRt->m_Phantom_SequenceVector.size(); reset_phantomID++)
+	for (int reset_phantomID = 0; reset_phantomID < theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector.size(); reset_phantomID++)
 	{
-		if (theApp.pRt->m_Phantom_MainInfo[theApp.pRt->m_Phantom_SequenceVector[reset_phantomID]][theApp.pRt->E_PHANTOMMAININFO_CATEGORY] == theApp.pRt->E_PHANTOMCATEGORY_AIR) continue; // Air sphere면 node 파일 생성 X
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector[reset_phantomID]][E_PHANTOMMAININFO_CATEGORY] == E_PHANTOMCATEGORY_AIR) continue; // Air sphere면 node 파일 생성 X
 		theApp.TranslatePhantomTetFile(reset_phantomID); // Sequnce vector ID가 아닌, 있는 개수대로 0,1,2,3 ... 으로 들어가야 함
 		theApp.TranslateClothingTetFile(reset_phantomID); // Sequnce vector ID가 아닌, 있는 개수대로 0,1,2,3 ... 으로 들어가야 함
 	}
@@ -426,9 +428,9 @@ void Manager_Calculation::checkProcessInfo_Local()
 		double TargetFactor = 1;
 		std::vector<double> TargerFactor_tmpVec;
 
-		for (auto phantomIdx : theApp.pRt->m_Phantom_SequenceVector)
+		for (auto phantomIdx : theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector)
 		{
-			if (theApp.pRt->m_Phantom_MainInfo[phantomIdx][FunctionPanelRight::E_PHANTOMMAININFO_DUMMY] == FunctionPanelRight::E_PHANTOMDUMMY_YES) continue;
+			if (theApp.pRt->m_phantoms->getModel().m_Phantom_MainInfo[phantomIdx][E_PHANTOMMAININFO_DUMMY] == E_PHANTOMDUMMY_YES) continue;
 
 			// ss_organ_dose_result의 복사본 생성 (위치 보존을 위해)
 			std::stringstream ss_copy(ss_organ_dose_result.str());
@@ -845,68 +847,6 @@ void Manager_Calculation::ServerInitialization()
 
 void Manager_Calculation::Calculate_Server()
 {
-	// time_t t = time(NULL);
-	// struct tm tm = *localtime(&t);
-	// timeStamp = std::to_string(tm.tm_year + 1900) + "-" + std::to_string(tm.tm_mon + 1) + "-" + std::to_string(tm.tm_mday)
-	// 	+ "-" + std::to_string(tm.tm_hour) + "h" + std::to_string(tm.tm_min) + "m" + std::to_string(tm.tm_sec) + "s";
-	// ResultFileName_forServer = "./result/" + timeStamp + ".txt"; // For server mode
-	// if (m_CalculationSetting_ResultFileName == "") m_CalculationSetting_ResultFileName = QString::fromStdString(timeStamp + ".txt");
-	// ResultFileName_notused = m_CalculationSetting_ResultFileName.toStdString(); // For local mode
-	// m_lineEditResultFileName->setText(QString::fromStdString(ResultFileName_notused)); // Output panel에 띄우기
-
-	// // Calculation Start
-	// b_IsCalculationExecuted = true;
-	// b_IsRealtimeCalculation = true;
-
-	// theApp.dbsendFilesClear(); // Clear exist dbsend macro files
-
-	// SetOutputPanelMode();
-	// OutputPhantomButton[0]->show();
-	// OutputPhantomButton[0]->setChecked(true);
-	// theApp.UpdatePhantom_ActorHighlighted(0);
-	// for (int i = 1; i < m_Phantom_SequenceVector.size() + 1; i++)
-	// {
-	// 	OutputPhantomButton[i]->show();
-	// 	OutputPhantomButton[i]->setChecked(false);
-	// }
-	// // Calculate 누르면 source geometry 변경 불가
-	// m_comboBoxSourceGeometry->setDisabled(true);
-
-	// // Determine unit
-	// if (m_comboBoxSourceGeometry->currentIndex() == 0) DoseUnit_QString = "pGy*cm2";
-	// if (m_comboBoxSourceGeometry->currentIndex() == 1) DoseUnit_QString = "pGy/h";
-	// if (m_comboBoxSourceGeometry->currentIndex() == 2) DoseUnit_QString = "pGy/h";
-	// if (m_comboBoxSourceGeometry->currentIndex() == 3) DoseUnit_QString = "pGy/h";
-	// if (m_comboBoxSourceGeometry->currentIndex() == 4) DoseUnit_QString = "pGy/nps";
-	// if (m_comboBoxSourceGeometry->currentIndex() == 5) DoseUnit_QString = "pGy/h";
-	// if (m_comboBoxSourceGeometry->currentIndex() == 6) DoseUnit_QString = "pGy/h";
-	// if (m_comboBoxSourceGeometry->currentIndex() == 7) DoseUnit_QString = "pGy/h";
-	// if (m_comboBoxSourceGeometry->currentIndex() == 7) DoseUnit_QString = "pGy/h";
-
-	// // Create Organ-Dose Bar graph
-	// if (m_comboBoxSourceGeometry->currentIndex() == 0) Create_Dose_BarGraphWidgets(OrganDose_BarGraph_QVBoxLayout);
-	// if (m_comboBoxSourceGeometry->currentIndex() == 1) Create_Dose_BarGraphWidgets(layoutInnerIn_graphEP);
-	// if (m_comboBoxSourceGeometry->currentIndex() == 2) Create_Dose_BarGraphWidgets(layoutInnerIn_graphFD);
-	// if (m_comboBoxSourceGeometry->currentIndex() == 3) Create_Dose_BarGraphWidgets(layoutInnerIn_graphOV);
-	// if (m_comboBoxSourceGeometry->currentIndex() == 4) Create_Dose_BarGraphWidgets(layoutInnerIn_graphPS);
-	// if (m_comboBoxSourceGeometry->currentIndex() == 5) Create_Dose_BarGraphWidgets(layoutInnerIn_graphHP);
-	// if (m_comboBoxSourceGeometry->currentIndex() == 6);
-	// if (m_comboBoxSourceGeometry->currentIndex() == 7);
-
-	// // Initialize realtime Time-Dose graph
-	// int phantomIdx = 0; // 최초 0번 팬텀으로 고정
-	// for (int organID = 0; organID < OrganNameList.size(); organID++) 
-	// {
-	// 	theApp.pRslt->Create_OrganDose_RealtimeLineGraphWidgets(theApp.pRslt->Layout_OrganDose_RealtimeLineGraph_QVBoxLayout, organID);
-	// }
-	// for (int dosimID = 0; dosimID < m_Dosimeter_Maximum_Count; dosimID++) // 선량계 최대 10개
-	// {
-	// 	theApp.pRslt->Create_OrganDose_RealtimeLineGraphWidgets(theApp.pRslt->Layout_OrganDose_RealtimeLineGraph_QVBoxLayout, dosimID);
-	// }
-
-	// theApp.pInf->ProgressLabel->setText("Data initialization...");
-
-	// timer_DataInitialization_Server->start(100); // 시간 margin 주기 위함
 
 	return;
 }
@@ -917,344 +857,10 @@ void Manager_Calculation::uiRunning()
 }
 void Manager_Calculation::DataInitialization_Server()
 {
-// 	timer_DataInitialization_Server->stop();
-	
-// 	QFont font;
-// 	font.setFamily("Arial");    // Font family
-// 	font.setPointSize(FontSizeScaling(10));      // Font size
-// 	font.setWeight(QFont::Bold);   // Font weight
 
-// 	QMessageBox MsgBox;
-// 	MsgBox.setWindowFlag(Qt::WindowStaysOnTopHint);
-// 	MsgBox.setStandardButtons(QMessageBox::NoButton);
-// 	MsgBox.setFont(font);	
-// 	MsgBox.setText("Tetrahedralization...\nPlease wait!!! (~ few min)");
-// 	MsgBox.setStandardButtons(QMessageBox::NoButton);  // No buttons
-// 	MsgBox.show();
-// 	QCoreApplication::processEvents();
-// //theApp.WearableTetrahedralization(); // 의복 생성	
-// 	theApp.phantomObjects->SkinLayerGeneration(); //SKINLAYERGENERATION_skindose
-// 	MsgBox.hide();
-// 	MsgBox.close();
-// 	QCoreApplication::processEvents();
-
-// 	if (m_comboBoxSourceGeometry->currentIndex() == 4)
-// 	{
-// 		int sec_phsp = std::ceil((std::ceil((double)PhaseSpaceFileRow * 0.000001) * 10));
-// 		MsgBox.setText("phspSource Generating...\nPlease wait!!! (~" + QString::number(sec_phsp) + "sec)");
-// 		MsgBox.setStandardButtons(QMessageBox::NoButton);  // No buttons
-// 		MsgBox.show();
-// 		QCoreApplication::processEvents();
-// 	}
-// 	theApp.SaveData(); // dbsend 정보 출력 및 저장
-
-// 	if (m_comboBoxSourceGeometry->currentIndex() == 4)
-// 	{
-// 		MsgBox.hide();
-// 		MsgBox.close();
-// 	}
-// 	QCoreApplication::processEvents();
-
-// 	//Generate Err data for calculation of process infomration from generated Err file
-// 	TargetOrganError_Map.clear();
-// 	std::ifstream errInfo("./data/dbsend/err");
-// 	std::string tmpStr;
-// 	double tmpDbl;
-// 	for (int i = 0; i < OrganNameList.size(); i++)
-// 	{
-// 		errInfo >> tmpStr >> tmpDbl;
-// 		if (tmpDbl < 1) TargetOrganError_Map[tmpStr] = tmpDbl;
-// 	}
-// 	if (TargetOrganError_Map.size() == 0)
-// 	{
-// 		b_IsTargetErrorAbsent = true;
-// 	}
-// 	errInfo.close();	
-
-// 	std::string Simulation_info = "./data/dbsend/Simulation_info"; //SaveData로 생성된 인풋정보
-// 	std::string phantom_collection = "./data/dbsend/phantom_collection"; // SaveData로 생성된 각 팬텀의 정보(이름, 위치, 회전, 스케일링팩터)
-// 	std::string list_collection = "./data/dbsend/list_collection"; // SaveData로 생성된 팬텀을 제외한 차폐체, 의복 layer 여부, 안경, 등등(외부환경, 선량당량 위치, ...)
-// 	std::string macro; // SaveData로 생성된 선원종류에 따른 macro 파일
-// 	std::string err = "./data/dbsend/err"; // SaveData로 생성된 장기별 target error 파일
-// 	std::string Activity = "./data/dbsend/activity"; // UI상에서 입력한 activity 값과 총 yield가 들어있는 파일
-// 	std::string phspFile = "./data/dbsend/phspFile"; // phase space 입자 정보 파일
-// 	std::string command; // Command line with arguments
-// 	std::string layer_ele = "./data/dbsend/wearable_send/layer.ele";
-// 	std::string layer_node = "./data/dbsend/wearable_send/layer.node";
-// 	std::string layer_material = "./data/dbsend/wearable_send/layer.material";
-// 	std::string glasses_ele = "./data/dbsend/wearable_send/glasses.ele";
-// 	std::string glasses_node = "./data/dbsend/wearable_send/glasses.node";
-// 	std::string glasses_material = "./data/dbsend/wearable_send/glasses.material";
-// 	std::string layer_dosimeter_ele = "./data/dbsend/wearable_send/layer_dosimeter.ele";
-// 	std::string layer_dosimeter_node = "./data/dbsend/wearable_send/layer_dosimeter.node";
-// 	std::string layer_dosimeter_material = "./data/dbsend/wearable_send/layer_dosimeter.material";
-	
-// 	if (m_comboBoxSourceGeometry->currentText() == "Broad beam") {
-// 		macro = "./data/dbsend/broad_beam_source";
-// 		command = "-i " + Simulation_info + " -o " + ResultFileName_forServer + " -p " + phantom_collection + " -l " + list_collection + " -m " + macro + " -e " + err;
-// 	}
-// 	else if (m_comboBoxSourceGeometry->currentText() == "External point") {
-// 		macro = "./data/dbsend/external_point_source";
-// 		command = "-i " + Simulation_info + " -o " + ResultFileName_forServer + " -p " + phantom_collection + " -l " + list_collection + " -m " + macro + " -g " + Activity + " -e " + err;
-// 	}
-// 	else if (m_comboBoxSourceGeometry->currentText() == "Hot particle point") {
-// 		macro = "./data/dbsend/hot_particle_point_source";
-// 		command = "-i " + Simulation_info + " -o " + ResultFileName_forServer + " -p " + phantom_collection + " -l " + list_collection + " -m " + macro + " -g " + Activity + " -e " + err;
-// 	}
-// 	else if (m_comboBoxSourceGeometry->currentText() == "Floor disk") {
-// 		macro = "./data/dbsend/floor_disk_source";
-// 		command = "-i " + Simulation_info + " -o " + ResultFileName_forServer + " -p " + phantom_collection + " -l " + list_collection + " -m " + macro + " -g " + Activity + " -e " + err;
-// 	}
-// 	else if (m_comboBoxSourceGeometry->currentText() == "Phase space") {
-// 		macro = "./data/dbsend/phase_space_source";	
-// 		command = "-i " + Simulation_info + " -o " + ResultFileName_forServer + " -p " + phantom_collection + " -l " + list_collection + " -m " + macro + " -e " + err;
-// 	}
-// 	else if (m_comboBoxSourceGeometry->currentText() == "Object volume") {
-// 		macro = "./data/dbsend/object_volume_source";
-// 		command = "-i " + Simulation_info + " -o " + ResultFileName_forServer + " -p " + phantom_collection + " -l " + list_collection + " -m " + macro + " -g " + Activity + " -e " + err;
-// 	}
-
-// 	// MariaDB DB connect
-// 	ServerInitialization();
-
-// 	//serverConnect->createTable(); // 초기에는 CreateTable 써서 초기 table 만들고 이후에는 주석처리 -> 초기 데이터로 쓰일 수 있음.
-		
-// 	serverConnect->sendRowInitialData(command);	
-
-// 	timer_uiRunning->start(3500);
-
-// 	if (m_comboBoxSourceGeometry->currentText() == "Phase space")
-// 	{
-// 		//int sec_phspUploading = std::ceil((theApp.pRt->PSF_FileSize / 70000000 / 5.0)) * 5;
-// 		//MsgBox.setText("phspSource Uploading...\nPlease wait!!! (~" + QString::number(sec_phspUploading) + "sec)");
-// 		MsgBox.setText("phspSource Uploading...\n0% completed\nPlease wait!!! (~ few min)");
-// 		MsgBox.setStandardButtons(QMessageBox::NoButton);  // No buttons
-// 		MsgBox.show();
-// 		QCoreApplication::processEvents();
-
-// 		std::vector<std::string> chunks = serverConnect->readInChunks(phspFile);
-// 		for (int i = 0; i < chunks.size(); i++)
-// 		{
-// 			serverConnect->sendDBFileContent_HugeData(i, chunks[i]); 
-
-// 			MsgBox.setText("phspSource Uploading...\n" + QString::number((double)i/chunks.size() * 100) + "% completed\nPlease wait!!! (~ few min)");
-// 			MsgBox.setStandardButtons(QMessageBox::NoButton);  // No buttons
-// 			MsgBox.show();
-// 			QCoreApplication::processEvents();
-// 		}
-// 		MsgBox.hide();
-// 		MsgBox.close();
-// 		QCoreApplication::processEvents();
-// 	}
-// 	serverConnect->sendDBFileContent(6, Simulation_info);
-// 	serverConnect->sendDBFileContent(7, phantom_collection);
-// 	serverConnect->sendDBFileContent(8, list_collection);
-// 	serverConnect->sendDBFileContent(9, macro);
-// 	serverConnect->sendDBFileContent(10, err);
-// 	serverConnect->sendDBFileContent(11, Activity);
-// 	serverConnect->sendDBFileContent(12, layer_ele);
-// 	serverConnect->sendDBFileContent(13, layer_node);
-// 	serverConnect->sendDBFileContent(14, layer_material);
-// 	serverConnect->sendDBFileContent(15, glasses_ele);
-// 	serverConnect->sendDBFileContent(16, glasses_node);
-// 	serverConnect->sendDBFileContent(17, glasses_material);
-// 	serverConnect->sendDBFileContent(18, layer_dosimeter_ele);
-// 	serverConnect->sendDBFileContent(19, layer_dosimeter_node);
-// 	serverConnect->sendDBFileContent(20, layer_dosimeter_material);
-// 	std::string Flag = "0";
-// 	serverConnect->sendDBFileContent(1, Flag);
-
-// 	timer_checkProcessInfo_Server->start(1500); // ProgressFactor와 동기화 필요
 }
 void Manager_Calculation::checkProcessInfo_Server()
 {
-	// //Check Geant4 simulation status
-	// std::string StatusFlag;	
-	// serverConnect->CheckGeant4Status(StatusFlag);
-
-	// QString ProgressQstr; 
-	// RunningIndex++;
-	// int nowRunningIndex = RunningIndex % 3 + 1;
-
-	// if (StatusFlag == "0") // No data received by McSEE_Commander
-	// {
-	// 	ProgressQstr = "Wait for server connection"; // Do not execute another UI during this state
-	// 	for (int i = 0; i < nowRunningIndex; i++)
-	// 	{
-	// 		ProgressQstr = ProgressQstr + "."; // MC Simuilation Running...
-	// 	}
-	// 	theApp.pInf->ProgressLabel->setText(ProgressQstr);
-	// 	return; 
-	// }
-	// if (StatusFlag == "1") // Running
-	// {
-	// 	//Check ServerPC Info
-	// 	std::string nOfThreads;
-	// 	std::string RAM_MB;		
-	// 	serverConnect->recvServerPCInfo(nOfThreads, RAM_MB);
-	// 	if (nOfThreads == "NULL" || RAM_MB == "NULL") return;
-	// 	RAM_MB = std::to_string(std::stod(RAM_MB) / 1024.0);
-	// 	std::string RAM_GB;
-	// 	std::stringstream ss(RAM_GB);
-	// 	ss << std::fixed << std::setprecision(1) << std::stod(RAM_MB);
-	// 	RAM_GB = ss.str();
-	// 	//RAM usage
-	// 	theApp.pInf->labelMemUsage->setText(QString::fromStdString(RAM_GB) + " GB");
-	// 	//Thread usage
-	// 	theApp.pInf->labelThreadUsage->setText(QString::fromStdString(nOfThreads));
-	// }
-	// else if(StatusFlag == "2") // Geant4 completed
-	// {
-	// 	timer_checkProcessInfo_Server->stop();
-	// 	timer_uiRunning->stop();
-
-	// 	b_IsRealtimeCalculation = false;
-	// 	theApp.pInf->hide();
-	// 	theApp.pRslt->hide();
-
-	// 	QFont font;
-	// 	font.setFamily("Arial");    // Font family		
-	// 	font.setPointSize(FontSizeScaling(8));      // Font size
-	// 	font.setWeight(QFont::Bold);   // Font weight
-
-	// 	QMessageBox MsgBox;
-	// 	MsgBox.setWindowFlag(Qt::WindowStaysOnTopHint);
-	// 	std::string Cumulative;
-	// 	int Run_ID;
-	// 	serverConnect->recvCumulativeData(Run_ID, Cumulative);
-	// 	if (Run_ID == 0) // No Run but stop with stop signal
-	// 	{
-	// 		MsgBox.setText("Geant4 intiailization stopped!");
-	// 		MsgBox.setFont(font);
-	// 		MsgBox.exec();
-	// 		theApp.pInf->StopSaveButton->setDisabled(true); // Stop and Save button disable
-	// 		return;
-	// 	}
-	// 	MsgBox.setText("Calculation has been finished!");
-	// 	MsgBox.setFont(font);
-	// 	MsgBox.exec();
-
-	// 	// Get result from DBserver
-	// 	QDir dir;
-	// 	if (!dir.exists(resultDirectoryQstr)) {
-	// 		bool success = dir.mkpath(resultDirectoryQstr);
-	// 		if (!success) {
-	// 			theApp.SetMessageBox("Failed to create directory!");
-	// 			return;
-	// 		}
-	// 	}
-	// 	std::string ResultFilePathStr = resultDirectoryQstr.toStdString() + "/" + ResultFileName_notused;
-	// 	std::ofstream ofs_result(ResultFilePathStr);
-	// 	std::string ResultStr;
-	// 	serverConnect->recvResultData(ResultStr);
-	// 	ofs_result << ResultStr;
-	// 	ofs_result.close();
-
-	// 	// Disconnect DBserver
-	// 	serverConnect->disconnectServer();
-
-	// 	//theApp.LoadOutputData(QString::fromStdString(ResultFilePathStr));
-
-	// 	theApp.pInf->StopSaveButton->setDisabled(true); // Stop and Save button disable
-	// 	return;
-	// }
-	// else if (StatusFlag == "3") // Geant4 user stop
-	// {		
-	// 	ProgressQstr = "MC Simulation will end soon";
-	// 	for (int i = 0; i < nowRunningIndex; i++)
-	// 	{
-	// 		ProgressQstr = ProgressQstr + "."; // MC Simuilation Running...
-	// 	}
-	// 	theApp.pInf->ProgressLabel->setText(ProgressQstr);
-	// 	return;
-	// }
-	// else if (StatusFlag == "4") // Geant4 Target NPS stop
-	// {
-	// 	ProgressQstr = "MC Simulation will end soon";
-	// 	for (int i = 0; i < nowRunningIndex; i++)
-	// 	{
-	// 		ProgressQstr = ProgressQstr + "."; // MC Simuilation Running...
-	// 	}
-	// 	theApp.pInf->ProgressLabel->setText(ProgressQstr);
-
-	// 	theApp.pInf->StopSaveButton->setDisabled(true); // NPS stop 이 반영되는 동안 멈출수 없도록
-	// //Check ServerPC Info
-	// 	std::string nOfThreads;
-	// 	std::string RAM_MB;
-	// 	serverConnect->recvServerPCInfo(nOfThreads, RAM_MB);
-	// 	if (nOfThreads == "NULL" || RAM_MB == "NULL") return;
-	// 	RAM_MB = std::to_string(std::stod(RAM_MB) / 1024.0);
-	// 	std::string RAM_GB;
-	// 	std::stringstream ss(RAM_GB);
-	// 	ss << std::fixed << std::setprecision(1) << std::stod(RAM_MB);
-	// 	RAM_GB = ss.str();
-	// 	//RAM usage
-	// 	theApp.pInf->labelMemUsage->setText(QString::fromStdString(RAM_GB) + " GB");
-	// 	//Thread usage
-	// 	theApp.pInf->labelThreadUsage->setText(QString::fromStdString(nOfThreads));
-	// 	return;
-	// }
-	// else if (StatusFlag == "9") // Geant4 error
-	// {
-	// 	timer_checkProcessInfo_Server->stop();
-	// 	theApp.SetMessageBox("Geant4 error!!! with " + theApp.m_3DHumanData_MultiplePhantom[0].PhantomName);
-
-	// 	theApp.pInf->StopSaveButton->setDisabled(true); // Stop and Save button disable
-	// 	return;
-	// }
-
-	// // Update using cumulative result
-	// // Get cumulative result from DBserver
-	// //std::string AirKermaResult;
-	// //serverConnect->recvAirKermaResultData(AirKermaResult);
-	// //if (AirKermaResult != "NULL" && b_IsAirKermaCalculated == true) // update 되었으면서 첫번째 계산일 때
-	// //{
-	// //	
-	// //	// show airkerma output
-	// //	std::stringstream ss_outputAK(AirKermaResult);
-	// //  theApp.LoadOutputData_AirKerma(ss_outputAK);
-	// //  b_IsAirKermaCalculated = false; // 계산 완료
-	// //}
-
-
-	// std::string Cumulative;
-	// int Run_ID;
-	// serverConnect->recvCumulativeData(Run_ID, Cumulative);
-	// if (Cumulative == PreCumulative || Cumulative == "NULL") // Cumulative가 업데이트 되지 않았을때
-	// {
-	// 	if (nEvent == 0) // No Run, In initialization
-	// 	{
-	// 		ProgressQstr = "MC Simulation Initilization";
-	// 		for (int i = 0; i < nowRunningIndex; i++)
-	// 		{
-	// 			ProgressQstr = ProgressQstr + "."; // MC Simuilation Running...
-	// 		}
-	// 		theApp.pInf->labelNowTimeRemaining->setText("Calculating");
-	// 	}
-	// 	else // Running 중에 업데이트가 되지 않은 경우 
-	// 	{
-	// 		ProgressQstr = "MC Simulation Running";
-	// 		for (int i = 0; i < nowRunningIndex; i++)
-	// 		{
-	// 			ProgressQstr = ProgressQstr + "."; // MC Simuilation Running...
-	// 		}
-	// 	}
-	// 	theApp.pInf->ProgressLabel->setText(ProgressQstr);
-
-	// 	if (b_IsTargetErrorAbsent == true && b_IsTargetNPSAbsent == true) // No target error
-	// 	{
-	// 		theApp.pInf->bar->setFormat("Continuous Run");
-	// 		theApp.pInf->labelNowTimeRemaining->setText("Not estimated");
-	// 	}
-	// 	else // Common process
-	// 	{
-	// 		theApp.pInf->bar->setValue(ProgressBarValue + (ProgressFactor * 0.8)); // margin 0.8
-	// 		ProgressBarValue = ProgressBarValue + ProgressFactor;
-	// 	}
-
-	// 	return;
-	// }
-	// else if (Cumulative != PreCumulative) // Cumulative가 업데이트 되었을때
 }
 
 // internal helper

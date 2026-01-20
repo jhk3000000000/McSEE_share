@@ -6,6 +6,11 @@
 #include "ETHuman3DApp.h"
 #include "Util.h"
 
+#include "PhantomObjects.h"
+#include "PhantomWidget.h"
+#include "SourceObjects.h"
+#include "SourceGeometryWidget.h"
+
 FunctionPanelTop::FunctionPanelTop(QWidget *parent)
 	: QWidget(parent)
 {
@@ -242,7 +247,7 @@ void FunctionPanelTop::slot_ViewportTop_ButtonClicked()
 		}
 
 
-		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector.size() > 0 ||
 			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}	
 
@@ -272,7 +277,7 @@ void FunctionPanelTop::slot_ViewportBottom_ButtonClicked()
 		{
 			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
 		}
-		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector.size() > 0 ||
 			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}
 
@@ -302,7 +307,7 @@ void FunctionPanelTop::slot_ViewportLeft_ButtonClicked()
 		{
 			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
 		}
-		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector.size() > 0 ||
 			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}
 
@@ -333,7 +338,7 @@ void FunctionPanelTop::slot_ViewportRight_ButtonClicked()
 		{
 			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
 		}
-		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector.size() > 0 ||
 			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}
 
@@ -364,7 +369,7 @@ void FunctionPanelTop::slot_ViewportFront_ButtonClicked()
 		{
 			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
 		}
-		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector.size() > 0 ||
 			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}
 
@@ -395,7 +400,7 @@ void FunctionPanelTop::slot_ViewportBack_ButtonClicked()
 		{
 			has_ObjectSequenceVector = OVWidget->hasOV_Obejcts();
 		}
-		if (theApp.pRt->m_Phantom_SequenceVector.size() > 0 ||
+		if (theApp.pRt->m_phantoms->getModel().m_Phantom_SequenceVector.size() > 0 ||
 			has_ObjectSequenceVector) theApp.m_pVTKWidget->SetVisibilityOff_AxesObjects();
 	}
 
